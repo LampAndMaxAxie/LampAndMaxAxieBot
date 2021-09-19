@@ -88,7 +88,7 @@ async def getMarketplaceProfile(address):
     return jsonDat
 
 async def getInGameName(address):
-    dat = getMarketplaceProfile(address)
+    dat = await getMarketplaceProfile(address)
     if dat == None:
         return None
 
@@ -98,7 +98,7 @@ async def sendErrorToManagers(e, flag):
     tb = traceback.format_exc()
     lineNumber = str(sys.exc_info()[-1].tb_lineno)
 
-    if flag != "":
+    if flag is not "":
         msg = f"On {flag}:\n"
     else:
         msg = ""
