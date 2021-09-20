@@ -98,7 +98,7 @@ async def sendErrorToManagers(e, flag):
     tb = traceback.format_exc()
     lineNumber = str(sys.exc_info()[-1].tb_lineno)
 
-    if flag is not "":
+    if flag != "":
         msg = f"On {flag}:\n"
     else:
         msg = ""
