@@ -1057,7 +1057,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         return None
 
     url = gameAPI + "/clients/" + roninAddr + "/teams?offset=0&limit=20"
-    jsonDat = makeJsonRequest(url, token)
+    jsonDat = await makeJsonRequest(url, token)
 
     if jsonDat == None:
         return None
