@@ -1,0 +1,13 @@
+.idea/
+.env
+jftTokens.json
+qr
+qr/*
+images
+images/*
+*.log
+*.db
+*.cfg
+__pychache__
+SecretStorage.py
+
