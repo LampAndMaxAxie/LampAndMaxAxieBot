@@ -1086,7 +1086,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         # request genetic data for each axie
         for axId in axieIds:
             urlParts = "https://api.axie.technology/invalidateaxie/" + str(axId)
-            res = makeJsonRequestWeb(urlParts)
+            res = await makeJsonRequestWeb(urlParts)
 
             axieParts[axId] = {"stats": res["stats"], "class": res["class"], "parts": res["parts"], "name": res["name"],
                                "level": axieLevels[k]}
