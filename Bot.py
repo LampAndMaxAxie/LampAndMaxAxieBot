@@ -264,7 +264,7 @@ async def checkEnergyQuest():
             # fetch the data
             sort = "mmr"
             ascText = "desc"
-            table, cacheExp = await getScholarSummary(ScholarsDict, sort, False, guildId)
+            table, cacheExp = await getScholarSummary(ScholarsDict, sort, False)
 
             # error
             if table is None or cacheExp is None:
