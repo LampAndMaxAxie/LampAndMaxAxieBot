@@ -14,6 +14,24 @@ When doing O-Auth to add your bot to your Discord server, make sure to grant/do 
 2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands, etc.
 3. Go to the Bot menu in the Dev Portal and under "Privileged Gateway Intents" enable the "Server Members Intent"
 
+### Guide
+1. Adding Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&addManager discordID`
+2. Removing Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&removeManager discordID`
+3. Add Scholars. This can be done by owner/managers. `&addScholar seedNum accountNum discordID scholarShare`. `scholarShare` is between 0.01 to 1.00.
+4. Remove Scholars. This can be done by owner/managers. `&removeScholar discordID`
+5. Update Scholar Share. This can be done by owner/managers. `&updateScholarShare discordID scholarShare`. `scholarShare` is between 0.01 to 1.00.
+6. Set Scholar Payout Address. This can be done by the scholar themself, or by owner/managers. `&setPayoutAddress addr [discordID]`. discordID is optional and only usable by owner/managers.
+7. Get Scholars. This can be done by anyone, and simply returns the current information about a scholar. `&getScholar [discordID]`. If discordID is left out it uses the caller.
+8. Membership Report. This reports on the member counts for different roles in the user database. `&membership`
+9. Mass Payout. This triggers a payout for all scholars in the database, skipping those not ready or without a payout address set. `&massPayout`
+10. Indvidual Payout. This can only be triggered by a scholar themselves. `&payout`
+
+If you've run a mass payout, then individual payouts are disabled. This is because running individual payouts during a mass payout could have undesirable effects. If you want to re-enable individual payouts, run `&setProperty massPay 0`.
+
+The options for `&getProperty property`/equivalent setter are `devDonation` and `massPay`.
+
+For other utility commands, run the `&help` command on your active bot.
+
 ### Main Features List
 1. DM QR codes to scholars on request
 2. Automatically claim SLP and payout to scholars, either triggered in bulk or scholars can individually request.
@@ -38,4 +56,7 @@ The bot will create a file `jftTokens.json` which contains the Axie Infinity gam
 Daily data requested and used by the bot is only cached in-memory and won't be saved over machine reboot or application re-launch.
 
 If you create a custom icon called exactly `:slp:` (yes, lowercase) then the bot will use that emoji as needed.
+
+### Transparency / Developer Donations
+The bot comes with a default 2.5% (0.025) developer donation configured. You can decrease/increase this with `&setProperty devDonation 0.04`, for 4% as an example. A value of 0 disables it, but please consider supporting us as we've put hundreds of payless hours into this project.
 
