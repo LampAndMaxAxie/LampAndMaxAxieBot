@@ -171,7 +171,7 @@ async def on_message(message):
         await helpCommand(message, discordId)
         return
 
-    logger.warn('Unknown command entered: {}'.format(message.content))
+    logger.warning('Unknown command entered: {}'.format(message.content))
     return
 
 
