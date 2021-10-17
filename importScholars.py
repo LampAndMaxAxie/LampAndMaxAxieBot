@@ -50,7 +50,7 @@ async def importScholars(fName):
         logger.info(f"{row['discord_id']}: seed/acc {row['seed_num']}/{row['account_num']} and share {row['share']}")
     logger.info(f"Imported {count} scholars")
 
-    pass
+    exit()
 
 client.run(DiscordBotToken)
 
