@@ -1,0 +1,5 @@
+# seedNum,accountNum,discordID,scholarShare
+2,1,123,0.55
+2,2,124,0.60
+2,3,125,0.50
+2,4,126,0.55

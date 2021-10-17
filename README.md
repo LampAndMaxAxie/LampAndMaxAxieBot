@@ -60,3 +60,16 @@ If you create a custom icon called exactly `:slp:` (yes, lowercase) then the bot
 ### Transparency / Developer Donations
 The bot comes with a default 2.5% (0.025) developer donation configured. You can decrease/increase this with `&setProperty devDonation 0.04`, for 4% as an example. A value of 0 disables it, but please consider supporting us as we've put hundreds of payless hours into this project.
 
+### Scholar Import Script
+The script `importScholars.py` depends on: `config.cfg`, `import.txt`, and `SecretStorage.py`. So make sure your `config.cfg` and `import.txt` are filled out before running it. The `SecretStorage.py` really just needs the bot token, since the import script will run as a bot that terminates.
+
+Explanation of `import.txt`:
+seedNum: refers to which seedphrase this wallet is on. If you only have one seedphrase, then every row should have a `1` here.
+accountNum: refers to which wallet on the seedphrase is used. For example, the top wallet on the ronin extension would be `1`. Make sure you don't count any imported hardware wallets.
+discordID: the scholar's discord ID
+scholarShare: the scholar share, between 0.01 to 1.00
+
+The bot does not yet use seed phrases, this data entry is just in preparation for when `SecretStorage.py` of private keys becomes obsolete and we switch to encrypted seed phrase mnemonics instead, which we will index by seed phrase and wallet order on that seed phrase.
+
+To run the import, just do `python3 importScholars.py`
+
