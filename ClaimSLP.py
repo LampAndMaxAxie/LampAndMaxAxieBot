@@ -73,7 +73,7 @@ def ClaimSLP(key, address, token, data, attempt=1):
         except exceptions.TransactionNotFound:
             logger.warn("Not found yet, waiting.")
     if success:
-        logger.print(slpClaimed)
+        logger.info(slpClaimed)
         #payout.write(slpClaimed + "\t")
         return
     else:
@@ -122,13 +122,13 @@ def sendSLP(key, address, token, scholar_address, owner_address, scholar_percent
         max_slp = floor(amountToSend * amount)
         owner_slp = amount - (scholar_slp + max_slp)
         sendTx(key, address, token, max_slp, '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd')
-        time.sleep(10)
+        time.sleep(3)
     else:
         owner_slp = amount - scholar_slp
     sendTx(key, address, token, owner_slp, owner_address)
-    time.sleep(10)
+    time.sleep(3)
     sendTx(key, address, token, scholar_slp, scholar_address)
-    time.sleep(10)
+    time.sleep(3)
     #payout.write("\n")
     logger.info("Scholar " + address + " payout successful")
 
@@ -143,7 +143,7 @@ def slpClaiming(key, address, scholar_address, owner_address, scholar_percent,am
         amount = int(json_data['total'])
         #payout.write(address + "\t")
         ClaimSLP(key, address, accessToken, json_data)
-        time.sleep(10)
+        time.sleep(3)
         #payout.write(str(amount) + "\t")
         scholar_slp = floor(amount * scholar_percent)
         logger.info(str(scholar_slp) + " to scholar account " + scholar_address)
