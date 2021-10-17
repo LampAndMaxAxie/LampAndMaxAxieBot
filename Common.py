@@ -3,6 +3,7 @@ import configparser
 import os
 import json
 
+from loguru import logger
 from discord.ext import tasks, commands
 from dislash import slash_commands
 from dislash.interactions import *
@@ -19,21 +20,24 @@ config = configparser.ConfigParser()
 try:
     config.read(r'./config.cfg')
 except:
-    print("Please fill out a config.cfg file according to specifications.")
+    logger.error("Please fill out a config.cfg file according to specifications.")
     exit()
 
 try:
-    managerName = config.get('Manager', 'managerName')
-    managerIds = json.loads(config.get('Manager', 'managerIds'))
+    programName = config.get('Manager', 'programName')
+    ownerID = config.get('Manager', 'ownerDiscordID')
+    ownerRonin = config.get('Manager', 'ownerRoninAddr')
 except:
-    print("Please fill out a [Manager] section for managerName and managerIds.")
+    logger.error("Please fill out a [Manager] section for programName and ownerId.")
     exit()
 
 try:
-    channelId = int(config.get('Server', 'alertsChannelId'))
+    alertChannelId = int(config.get('Server', 'alertsChannelId'))
+    leaderboardChannelId = int(config.get('Server', 'leaderboardsChannelId'))
+    leaderboardPeriod = int(config.get('Server', 'leaderboardsPeriodHours'))
     serverIds = json.loads(config.get('Server', 'serverIds'))
 except:
-    print("Please fill out a [Server] section with alertsChannelId and serverId.")
+    logger.error("Please fill out a [Server] section with alertsChannelId and serverIds.")
     exit()
 
 try:
@@ -50,7 +54,7 @@ try:
     else:
         dmErrorsToManagers = True
 except:
-    print("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
+    logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
     exit()
 
 
@@ -60,8 +64,7 @@ forceAlert = False
 
 
 # Functions
-async def messageManagers(msg):
-    global managerIds
+async def messageManagers(msg, managerIds):
     global client
     global dmErrorsToManagers
 
@@ -69,14 +72,34 @@ async def messageManagers(msg):
         return
 
     for managerId in managerIds:
-        print("Message error to " + str(managerId))
-        user = client.get_user(int(managerId))
+        logger.warn("Message error to " + str(managerId))
+        user = await client.fetch_user(int(managerId))
 
         if user is not None:
             await user.send(msg)
         else:
-            print("Failed to DM manager: " + str(managerId))
+            logger.error("Failed to DM manager: " + str(managerId))
 
+async def getNameFromDiscordID(id):
+    logger.info(f"Fetching name for {id}") 
+    usr = await client.fetch_user(int(id))
+    logger.info(usr)
+    if usr is None:
+        return None
+    return usr.name + "#" + usr.discriminator
+
+async def handleResponse(message, content, isSlash):
+    if isSlash:
+        await message.edit(content=content)
+    else:
+        await message.reply(content=content)
+
+def isFloat(val):
+    try:
+        float(val)
+    except ValueError:
+        return False
+    return True
 
 # Setup Filesystem
 if not os.path.exists("./qr/"):

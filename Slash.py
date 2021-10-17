@@ -34,6 +34,21 @@ async def help(ctx):
 
 
 @slash.command(
+    name="export",
+    description="Returns an export of all scholars",
+    guild_ids=serverIds
+)
+async def export(ctx):
+    await ctx.create_response(type=5)
+    
+    discordId = ctx.author.id
+    isManager = False
+    if discordId in managerIds:
+        isManager = True
+    await exportCommand(ctx, isManager, True)
+
+
+@slash.command(
     name="qr",
     description="Generate and recieve a QR code for mobile login",
     guild_ids=serverIds

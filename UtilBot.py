@@ -21,10 +21,12 @@ import AccessToken
 import bs4
 import random
 import configparser
+from loguru import logger
 
 from PIL import Image
 from urllib3 import Retry
 from Common import *
+import DB
 
 try:
     CACHE_TIME = int(config.get('Bot', 'cacheTimeMinutes'))
@@ -34,7 +36,7 @@ try:
     tz2 = pytz.timezone(tz2String)
     tzutc = pytz.timezone('UTC')
 except:
-    print("Please fill out a [Bot] section with cacheTimeMinutes, timezone1, and timezone2.")
+    logger.error("Please fill out a [Bot] section with cacheTimeMinutes, timezone1, and timezone2.")
     exit()
 
 scholarCache = {}
@@ -79,8 +81,8 @@ async def getMarketplaceProfile(address):
         response = requests.request("GET", url, headers=headers, data=payload)
         jsonDat = json.loads(response.text)
     except Exception as e:
-        print("Error in getMarketplaceProfile")
-        
+        logger.error("Error in getMarketplaceProfile")
+        logger.error(e)
         await sendErrorToManagers(e, "")     
         
         return None
@@ -105,7 +107,10 @@ async def sendErrorToManagers(e, flag):
 
     msg += f"Caught exception: {e} on line {lineNumber}\n"
     msg += f"```\n{tb}\n```"
-    await messageManagers(msg)        
+
+    mgrIds = await DB.getAllManagerIDs()
+
+    await messageManagers(msg, mgrIds)
 
 # fetch a remote image
 def saveUrlImage(url, name):
@@ -113,7 +118,7 @@ def saveUrlImage(url, name):
         urllib.request.urlretrieve(url, name)
         return name
     except:
-        print("Erroring downloading image " + url)
+        logger.error("Erroring downloading image " + url)
         return None
 
 
@@ -135,7 +140,7 @@ def concatImages(imagePaths, name, excessPxl=0):
         new_im.save(name)
         return name
     except:
-        print("Error combining images")
+        logger.error("Error combining images")
         return None
 
 
@@ -171,7 +176,7 @@ def getPlayerToken(roninKey, roninAddr):
             with open("jftTokens.json", 'w') as f:
                 json.dump(tokenBook, f)
     except:
-        print("Failed to get token for: " + roninAddr)
+        logger.error("Failed to get token for: " + roninAddr)
         traceback.print_exc()
         return None
     return token
@@ -194,26 +199,26 @@ async def makeJsonRequestWeb(url):
 
         jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
         succ = False
-        if u'success' in jsonDat:
-            succ = jsonDat[u'success']
+        if 'success' in jsonDat:
+            succ = jsonDat['success']
 
         if 'story_id' in jsonDat:
             succ = True
 
         if not succ:
-            if u'details' in jsonDat and len(jsonDat[u'details']) > 0:
-                if u'code' in jsonDat[u'details'][0]:
-                    print("API call failed in makeJsonRequestWeb for: " + url + ", " + jsonDat[u'details'][0][u'code'])
+            if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                if 'code' in jsonDat:
+                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['code'])
                 else:
-                    print("API call failed in makeJsonRequestWeb for: " + url + ", " + jsonDat[u'details'][0])
+                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
             else:
-                print("API call failed in makeJsonRequestWeb for: " + url)
+                logger("API call failed in makeJsonRequest for: " + url)
             return None
 
     except Exception as e:
-        print("Exception in makeJsonRequest for: " + url)
-        print(response.data.decode('utf8'))
-        traceback.print_exc()
+        logger.error("Exception in makeJsonRequest for: " + url)
+        logger.error(response.data.decode('utf8'))
+        #traceback.print_exc()
         
         await sendErrorToManagers(e, url)    
         
@@ -242,26 +247,26 @@ async def makeJsonRequest(url, token):
 
         jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
         succ = False
-        if u'success' in jsonDat:
+        if 'success' in jsonDat:
             succ = jsonDat[u'success']
 
         if 'story_id' in jsonDat:
             succ = True
 
         if not succ:
-            if u'details' in jsonDat and len(jsonDat[u'details']) > 0:
-                if u'code' in jsonDat[u'details'][0]:
-                    print("API call failed in makeJsonRequest for: " + url + ", " + jsonDat[u'details'][0][u'code'])
+            if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                if 'code' in jsonDat:
+                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['code'])
                 else:
-                    print("API call failed in makeJsonRequest for: " + url + ", " + jsonDat[u'details'][0])
+                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
             else:
-                print("API call failed in makeJsonRequest for: " + url)
+                logger("API call failed in makeJsonRequest for: " + url)
             return None
 
     except Exception as e:
-        print("Exception in makeJsonRequest for: " + url)
-        print(response.data.decode('utf8'))
-        traceback.print_exc()
+        logger.error("Exception in makeJsonRequest for: " + url)
+        logger.error(response.data.decode('utf8'))
+        #traceback.print_exc()
         
         await sendErrorToManagers(e, url)
         
@@ -461,8 +466,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         res["avgSlpPerDay"] = round(inGameSlp / daysSinceClaim, 1)
         res["claimDate"] = claimDate
     except Exception as e:
-        traceback.print_exc()
-        
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, name)    
         
         return None
@@ -678,8 +683,8 @@ async def getRoninBattles(roninAddr):
             res['image'] = combinedImg
 
     except Exception as e:
-        traceback.print_exc()
-        
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, name)    
         
         return None
@@ -890,8 +895,8 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
             res['image'] = combinedImg
 
     except Exception as e:
-        traceback.print_exc()
-        
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, str(targetId))    
         
         return None
@@ -901,6 +906,11 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
 
     return res
 
+async def getScholarExport(scholarsDict):
+    df = pd.DataFrame(columns=['Scholar','ronin'])
+    for scholar in scholarsDict:
+        df.loc[len(df.index)] = [scholarsDict[scholar][0],scholarsDict[scholar][1].replace("0x","ronin:")]
+    return df 
 
 # builds a summary table of all scholars
 async def getScholarSummary(scholarsDict, sort="avgslp", ascending=False, guildId=None):
@@ -960,9 +970,9 @@ async def getScholarSummary(scholarsDict, sort="avgslp", ascending=False, guildI
 
         return df, cacheEast
     except Exception as e:
-        print("Failed to get scholar summary")
-        traceback.print_exc()
-        
+        logger.error("Failed to get scholar summary")
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, "summary")    
         
         return None, None
@@ -983,13 +993,13 @@ async def getScholarTop10(scholarsDict, sort="slp"):
 
             # sort as desired
             if sort in ["avgslp", "slp"]:
-                df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
+                #df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['SLP/Day'], ascending=ascending)
             elif sort in ["adventure", "adv"]:
-                df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
+                #df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
                 df = df.sort_values(by=['SLP/Day'], ascending=ascending)
             elif sort in ["mmr", "rank", "battle", "arena"]:
-                df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+                #df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['MMR'], ascending=ascending)
 
             df['Pos'] = np.arange(len(df))
@@ -1021,22 +1031,22 @@ async def getScholarTop10(scholarsDict, sort="slp"):
 
         # sort as desired
         if sort in ["avgslp", "slp"]:
-            df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
+            #df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['SLP/Day'], ascending=ascending)
         elif sort in ["adventure", "adv"]:
-            df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
+            #df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
             df = df.sort_values(by=['SLP/Day'], ascending=ascending)
         elif sort in ["mmr", "rank", "battle", "arena"]:
-            df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            #df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['MMR'], ascending=ascending)
 
         df['Pos'] = np.arange(len(df))
 
         return df.head(10), cacheEast
     except Exception as e:
-        print("Failed to get scholar top 10")
-        traceback.print_exc()
-        
+        logger.error("Failed to get scholar top 10")
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, "top10")    
         
         return None, None
@@ -1182,14 +1192,15 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         # save to cache
         teamCache[discordId] = {"cache": cacheExp, "embed": embed, "mobileEmbed": mobileEmbed, "image": combinedImg}
 
-        # print(msg)
+        # logger.info(msg)
 
         return teamCache[discordId]
     except Exception as e:
-        print("Failed in getPlayerAxies")
-        traceback.print_exc()
-        
+        logger.error("Failed in getPlayerAxies")
+        #traceback.print_exc()
+        logger.error(e)
         await sendErrorToManagers(e, discordId)    
         
         return None
+
 

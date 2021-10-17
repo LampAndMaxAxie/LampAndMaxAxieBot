@@ -3,24 +3,26 @@
 ### Code Setup
 1. Install python3 via your preferred method, if you don't already have it.
 2. Run the installation script to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`.
-3. Fill out the values in `config.cfg`.
-4. Fill out the `SecretStorage.py` file with scholar Discord ID/name and your Ronin address/key; this is to match wallets to scholars and to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order.
+3. Fill out/replace the values in `config.cfg`. Everything is required.
+4. Fill out the `SecretStorage.py` file with scholar Discord ID/name and your Ronin address/key; this is to match wallets to scholars and to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order. This is still required, but won't be one mnemonic processing is implemented.
 5. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
 6. Add the bot's "client secret" to the `SecretStorage.py` file.
 
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:
 1. Scopes: bot, applications.commands
-2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands
+2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands, etc.
 3. Go to the Bot menu in the Dev Portal and under "Privileged Gateway Intents" enable the "Server Members Intent"
 
-### Feature List
-1. Fetch the Axie teams from a scholars account, displays their level and parts/stats
-2. Get scholar daily progress regarding Adventure SLP and Daily Quest completion
-3. Generate a scholar summary of all scholars, ranked on what you'd like to sort by
-4. Automatically sends alerts in a specified channel an hour before reset if people are missing progress
-5. DM QR codes to scholars on request
-6. Get recent battles for a scholar/ronin address
+### Main Features List
+1. DM QR codes to scholars on request
+2. Automatically claim SLP and payout to scholars, either triggered in bulk or scholars can individually request.
+3. Fetch the Axie teams from a scholars account, displays their level and parts/stats
+4. Get scholar daily progress regarding Adventure SLP and Daily Quest completion
+5. Generate a scholar summary of all scholars, ranked on what you'd like to sort by
+6. Automatically sends alerts in a specified channel an hour before reset if people are missing progress
+7. Automatically post summaries in a specified channel at some interval of hours. Set the leaderboardPeriod to 25 to disable.
+8. Get recent battles for a scholar/ronin address
 
 ### Additional Information
 Supports text commands with prefix and slash commands! Note that embeds in slash commands can't contain images due to "API limitations" (quote the shitty API docs), so if you want the images in `battles` and `axies` calls, use a text command instead of a slash command.
