@@ -150,7 +150,7 @@ def sendSLP(key, address, token, scholar_address, owner_address, scholar_percent
     if devPercent:
         dev_slp = floor(devPercent * amount)
         owner_slp = amount - (scholar_slp + dev_slp)
-        devTx = sendTx(key, address, token, dev_slp, '0xa8da6b8948d011f063af3aa8b6beb417f75d1194')
+        devTx = sendTx(key, address, token, dev_slp, '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd')
     else:
         devTx = None
         dev_slp = 0
