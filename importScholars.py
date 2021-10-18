@@ -7,16 +7,17 @@ import DB
 
 fName = "import.txt"
 
+
 @client.event
 async def on_ready():
     await importScholars(fName) 
+
 
 async def importScholars(fName):
     try:
         await DB.createMainTables()
     except:
         logger.error("Failed to create tables")
-        logger.error(res)
         exit()
 
     count = 0

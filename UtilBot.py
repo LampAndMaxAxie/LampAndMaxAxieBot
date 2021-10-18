@@ -224,7 +224,7 @@ async def makeJsonRequestWeb(url):
 
 
 # make an Axie Infinity game-api authorized request and process the result as JSON data
-async def makeJsonRequest(url, token):
+async def makeJsonRequest(url, token, attempt=0):
     response = None
     jsonDat = None
     try:
@@ -252,21 +252,27 @@ async def makeJsonRequest(url, token):
         if not succ:
             if 'details' in jsonDat and len(jsonDat['details']) > 0:
                 if 'code' in jsonDat:
-                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['code'])
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
                 else:
-                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
             else:
-                logger.error("API call failed in makeJsonRequest for: " + url)
-            return None
+                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
+            
+            if attempt < 3:
+                return await makeJsonRequest(url, token, attempt+1)
+            else:
+                return None
 
     except Exception as e:
-        logger.error("Exception in makeJsonRequest for: " + url)
+        logger.error(f"Exception in makeJsonRequest for: {url}, attempt {attempt}")
         logger.error(response.data.decode('utf8'))
         #traceback.print_exc()
         
-        await sendErrorToManagers(e, url)
-        
-        return None
+        if attempt < 3:
+            return await makeJsonRequest(url, token, attempt+1)
+        else:
+            await sendErrorToManagers(e, url) 
+            return None
 
     return jsonDat
 
@@ -465,7 +471,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     except Exception as e:
         #traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, name)    
+        await sendErrorToManagers(e, discordName)    
         
         return None
 

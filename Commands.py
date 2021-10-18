@@ -22,6 +22,7 @@ from UtilBot import *
 import DB
 import ClaimSLP
 
+
 async def helpCommand(message, discordId, isSlash=False):
     if not isSlash:
         await message.channel.trigger_typing()     
@@ -88,7 +89,7 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
 
         accessToken = getPlayerToken(accountPrivateKey, accountAddress)
 
-        if accessToken == None:
+        if accessToken is None:
             msg = 'Sorry <@' + str(discordId) + '>, there was an issue with your request. Please try again later.'
             await handleResponse(message,msg,isSlash)
             return
@@ -110,10 +111,11 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
 
     else:
         logger.warning("This user didn't receive a QR Code : " + message.author.name)
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + managerName + '\'s scholars.'
+        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
         
         await handleResponse(message,msg,isSlash)
         return
+
 
 async def setPropertyCommand(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -130,6 +132,7 @@ async def setPropertyCommand(message, args, isManager, discordId, guildId, isSla
     
     res = await DB.setProperty(prop, val)
     await handleResponse(message,res["msg"],isSlash)
+
 
 async def getPropertyCommand(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -163,6 +166,7 @@ async def getPropertyCommand(message, args, isManager, discordId, guildId, isSla
     else:
         await message.reply(embed=embed)
 
+
 def getEmojiFromReact(reaction):
     emoji = None
     if type(reaction.emoji) is str:
@@ -170,6 +174,7 @@ def getEmojiFromReact(reaction):
     else:
         emoji = reaction.emoji.name
     return emoji
+
 
 async def processConfirmationAuthor(message, embed, timeoutSecs=None):
     authorID = message.author.id
@@ -198,8 +203,7 @@ async def processConfirmationAuthor(message, embed, timeoutSecs=None):
     
     except asyncio.TimeoutError:
         return confMsg, None
-    
-    return confMsg, None
+
 
 async def processConfirmationManager(message, embed, timeoutSecs=None):
     authorID = message.author.id
@@ -230,8 +234,7 @@ async def processConfirmationManager(message, embed, timeoutSecs=None):
     
     except asyncio.TimeoutError:
         return confMsg, None
-    
-    return confMsg, None
+
 
 async def getScholar(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -278,6 +281,7 @@ async def getScholar(message, args, isManager, discordId, guildId, isSlash=False
     else:
         await message.reply(content=f"<@{authorID}>", embed=embed)
 
+
 async def addScholar(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -301,7 +305,7 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     name = await getNameFromDiscordID(discordUID)
     if name is None:
         await handleResponse(message,"Could not find user with that discord ID",isSlash)
-        return    
+        return
 
     if len(args) == 5 and isFloat(args[4]):
         scholarShare = round(float(args[4]),3)
@@ -334,11 +338,11 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -351,7 +355,8 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     res = await DB.addScholar(discordUID, name, seedNum, accountNum, scholarShare)
     
     await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
-    
+
+
 async def removeScholar(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -373,11 +378,11 @@ async def removeScholar(message, args, isManager, discordId, guildId, isSlash=Fa
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -390,7 +395,8 @@ async def removeScholar(message, args, isManager, discordId, guildId, isSlash=Fa
     res = await DB.removeScholar(discordUID)
     
     await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
- 
+
+
 async def updateScholarShare(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -441,11 +447,11 @@ async def updateScholarShare(message, args, isManager, discordId, guildId, isSla
     
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -458,6 +464,7 @@ async def updateScholarShare(message, args, isManager, discordId, guildId, isSla
     res = await DB.updateScholarShare(discordUID, scholarShare)
     
     await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
+
 
 async def updateScholarAddress(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -496,11 +503,11 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
     
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -513,6 +520,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
     res = await DB.updateScholarAddress(discordId, payoutAddr)
     
     await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
+
 
 async def addManager(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -535,11 +543,11 @@ async def addManager(message, args, isManager, discordId, guildId, isSlash=False
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -551,6 +559,7 @@ async def addManager(message, args, isManager, discordId, guildId, isSlash=False
     
     res = await DB.addManager(discordUID, name)
     await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
+
 
 async def removeManager(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -573,11 +582,11 @@ async def removeManager(message, args, isManager, discordId, guildId, isSlash=Fa
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -588,7 +597,8 @@ async def removeManager(message, args, isManager, discordId, guildId, isSlash=Fa
     # remove manager from DB
     res = await DB.removeManager(discordUID)
     await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
-    
+
+
 async def membershipCommand(message, args, isManager, discordId, guildId, isSlash=False):
     res = await DB.getMembershipReport()
     name = await getNameFromDiscordID(ownerID)    
@@ -607,6 +617,7 @@ async def membershipCommand(message, args, isManager, discordId, guildId, isSlas
     else:
         await message.reply(embed=embed)
 
+
 def getLoadingContent(complete, total):
     unixtime = int(time.time())
     disptime = str(datetime.datetime.fromtimestamp(unixtime).strftime("%H:%M:%S"))
@@ -614,7 +625,7 @@ def getLoadingContent(complete, total):
     msg += '\n['
     percent = (float(complete) / float(total))*100.0
     for i in range(1,11):
-        if percent >= i*10 and percent < (i+1)*10:
+        if i*10 <= percent < (i + 1)*10:
             msg += ':rocket:'
         elif percent > i*10:
             msg += ':cloud:'
@@ -622,6 +633,7 @@ def getLoadingContent(complete, total):
             msg += ':black_large_square:'
     msg += ':full_moon:] ({:.2f}%, {}/{})'.format(percent, complete, total)
     return msg
+
 
 async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
@@ -670,11 +682,11 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         pass
     else:
@@ -690,7 +702,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
 
     try:
         #devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
-        claimRes = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
+        claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
     except Exception as e:
         logger.error(e)
         await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
@@ -701,7 +713,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         return
         
     if claimRes is None:
-        await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
+        await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please ask your manager if you should try again.")
         return
 
     devTx = claimRes["devTx"]
@@ -718,12 +730,14 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
-    embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
+    if devTx is not None:
+        embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
     embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
     embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
     embed.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
     
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
+
 
 async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlash=False): 
     authorID = message.author.id
@@ -760,11 +774,11 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
-    if conf == None:
+    if conf is None:
         # timeout
         await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
         return
-    elif conf == True:
+    elif conf:
         # confirmed
         await DB.setProperty("massPay", 1)
     else:
@@ -802,7 +816,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
         scholarSlp = 0
         res = None
         try:
-            res = ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
+            res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
         except Exception as e:
             logger.error(e)
             errors += 1
@@ -812,7 +826,8 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
         else:
             skipped += 1
 
-        devTotal += res["devAmount"]
+        if res["devAmount"] is not None:
+            devTotal += res["devAmount"]
         ownerTotal += res["ownerAmount"]
         scholarTotal += res["scholarAmount"]
 
@@ -833,6 +848,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     embed2.add_field(name="Total SLP Farmed", value=f"{grandTotal}")
     
     await loadMsg.reply(content=f"<@{authorID}>", embed=embed2)
+
 
 async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=False):
     if not isSlash:
@@ -863,7 +879,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         # fetch data
         res = await getPlayerDailies(discordId, tId, scholar[0], roninKey, roninAddr, guildId)
 
-        if res == None:
+        if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your stats. Please try again later.'
             if isSlash:
                 await message.edit(content=msg)
@@ -879,7 +895,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
             await message.reply(embed=res["embed"])
 
     else:
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + managerName + '\'s scholars.'
+        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
         if isSlash:
             await message.edit(content=msg)
         else:
@@ -898,7 +914,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
         # fetch data
         res = await getRoninBattles(roninAddr)
 
-        if res == None:
+        if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching the battles, or there are 0 battles to fetch. Please try again later.'
             if isSlash:
                 await message.edit(content=msg)
@@ -908,7 +924,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
 
         # send results
         # await message.channel.send(res["msg"])
-        if res['image'] == None:
+        if res['image'] is None:
             if isSlash:
                 await message.edit(embed=res["embed"])
             else:
@@ -936,7 +952,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
             roninAddr = scholar[1]
 
             if roninAddr == "":
-                await message.reply('Sorry <@' + str(discordId) + '>, your manager has not configured game data access.')
+                msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured game data access.'
                 if isSlash:
                     await message.edit(content=msg)
                 else:
@@ -946,7 +962,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
             # fetch data
             res = await getScholarBattles(discordId, tId, scholar[0], roninAddr)
 
-            if res == None:
+            if res is None:
                 msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your battles, or there are 0 battles to fetch. Please try again later.' 
                 if isSlash:
                     await message.edit(content=msg)
@@ -956,7 +972,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
 
             # send results
             # await message.channel.send(res["msg"])
-            if res['image'] == None:
+            if res['image'] is None:
                 if isSlash:
                     await message.edit(embed=res["embed"])
                 else:
@@ -968,7 +984,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
                 else:
                     await message.reply(file=combinedFile,embed=res["embed"])
         else:
-            msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + managerName + '\'s scholars.'
+            msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
             if isSlash:
                 await message.edit(content=msg)
             else:
@@ -1007,7 +1023,7 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         # fetch axie data
         res = await getPlayerAxies(tId, scholar[0], roninKey, roninAddr, ind)
 
-        if res == None:
+        if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your axies. Please try again later.'
             if isSlash:
                 await message.edit(content=msg)
@@ -1022,7 +1038,7 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         else:
             embed = res["mobileEmbed"]
 
-        if res['image'] == None:
+        if res['image'] is None:
             if isSlash:
                 await message.edit(embed=embed)
             else:
@@ -1036,7 +1052,7 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
                 await message.reply(file=combinedFile,embed=embed)
 
     else:
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + managerName + '\'s scholars.'
+        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
         if isSlash:
             await message.edit(content=msg)
         else:
@@ -1101,6 +1117,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
         await message.reply(content=msg,file=discord.File(fName))
 
     os.remove(fName)
+
 
 async def exportCommand(message, isManager, isSlash=False):
     if not isManager:

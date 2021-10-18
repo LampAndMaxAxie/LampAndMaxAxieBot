@@ -2,7 +2,7 @@ import discord
 import configparser
 import os
 import json
-
+from web3 import Account, Web3
 from loguru import logger
 from discord.ext import tasks, commands
 from dislash import slash_commands
@@ -61,7 +61,7 @@ except:
 # Globals
 alertPing = True
 forceAlert = False
-
+mnemonicList = {}
 
 # Functions
 async def messageManagers(msg, managerIds):
@@ -72,7 +72,7 @@ async def messageManagers(msg, managerIds):
         return
 
     for managerId in managerIds:
-        logger.warn("Message error to " + str(managerId))
+        logger.warning("Message error to " + str(managerId))
         user = await client.fetch_user(int(managerId))
 
         if user is not None:
@@ -80,19 +80,22 @@ async def messageManagers(msg, managerIds):
         else:
             logger.error("Failed to DM manager: " + str(managerId))
 
-async def getNameFromDiscordID(id):
-    logger.info(f"Fetching name for {id}") 
-    usr = await client.fetch_user(int(id))
+
+async def getNameFromDiscordID(UID):
+    logger.info(f"Fetching name for {UID}")
+    usr = await client.fetch_user(int(UID))
     logger.info(usr)
     if usr is None:
         return None
     return usr.name + "#" + usr.discriminator
+
 
 async def handleResponse(message, content, isSlash):
     if isSlash:
         await message.edit(content=content)
     else:
         await message.reply(content=content)
+
 
 def isFloat(val):
     try:
@@ -107,3 +110,16 @@ if not os.path.exists("./qr/"):
 if not os.path.exists("./images/"):
     os.mkdir("images")
 
+
+async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
+    mnemonic = mnemonicList[seedNumber]
+    scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(accountNumber))
+    if scholarAddress == scholarAccount.address:
+        logger.info("Got the key for " + scholarAddress + " correctly")
+        return {
+            "key": Web3.toHex(scholarAccount.key),
+            "address": scholarAccount.address
+        }
+    else:
+        logger.error("Account Address did not match derived address")
+        return None

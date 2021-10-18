@@ -26,7 +26,7 @@ from Commands import *
     description="Returns information on the available commands",
     guild_ids=serverIds
 )
-async def help(ctx):
+async def helpsSlash(ctx):
     await ctx.create_response(type=5)
     
     discordId = ctx.author.id
