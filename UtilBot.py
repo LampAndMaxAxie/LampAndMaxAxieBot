@@ -60,10 +60,6 @@ def getQRCode(accessToken, discordID):
     return imgName
 
 
-def printf(format, *args):
-    sys.stdout.write(format % args)
-
-
 # setup requests pool
 retryAmount = 3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -91,7 +87,7 @@ async def getMarketplaceProfile(address):
 
 async def getInGameName(address):
     dat = await getMarketplaceProfile(address)
-    if dat == None:
+    if dat is None:
         return None
 
     return dat['data']['publicProfileWithRoninAddress']['name']
@@ -166,7 +162,7 @@ def getPlayerToken(roninKey, roninAddr):
                 token = tokenBook[roninAddr]["token"]
             else:
                 # generate new token
-                token = AccessToken.GenerateAccessToken(roninKey, roninAddr, True)
+                token = AccessToken.GenerateAccessToken(roninKey, roninAddr)
                 exp = int(time.time()) + 6 * 24 * 60 * 60  # 6 day expiration, to be shy of 7 days
                 tokenBook[roninAddr] = {"token": token, "exp": exp}
                 changed = True
@@ -212,7 +208,7 @@ async def makeJsonRequestWeb(url):
                 else:
                     logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
             else:
-                logger("API call failed in makeJsonRequest for: " + url)
+                logger.error("API call failed in makeJsonRequest for: " + url)
             return None
 
     except Exception as e:
@@ -260,7 +256,7 @@ async def makeJsonRequest(url, token):
                 else:
                     logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
             else:
-                logger("API call failed in makeJsonRequest for: " + url)
+                logger.error("API call failed in makeJsonRequest for: " + url)
             return None
 
     except Exception as e:
@@ -285,7 +281,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
 
     # get auth token
     token = getPlayerToken(roninKey, roninAddr)
-    if token == None:
+    if token is None:
         return None
 
     # fetch data
@@ -302,7 +298,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     jsonDatBalance = await makeJsonRequest(urlBalance, token)
 
     # fail out if any data is missing
-    if jsonDat == None or jsonDatQuests == None or jsonDatBattle == None or jsonDatBalance == None:
+    if jsonDat is None or jsonDatQuests is None or jsonDatBattle is None or jsonDatBalance is None:
         return None
 
     cacheExp = int(time.time()) + CACHE_TIME * 60
@@ -421,9 +417,9 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
 
         slpIcon = None
         if guildId and guildId in slpEmojiID:
-            if slpEmojiID[guildId] != None:
+            if slpEmojiID[guildId] is not None:
                 slpIcon = '<:slp:{}>'.format(slpEmojiID[guildId])
-        if slpIcon == None:
+        if slpIcon is None:
             slpIcon = ""
 
         if hideScholarRonins:
@@ -448,23 +444,24 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
 
         # package the data to cache and return
-        res = {}
-        res["embed"] = embed
-        res["mmr"] = mmr
-        res["rank"] = rank
-        res["name"] = name
-        res["pvpSlp"] = pvpSlp
-        res["pveSlp"] = pveSlp
-        res["pvpCount"] = pvpCount
-        res["pveCount"] = pveCount
-        res["questSlp"] = questSlp
-        res["totalSlp"] = pveSlp + pvpSlp + questSlp
-        res["energy"] = remainingEnergy
-        res["lifetimeSlp"] = lifetimeSlp
-        res["claimCycleDays"] = daysSinceClaim
-        res["inGameSlp"] = inGameSlp
-        res["avgSlpPerDay"] = round(inGameSlp / daysSinceClaim, 1)
-        res["claimDate"] = claimDate
+        res = {
+            "embed": embed,
+            "mmr": mmr,
+            "rank": rank,
+            "name": name,
+            "pvpSlp": pvpSlp,
+            "pveSlp": pveSlp,
+            "pvpCount": pvpCount,
+            "pveCount": pveCount,
+            "questSlp": questSlp,
+            "totalSlp": pveSlp + pvpSlp + questSlp,
+            "energy": remainingEnergy,
+            "lifetimeSlp": lifetimeSlp,
+            "claimCycleDays": daysSinceClaim,
+            "inGameSlp": inGameSlp,
+            "avgSlpPerDay": round(inGameSlp / daysSinceClaim, 1),
+            "claimDate": claimDate
+        }
     except Exception as e:
         #traceback.print_exc()
         logger.error(e)
@@ -497,7 +494,7 @@ async def getRoninBattles(roninAddr):
         name = "<unknown>"
 
     # fail out if any data is missing
-    if jsonDat == None or jsonDatRank == None:
+    if jsonDat is None or jsonDatRank is None:
         return None
 
     cacheExp = int(time.time()) + CACHE_TIME * 60
@@ -527,7 +524,7 @@ async def getRoninBattles(roninAddr):
         for battle in battles:
             result = None
 
-            if lastTime == None:
+            if lastTime is None:
                 lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
 
             # opponent ronin
@@ -564,9 +561,9 @@ async def getRoninBattles(roninAddr):
                 result = 'lose'
 
             # streak
-            if streakBroken == True:
+            if streakBroken:
                 pass
-            elif streakType == None:
+            elif streakType is None:
                 streakType = result
                 streakAmount = 1
             elif streakBroken == False and streakType == result:
@@ -598,18 +595,18 @@ async def getRoninBattles(roninAddr):
                 axieUrl = 'https://storage.googleapis.com/assets.axieinfinity.com/axies/{}/axie/axie-full-transparent.png'.format(
                     axieId)
                 res = saveUrlImage(axieUrl, imgPath)
-                if res == None:
+                if res is None:
                     imgErr = True
                     break
                 else:
                     axieImages.append(imgPath)
 
-        if imgErr == False:
+        if not imgErr:
             combinedIds = '{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             combinedImg = './images/{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             if not os.path.exists(combinedImg):
                 res = concatImages(axieImages, combinedImg)
-                if res == None:
+                if res is None:
                     imgErr = True
 
         matches = wins + losses + draws
@@ -659,27 +656,26 @@ async def getRoninBattles(roninAddr):
         embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
         embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
-        combinedFile = None
-        if imgErr == False:
-            combinedFile = discord.File(combinedImg)
+        if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
 
-        res = {}
-        res['embed'] = embed
-        res['name'] = name
-        res['matches'] = matches
-        res['wins'] = wins
-        res['losses'] = losses
-        res['draws'] = draws
-        res['winrate'] = winrate
-        res['loserate'] = loserate
-        res['drawrate'] = drawrate
-        res['latest'] = latestMatches
-        res['replays'] = replayText
-        res['streakType'] = streakType
-        res['streakAmount'] = streakAmount
+        res = {
+            'embed': embed,
+            'name': name,
+            'matches': matches,
+            'wins': wins,
+            'losses': losses,
+            'draws': draws,
+            'winrate': winrate,
+            'loserate': loserate,
+            'drawrate': drawrate,
+            'latest': latestMatches,
+            'replays': replayText,
+            'streakType': streakType,
+            'streakAmount': streakAmount
+        }
 
-        if imgErr == False:
+        if not imgErr:
             res['image'] = combinedImg
 
     except Exception as e:
@@ -710,7 +706,7 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
     # fail out if any data is missing
-    if jsonDat == None or jsonDatRank == None:
+    if jsonDat is None or jsonDatRank is None:
         return None
 
     cacheExp = int(time.time()) + CACHE_TIME * 60
@@ -740,7 +736,7 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         for battle in battles:
             result = None
 
-            if lastTime == None:
+            if lastTime is None:
                 lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
 
             # opponent ronin
@@ -777,9 +773,9 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
                 result = 'lose'
 
             # streak
-            if streakBroken == True:
+            if streakBroken:
                 pass
-            elif streakType == None:
+            elif streakType is None:
                 streakType = result
                 streakAmount = 1
             elif streakBroken == False and streakType == result:
@@ -811,18 +807,18 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
                 axieUrl = 'https://storage.googleapis.com/assets.axieinfinity.com/axies/{}/axie/axie-full-transparent.png'.format(
                     axieId)
                 res = saveUrlImage(axieUrl, imgPath)
-                if res == None:
+                if res is None:
                     imgErr = True
                     break
                 else:
                     axieImages.append(imgPath)
 
-        if imgErr == False:
+        if not imgErr:
             combinedIds = '{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             combinedImg = './images/{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             if not os.path.exists(combinedImg):
                 res = concatImages(axieImages, combinedImg)
-                if res == None:
+                if res is None:
                     imgErr = True
 
         matches = wins + losses + draws
@@ -872,26 +868,25 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
         embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
-        combinedFile = None
-        if imgErr == False:
-            combinedFile = discord.File(combinedImg)
+        if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
 
-        res = {}
-        res['embed'] = embed
-        res['matches'] = matches
-        res['wins'] = wins
-        res['losses'] = losses
-        res['draws'] = draws
-        res['winrate'] = winrate
-        res['loserate'] = loserate
-        res['drawrate'] = drawrate
-        res['latest'] = latestMatches
-        res['replays'] = replayText
-        res['streakType'] = streakType
-        res['streakAmount'] = streakAmount
+        res = {
+            'embed': embed,
+            'matches': matches,
+            'wins': wins,
+            'losses': losses,
+            'draws': draws,
+            'winrate': winrate,
+            'loserate': loserate,
+            'drawrate': drawrate,
+            'latest': latestMatches,
+            'replays': replayText,
+            'streakType': streakType,
+            'streakAmount': streakAmount
+        }
 
-        if imgErr == False:
+        if not imgErr:
             res['image'] = combinedImg
 
     except Exception as e:
@@ -1063,13 +1058,13 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
 
     # auth token
     token = getPlayerToken(roninKey, roninAddr)
-    if token == None:
+    if token is None:
         return None
 
     url = gameAPI + "/clients/" + roninAddr + "/teams?offset=0&limit=20"
     jsonDat = await makeJsonRequest(url, token)
 
-    if jsonDat == None:
+    if jsonDat is None:
         return None
 
     utc_time = int(datetime.datetime.now(tzutc).timestamp())
@@ -1169,23 +1164,21 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
                 axieUrl = 'https://storage.googleapis.com/assets.axieinfinity.com/axies/{}/axie/axie-full-transparent.png'.format(
                     axieId)
                 res = saveUrlImage(axieUrl, imgPath)
-                if res == None:
+                if res is None:
                     imgErr = True
                     break
                 else:
                     axieImages.append(imgPath)
 
-        if imgErr == False:
+        if not imgErr:
             combinedIds = '{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             combinedImg = './images/{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             if not os.path.exists(combinedImg):
                 res = concatImages(axieImages, combinedImg)
-                if res == None:
+                if res is None:
                     imgErr = True
 
-        combinedFile = None
-        if imgErr == False:
-            combinedFile = discord.File(combinedImg)
+        if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
             mobileEmbed.set_image(url=f"attachment://{combinedIds}")
 

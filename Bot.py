@@ -256,7 +256,7 @@ async def checkEnergyQuest():
             alertPing = True
             await channel.send(msg)
 
-        if rn.hour % leaderboardPeriod == 0 and rn.minute == 0:  # allow periodically
+        if leaderboardPeriod < 25 and rn.hour % leaderboardPeriod == 0 and rn.minute == 0:  # allow periodically
             logger.info("Processing scheduled leaderboard posting")
 
             channel = client.get_channel(leaderboardChannelId);

@@ -4,7 +4,7 @@ from eth_account.messages import encode_defunct
 from web3 import Web3
 
 
-def signRoninMessage(message, key, attempts2=1):
+def signRoninMessage(message, key, attempts2=0):
     try:
         mes = encode_defunct(text=message)
         ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
@@ -17,21 +17,21 @@ def signRoninMessage(message, key, attempts2=1):
         elif temp == "1b":
             signature += "00"
         else:
-            logger.error("Something went wrong with signRoninMessage")
+            print("something went wrong with signRoninMessage")
         return signature
     except Exception as e:
         if attempts2 > 3:
-            logger.error("Could not Sign Message. Are the servers having issues?")
-            logger.error(e)
+            print("Could not Sign Message. Are the servers having issues?")
+            print(e)
             return None
         else:
             return signRoninMessage(message, key, attempts2 + 1)
 
 
-def GenerateAccessToken(key, address, attempts=1):
+def GenerateAccessToken(key, address, attempts=0):
     def getRandomMessage(attempts2=0):
         try:
-            url = "https://axieinfinity.com/graphql-server-v2/graphql"
+            url = "https://graphql-gateway.axieinfinity.com/graphql"
 
             payload = "{\"query\":\"mutation CreateRandomMessage {\\r\\n  createRandomMessage\\r\\n}\",\"variables\":{}}"
             headers = {
@@ -43,13 +43,13 @@ def GenerateAccessToken(key, address, attempts=1):
             return json_data['data']['createRandomMessage']
         except Exception as e:
             if attempts2 > 3:
-                logger.error("Could not generate AccessToken Random Message. Are the servers having issues?")
-                logger.error(e)
+                print("Could not generate AccessToken Random Message. Are the servers having issues?")
+                print(e)
                 return None
             else:
                 return getRandomMessage(attempts2+1)
 
-    def signRoninMessage(message, key, attempts2=1):
+    def signRoninMessage(message, key, attempts2=0):
         try:
             mes = encode_defunct(text=message)
             ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
@@ -62,12 +62,12 @@ def GenerateAccessToken(key, address, attempts=1):
             elif temp == "1b":
                 signature += "00"
             else:
-                logger.error("Something went wrong with signRoninMessage")
+                print("something went wrong with signRoninMessage")
             return signature
         except Exception as e:
             if attempts2 > 3:
-                logger.error("Could not Sign Message. Are the servers having issues?")
-                logger.error(e)
+                print("Could not Sign Message. Are the servers having issues?")
+                print(e)
                 return None
             else:
                 return signRoninMessage(message, key, attempts2+1)
@@ -75,7 +75,7 @@ def GenerateAccessToken(key, address, attempts=1):
 
     def CreateAccessToken(message, signature, address, attempts2=0):
         try:
-            url = "https://axieinfinity.com/graphql-server-v2/graphql"
+            url = "https://graphql-gateway.axieinfinity.com/graphql"
             payload = "{\"query\":\"mutation CreateAccessTokenWithSignature($input: SignatureInput!)" \
                       "{\\r\\n  createAccessTokenWithSignature(input: $input)" \
                       "{\\r\\n    newAccount\\r\\n    result\\r\\n    accessToken\\r\\n    __typename\\r\\n  }" \
@@ -90,9 +90,9 @@ def GenerateAccessToken(key, address, attempts=1):
             return json_data['data']['createAccessTokenWithSignature']['accessToken']
         except Exception as e:
             if attempts2 > 3:
-                logger.error("Could not Create Access Token. Are the servers having issues?")
-                logger.error(e)
-                raise None
+                print("Could not Create Access Token. Are the servers having issues?")
+                print(e)
+                return None
             else:
                 return CreateAccessToken(message, signature, address, attempts2+1)
 
@@ -104,9 +104,8 @@ def GenerateAccessToken(key, address, attempts=1):
     except Exception as e:
         if attempts > 3:
             # TODO add a website guide for common errors
-            logger.error("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
-            logger.error(e)
-            raise None
+            print(e)
+            print("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
+            return None
         else:
             return GenerateAccessToken(key, address, attempts+1)
-

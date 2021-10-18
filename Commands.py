@@ -109,7 +109,7 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
         return
 
     else:
-        logger.warn("This user didn't receive a QR Code : " + message.author.name)
+        logger.warning("This user didn't receive a QR Code : " + message.author.name)
         msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + managerName + '\'s scholars.'
         
         await handleResponse(message,msg,isSlash)
@@ -660,7 +660,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         return
 
     # confirm with react
-    embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming pay out for {name}",
+    embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name="Scholar Name", value=f"{name}")
     embed.add_field(name="Scholar Discord ID", value=f"{discordId}")
@@ -689,21 +689,39 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     address = scholarSS[1]    # discordID's address
 
     try:
-        devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
+        #devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
+        claimRes = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
     except Exception as e:
         logger.error(e)
         await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
         return
-    
-    grandTotal = devSlp + ownerSlp + scholarSlp
 
+    if claimRes is False:
+        await processMsg.reply(content=f"<@{authorID}>: Your account is not available to claim yet")
+        return
+        
+    if claimRes is None:
+        await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
+        return
+
+    devTx = claimRes["devTx"]
+    ownerTx = claimRes["ownerTx"]
+    scholarTx = claimRes["scholarTx"]
+    devAmt = claimRes["devAmount"]
+    ownerAmt = claimRes["ownerAmount"]
+    scholarAmt = claimRes["scholarAmount"]
+    totalAmt = claimRes["totalAmount"]
+    claimTx = claimRes["claimTx"]
+
+    roninTx = "https://explorer.roninchain.com/tx/"
+    roninAddr = "https://explorer.roninchain.com/address/"
     embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
-    embed2.add_field(name="SLP Paid to Scholar", value=f"{scholarSlp}")
-    embed2.add_field(name="SLP Donated to Devs", value=f"{devSlp}")
-    embed2.add_field(name="SLP Paid to Manager", value=f"{ownerSlp}")
-    embed2.add_field(name="Total SLP Farmed", value=f"{grandTotal}")
-    embed.add_field(name="Scholar Share Paid To", value=f"{payoutAddr}")
+    embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
+    embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
+    embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
+    embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
+    embed.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
     
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
 
@@ -782,20 +800,21 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
         devSlp = 0
         ownerSlp = 0
         scholarSlp = 0
+        res = None
         try:
-            devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
+            res = ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
         except Exception as e:
             logger.error(e)
             errors += 1
 
-        if scholarSlp > 0:
+        if res is not False and res is not None:
             processed += 1
         else:
             skipped += 1
 
-        devTotal += devSlp
-        ownerTotal += ownerSlp
-        scholarTotal += scholarSlp
+        devTotal += res["devAmount"]
+        ownerTotal += res["ownerAmount"]
+        scholarTotal += res["scholarAmount"]
 
         msg = getLoadingContent(processed+skipped, scholarCount)
         await loadMsg.edit(content=msg)

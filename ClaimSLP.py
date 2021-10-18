@@ -1,15 +1,13 @@
 import time
+from loguru import logger
 from math import floor
 import requests
 import json
 from web3 import Web3, exceptions
 import AccessToken
-from Common import *
 
-owner = "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd"
 
 # DONT TOUCH ANYTHING BELOW THIS LINE
-owner = owner.replace("ronin:", "0x")
 web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc'))
 w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
 slp_abi = "[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_createdAt\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_signature\",\"type\":\"bytes\"}],\"name\":\"checkpoint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
@@ -18,33 +16,53 @@ slp_contract = web3.eth.contract(address=Web3.toChecksumAddress(slp_address), ab
 slp_contract_call = w3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
 
 
-def updateSLP(token, address):
+def updateSLP(token, address, attempts=0):
     url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1/claim"
-
-    payload = {}
     headers = {
         'Authorization': 'Bearer ' + token,
         'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
     }
+    response = requests.request("POST", url, headers=headers)
+    try:
+        slp = json.loads(response.text)
+        if slp['success']:
+            return response.text
+        else:
+            raise Exception ("success = false")
+    except Exception as e:
+        if attempts > 3:
+            logger.error(e)
+            logger.error("Was not able to update the slp of " + address + ". Tried 3 times. If the error persists, tell the Developers.")
+            return None
+        else:
+            logger.warning("Could not update the slp of " + address + " trying again #" + str(attempts) + ". Nothing to be worried about.")
+            return updateSLP(token, address, attempts+1)
 
-    response = requests.request("POST", url, headers=headers, data=payload)
-    return response.text
 
-
-def getSLP(token, address):
+def getSLP(token, address, attempts=0):
     url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1"
-
-    payload = {}
     headers = {
         'Authorization': 'Bearer ' + token,
         'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
     }
+    response = requests.request("GET", url, headers=headers)
+    try:
+        slp = json.loads(response.text)
+        if slp['success']:
+            return response.text
+        else:
+            raise Exception ("success = false")
+    except Exception as e:
+        if attempts > 3:
+            logger.error(e)
+            logger.error("Was not able to get the slp of " + address + ". Tried 3 times. If the error persists, tell the Developers.")
+            return None
+        else:
+            logger.warning("Could not get the slp of " + address + " trying again #" + str(attempts) + ". Nothing to be worried about.")
+            return getSLP(token, address, attempts+1)
 
-    response = requests.request("GET", url, headers=headers, data=payload)
-    return response.text
 
-
-def ClaimSLP(key, address, token, data, attempt=1):
+def ClaimSLP(key, address, token, data, attempt=0):
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
@@ -71,18 +89,20 @@ def ClaimSLP(key, address, token, data, attempt=1):
                 success = False
             break
         except exceptions.TransactionNotFound:
-            logger.warn("Not found yet, waiting.")
+            logger.info("Not found yet, waiting. Nothing to worry about.")
     if success:
-        logger.info(slpClaimed)
-        #payout.write(slpClaimed + "\t")
-        return
+        logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
+        return slpClaimed
+    elif attempt > 3:
+        logger.error("Failed to claim scholar " + address + " retried " + str(attempt) + " times.")
+        return None
     else:
-        logger.error("Failed to claim scholar " + address + " retrying #" + str(attempt))
+        logger.warning("Failed to claim scholar " + address + " retrying #" + str(attempt))
         time.sleep(5)
         return ClaimSLP(key, address, token, data, attempt+1)
 
 
-def sendTx(key, address, token, amount, destination, attempt=1):
+def sendTx(key, address, token, amount, destination, attempt=0):
     send_txn = slp_contract.functions.transfer(
         Web3.toChecksumAddress(destination),
         amount
@@ -104,104 +124,69 @@ def sendTx(key, address, token, amount, destination, attempt=1):
                 success = False
             break
         except exceptions.TransactionNotFound:
-            logger.warn("Not found yet, waiting.")
+            logger.info("Not found yet, waiting. Nothing to worry about.")
     if success:
-        logger.info(slpSent)
-        #payout.write(destination + "\t" + str(amount) + "\t" + slpSent + "\t")
-        return
+        logger.success(str(amount) + " slp sent to " + address + " at tx " + slpSent)
+        return slpSent
+    elif attempt > 3:
+        logger.error("Failed to send " + str(amount) + "slp to " + address + " retried " + str(attempt) + " times.")
+        return None
     else:
-        logger.error("Failed to send slp to " + destination + " retrying #" + str(attempt))
+        logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
         time.sleep(5)
         return sendTx(key, address, token, amount, destination, attempt + 1)
 
 
-def sendSLP(key, address, token, scholar_address, owner_address, scholar_percent, amountToSend):
-    amount = slp_contract_call.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+def sendSLP(key, address, token, scholar_address, owner_address, scholar_percent, devPercent):
+    try:
+        amount = slp_contract_call.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+    except Exception as e:
+        logger.error(e)
+        return None
+    if not isinstance(amount, int):
+        logger.error("amount is not an int")
+        return None
     scholar_slp = floor(amount * scholar_percent)
-    if amountToSend > 0.0:
-        max_slp = floor(amountToSend * amount)
-        owner_slp = amount - (scholar_slp + max_slp)
-        sendTx(key, address, token, max_slp, '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd')
-        time.sleep(3)
+    if devPercent:
+        dev_slp = floor(devPercent * amount)
+        owner_slp = amount - (scholar_slp + dev_slp)
+        devTx = sendTx(key, address, token, dev_slp, '0xa8da6b8948d011f063af3aa8b6beb417f75d1194')
     else:
+        devTx = None
+        dev_slp = 0
         owner_slp = amount - scholar_slp
-    sendTx(key, address, token, owner_slp, owner_address)
-    time.sleep(3)
-    sendTx(key, address, token, scholar_slp, scholar_address)
-    time.sleep(3)
-    #payout.write("\n")
-    logger.info("Scholar " + address + " payout successful")
+    ownerTx = sendTx(key, address, token, owner_slp, owner_address)
+    scholarTx = sendTx(key, address, token, scholar_slp, scholar_address)
+    logger.success("Scholar " + address + " payout successful")
+    return {
+        "totalAmount": amount,
+        "devTx": devTx,
+        "devAmount": dev_slp,
+        "ownerTx": ownerTx,
+        "ownerAmount": owner_slp,
+        "scholarTx": scholarTx,
+        "scholarAmount": scholar_slp
+    }
 
 
-def slpClaiming(key, address, scholar_address, owner_address, scholar_percent,amountToSend):
+def slpClaiming(key, address, scholar_address, owner_address, scholar_percent, devPercent=None):
     accessToken = AccessToken.GenerateAccessToken(key, address)
-    slp = getSLP(accessToken, address)
-    slp_data = json.loads(slp)
-    if slp_data['blockchain_related']['balance'] != 0 or slp_data['last_claimed_item_at'] + 1209600 <= time.time():
-        claim = updateSLP(accessToken, address)
-        json_data = json.loads(claim)
-        amount = int(json_data['total'])
-        #payout.write(address + "\t")
-        ClaimSLP(key, address, accessToken, json_data)
-        time.sleep(3)
-        #payout.write(str(amount) + "\t")
-        scholar_slp = floor(amount * scholar_percent)
-        logger.info(str(scholar_slp) + " to scholar account " + scholar_address)
-        max_slp = 0
-        if amountToSend > 0.0:
-            max_slp = floor(amountToSend * amount)
-            owner_slp = amount - (scholar_slp + max_slp)
-            logger.info(str(max_slp) + " to dev account 0xc5f700ca10dd77b51669513cdca53a21cbac3bcd")
+    try:
+        slp_data = json.loads(getSLP(accessToken, address))
+        if slp_data['blockchain_related']['balance'] != 0 or slp_data['last_claimed_item_at'] + 1209600 <= time.time():
+            claim = json.loads(updateSLP(accessToken, address))
+            claimTx = ClaimSLP(key, address, accessToken, claim)
+            sendTxs = sendSLP(key, address, accessToken, scholar_address, owner_address, scholar_percent, devPercent)
+            sendTxs["claimTx"] = claimTx
+            return sendTxs
         else:
-            owner_slp = amount - scholar_slp
-        logger.info(str(owner_slp) + " to owner account " + owner_address)
-        sendSLP(key, address, accessToken, scholar_address, owner_address, scholar_percent, amountToSend)
-        return max_slp, owner_slp, scholar_slp
-    else:
-        if slp_data['last_claimed_item_at'] + 1209600 > time.time():
-            logger.info(address + " cannot be claimed yet. Please wait ", end="")
-            logger.info(str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
-        elif slp_data['blockchain_related']['balance'] == 0:
-            logger.info("No SLP balance")
-        return 0, 0, 0
-
-"""
-try:
-    payout = open("payments.txt", "a")
-except:
-    payout = open("payments.txt", 'w')
-
-if sendToMax:
-    payout.write("account\tclaim_tx\ttotal_SLP\tmax_account\tmax_SLP\tmax_tx\towner_account\towner_SLP\towner_tx\tscholar_account\tscholar_SLP\tscholar_tx\n")
-else:
-    payout.write("account\tclaim_tx\ttotal_SLP\towner_account\towner_SLP\towner_tx\tscholar_account\tscholar_SLP\tscholar_tx\n")
-
-with open("addresses.txt") as file:
-    if owner == "":
-        print("You must set an owner")
-        raise SystemExit
-    for f in file:
-        data = f.replace("\n", "").split("\t")
-        key = data[1]
-        address = data[0].replace("ronin:", "0x")
-        scholar = data[2].replace("ronin:", "0x")
-        if len(data) >= 4:
-            slpClaiming(key, address, scholar, owner, float(data[3]))
-        else:
-            slpClaiming(key, address, scholar, owner, 0.675)
-payout.close()
-"""
-
-#with open("slp-payout-config.json") as file:
-#    data = json.load(file)
-#    owner = data['AcademyPayoutAddress'].replace("ronin:", "0x")
-#    if owner == "":
-#        print("You must set an owner")
-#        raise SystemExit
-#    for f in data['Scholars']:
-#        key = f['PrivateKey']
-#        address = f['AccountAddress'].replace("ronin:", "0x")
-#        scholar = f['ScholarPayoutAddress'].replace("ronin:", "0x")
-#        percent = f['ScholarPayoutPercentage']
-#        slpClaiming(key, address, scholar, owner, percent)
-#payout.close()
+            if slp_data['last_claimed_item_at'] + 1209600 > time.time():
+                logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
+                return False
+            elif slp_data['blockchain_related']['balance'] == 0:
+                logger.warning("No SLP Balance")
+                return None
+    except Exception as e:
+        logger.error(e)
+        logger.error("Could not claim SLP")
+        return None
