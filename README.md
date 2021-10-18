@@ -8,6 +8,8 @@
 5. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
 6. Add the bot's "client secret" to the `SecretStorage.py` file.
 
+Note that the summary/top commands from the bot use image rendering, which requires orca. Orca is known for being a pain to get working sometimes. The `install_ubuntu.sh` script should work... but feel free to reach out if it's giving you errors when running those commands. The install script uses `pip`, `npm`, and `apt` for various installs.
+
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:
 1. Scopes: bot, applications.commands
