@@ -17,7 +17,7 @@ slp_abi = "[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name
 slp_address = "0xa8754b9fa15fc18bb59458815510e40a12cd2014"
 slp_contract = web3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
 slp_contract_call = w3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
-dev_address = '0xa8da6b8948d011f063af3aa8b6beb417f75d1194'
+dev_address = '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd'
 
 async def updateSLP(token, address, attempts=0):
     url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1/claim"
