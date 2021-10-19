@@ -189,7 +189,7 @@ async def checkEnergyQuest():
         rn = datetime.datetime.now(timezone.utc)
 
         ping = alertPing
-        logger.info(f"Checking for time based tasks ping={alertPing}, force={forceAlert}; {rn}")
+        #logger.info(f"Checking for time based tasks ping={alertPing}, force={forceAlert}; {rn}")
 
         # check if it's time to run a task
         if forceAlert or (rn.hour == 23 and rn.minute == 0):  # allow 7pm EST / 11pm UTC
