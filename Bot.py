@@ -189,13 +189,14 @@ async def checkEnergyQuest():
         rn = datetime.datetime.now(timezone.utc)
 
         ping = alertPing
+        logger.info(f"Checking for time based tasks ping={alertPing}, force={forceAlert}; {rn}")
 
         # check if it's time to run a task
         if forceAlert or (rn.hour == 23 and rn.minute == 0):  # allow 7pm EST / 11pm UTC
             # energy / quest alerts
             logger.info("Processing near-reset alerts")
 
-            channel = client.get_channel(channelId);
+            channel = client.get_channel(alertChannelId);
             msg = ""
 
             if not forceAlert:
