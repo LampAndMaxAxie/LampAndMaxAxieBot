@@ -3,16 +3,16 @@ from loguru import logger
 from math import floor
 import requests
 import json
-from web3 import Web3, exceptions, AsyncHTTPProvider
-from web3.eth import AsyncEth
+from web3 import Web3, exceptions#, AsyncHTTPProvider
+#from web3.eth import AsyncEth
 import AccessToken
 import asyncio
 
 # DONT TOUCH ANYTHING BELOW THIS LINE
 web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc'))
-web3a = Web3(AsyncHTTPProvider('https://proxy.roninchain.com/free-gas-rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
+#web3a = Web3(AsyncHTTPProvider('https://proxy.roninchain.com/free-gas-rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
 w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
-w3a = Web3(AsyncHTTPProvider('https://api.roninchain.com/rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
+#w3a = Web3(AsyncHTTPProvider('https://api.roninchain.com/rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
 slp_abi = "[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_createdAt\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_signature\",\"type\":\"bytes\"}],\"name\":\"checkpoint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 slp_address = "0xa8754b9fa15fc18bb59458815510e40a12cd2014"
 slp_contract = web3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
@@ -78,10 +78,10 @@ async def ClaimSLP(key, address, token, data, attempt=0):
         'chainId': 2020,
         'gas': 500000,
         'gasPrice': web3.toWei('0', 'gwei'),
-        'nonce': await web3a.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'nonce': web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
     signed_txn = web3.eth.account.sign_transaction(claim_txn, private_key=key)
-    tx = await web3a.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     slpClaimed = web3.toHex(web3.keccak(signed_txn.rawTransaction))
     while True: # listen for 1 second then wait for 4 seconds repeatedly
         try:
@@ -114,10 +114,10 @@ async def sendTx(key, address, token, amount, destination, attempt=0):
         'chainId': 2020,
         'gas': 500000,
         'gasPrice': web3.toWei('0', 'gwei'),
-        'nonce': await web3a.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'nonce': web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
     signed_txn = web3.eth.account.sign_transaction(send_txn, private_key=key)
-    tx = await web3a.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     slpSent = web3.toHex(web3.keccak(signed_txn.rawTransaction))
     while True: # listen for 1 second then wait for 4 seconds repeatedly
         try:
@@ -180,9 +180,12 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
     accessToken = AccessToken.GenerateAccessToken(key, address)
     try:
         slp_data = json.loads(await getSLP(accessToken, address))
-        if slp_data['blockchain_related']['balance'] != 0 or slp_data['last_claimed_item_at'] + 1209600 <= time.time():
+        if slp_data['blockchain_related']['balance'] != 0 or slp_data['claimable_total'] != 0 or slp_data['last_claimed_item_at'] + 1209600 <= time.time():
             claim = json.loads(await updateSLP(accessToken, address))
-            claimTx = await ClaimSLP(key, address, accessToken, claim)
+            if claim['blockchain_related']['checkpoint'] != claim['blockchain_related']['signature']['amount']:
+                claimTx = await ClaimSLP(key, address, accessToken, claim)
+            else:
+                claimTx = None
             sendTxs = await sendSLP(key, address, accessToken, scholar_address, owner_address, scholar_percent, devPercent)
             sendTxs["claimTx"] = claimTx
             return sendTxs
@@ -190,7 +193,7 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
             if slp_data['last_claimed_item_at'] + 1209600 > time.time():
                 logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
                 return False # false indicates "not ready to claim"
-            elif slp_data['blockchain_related']['balance'] == 0:
+            elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
                 return None # none indicates "error"
     except Exception as e:
