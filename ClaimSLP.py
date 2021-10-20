@@ -131,10 +131,10 @@ async def sendTx(key, address, token, amount, destination, attempt=0):
             logger.info("Tx not found yet, waiting. Nothing to worry about.")
             await asyncio.sleep(4)
     if success:
-        logger.success(str(amount) + " slp sent to " + address + " at tx " + slpSent)
+        logger.success(str(amount) + " slp sent to " + destination + " at tx " + slpSent)
         return slpSent
     elif attempt > 3:
-        logger.error("Failed to send " + str(amount) + "slp to " + address + " retried " + str(attempt) + " times.")
+        logger.error("Failed to send " + str(amount) + "slp to " + destination + " retried " + str(attempt) + " times.")
         return None
     else:
         logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
