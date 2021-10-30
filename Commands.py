@@ -825,6 +825,9 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
             processed += 1
         else:
             skipped += 1
+            msg = getLoadingContent(processed+skipped, scholarCount)
+            await loadMsg.edit(content=msg)
+            continue
 
         if res["devAmount"] is not None:
             devTotal += res["devAmount"]
@@ -1201,7 +1204,7 @@ async def alertsCommand(message, args, isSlash=False):
     alertPing = ping
     forceAlert = True
 
-    logger.info("Processing on-demand alert")
+    logger.info(f"Processing on-demand alert, ping={alertPing},force={forceAlert}")
 
     if isSlash:
         await message.edit(content="Processing!")
