@@ -10,7 +10,6 @@ import json
 import datetime
 import asyncio
 import time
-import matplotlib.pyplot as plt
 import pandas as pd
 from pandas.plotting import table as tableTool
 import plotly.graph_objects as go
@@ -266,6 +265,11 @@ async def getScholar(message, args, isManager, discordId, guildId, isSlash=False
     createdTime = scholar["created_at"]
     scholarDate = datetime.datetime.fromtimestamp(int(createdTime)).strftime('%Y-%m-%d %H:%M:%S') 
 
+    if hideScholarRonins:
+        roninAddr = "<hidden>"
+    else:
+        roninAddr = ScholarsDict[str(discordId)][1]
+
     embed = discord.Embed(title="Scholar Information", description=f"Information about scholar {name}/{discordId}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Scholar Name", value=f"{name}")
@@ -274,6 +278,7 @@ async def getScholar(message, args, isManager, discordId, guildId, isSlash=False
     embed.add_field(name=":clock1: Scholar Created", value=f"{scholarDate}")
     embed.add_field(name="Seed", value=f"{seedNum}")
     embed.add_field(name="Account", value=f"{accountNum}")
+    embed.add_field(name="Account Address", value=f"{roninAddr}")
     embed.add_field(name="Payout Address", value=f"{scholarAddr}")
 
     if isSlash:
