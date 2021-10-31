@@ -16,7 +16,7 @@ pip3 install -r requirements.txt
 npm install -g electron@6.1.4 orca
 pip3 install psutil
 sudo apt-get install xvfb
-sudo apt-get install libgtk2.0-0
+sudo apt-get install libgtk-3-0
 sudo apt-get install libgconf-2-4
 sudo apt-get install libxss1
 
