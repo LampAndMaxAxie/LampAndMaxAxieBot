@@ -8,6 +8,6 @@ images/*
 *.log
 *.db
 *.cfg
-__pychache__
+__pycache__
 SecretStorage.py
 
