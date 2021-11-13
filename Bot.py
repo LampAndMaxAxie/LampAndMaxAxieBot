@@ -8,7 +8,6 @@ import math
 import configparser
 import json
 import datetime
-import matplotlib.pyplot as plt
 import pandas as pd
 from pandas.plotting import table as tableTool
 import plotly.graph_objects as go
@@ -140,10 +139,16 @@ async def on_message(message):
         return
 
     elif args[0] == prefix + "updateScholarShare" and isManager:
+        if guildId is None:
+            await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
+            return
         await Commands.updateScholarShare(message, args, isManager, discordId, guildId)
         return
 
     elif args[0] == prefix + "setPayoutAddress":
+        if guildId is None:
+            await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
+            return
         await Commands.updateScholarAddress(message, args, isManager, discordId, guildId)
         return
 
@@ -160,10 +165,16 @@ async def on_message(message):
         return
      
     elif args[0] == prefix + "payout":
+        if guildId is None:
+            await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
+            return
         await Commands.payoutCommand(message, args, isManager, discordId, guildId)
         return
     
     elif args[0] == prefix + "massPayout" and isManager:
+        if guildId is None:
+            await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
+            return
         await Commands.payoutAllScholars(message, args, isManager, discordId, guildId)
         return
 
