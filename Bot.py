@@ -17,7 +17,7 @@ from dislash import slash_commands
 from dislash.interactions import *
 from loguru import logger
 
-from SecretStorage import *
+from SeedStorage import DiscordBotToken
 from Common import *
 from UtilBot import *
 import Commands
@@ -223,15 +223,20 @@ async def checkEnergyQuest():
             redX = ":x:"
 
             # for each scholar
-            for dId in ScholarsDict:
-                scholar = ScholarsDict[dId]
+            scholarsDict = await DB.getAllScholars()
+            if not scholarsDict["success"]:
+                return
 
-                name = scholar[0]
-                roninAddr = scholar[1]
-                roninKey = scholar[2]
+            for scholar in scholarsDict["rows"]:
+                roninKey, roninAddr = await getKeyForUser(scholar)
+                if roninKey is None or roninAddr is None:
+                    continue
+
+                name = scholar["name"]
+                dId = scholar["discord_id"]
 
                 # fetch daily progress data
-                res = await getPlayerDailies("", dId, scholar[0], roninKey, roninAddr)
+                res = await getPlayerDailies("", dId, name, roninKey, roninAddr)
 
                 # configure alert messages
                 if res is not None:
@@ -277,7 +282,7 @@ async def checkEnergyQuest():
             # fetch the data
             sort = "mmr"
             ascText = "desc"
-            table, cacheExp = await getScholarSummary(ScholarsDict, sort, False)
+            table, cacheExp = await getScholarSummary(sort, False)
 
             # error
             if table is None or cacheExp is None:

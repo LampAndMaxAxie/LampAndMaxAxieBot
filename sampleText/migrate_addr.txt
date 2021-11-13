@@ -1,0 +1,4 @@
+# discordID,accountAddr
+344,0xc5f700ca10dd77b516691
+437,0xa870f4132a9ac5f83f0c1
+861,0x202728a5e8f11b13feadb

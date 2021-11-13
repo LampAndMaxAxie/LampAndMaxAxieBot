@@ -4,17 +4,29 @@
 1. Install python3 via your preferred method, if you don't already have it.
 2. Run the installation script to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`.
 3. Fill out/replace the values in `config.cfg`. Everything is required.
-4. Fill out the `SecretStorage.py` file with scholar Discord ID/name and your Ronin address/key; this is to match wallets to scholars and to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order. This is still required, but won't be one mnemonic processing is implemented.
+4. Fill out the `SeedStorage.py` file with your seed phrases, this is used to pull private keys for your configured scholars to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order.
 5. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
-6. Add the bot's "client secret" to the `SecretStorage.py` file.
-
-Note that the summary/top commands from the bot use image rendering, which requires orca. Orca is known for being a pain to get working sometimes. The `install_ubuntu.sh` script should work... but feel free to reach out if it's giving you errors when running those commands. The install script uses `pip`, `npm`, and `apt` for various installs.
+6. Add the bot's "client secret" to the `SeedStorage.py` file.
 
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:
 1. Scopes: bot, applications.commands
 2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands, etc.
 3. Go to the Bot menu in the Dev Portal and under "Privileged Gateway Intents" enable the "Server Members Intent"
+
+For launching your bot on your server, start with database creation and scholar import/migration. Migration is for if you've been using a previous version of the bot and the new version has database changes.
+
+If migrating (i.e. upgrading to new bot version that needs migration):
+1. Make sure your config.cfg file is up to date and accurate.
+2. Create your migration file. See the `sampleTexts/` directory for an example for the migration you need.
+3. From your main bot directory, run `scripts/migration1.py myMigrationFile.txt` for whichever migration script and input text you need.
+
+If importing (i.e. first time using the bot):
+1. Make sure your config.cfg file is up to date and accurate.
+2. Create your import file. Currently this takes the form: `seedNum, accountNum, accountAddr, discordId, scholarShare`, see `sampleTexts/` for an example.
+3. From your main bot directory, run `scripts/importScholars.py myImportFile.txt` for your input file. 
+
+Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. 
 
 ### Guide
 1. Adding Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&addManager discordID`
@@ -61,17 +73,4 @@ If you create a custom icon called exactly `:slp:` (yes, lowercase) then the bot
 
 ### Transparency / Developer Donations
 The bot comes with a default 2.5% (0.025) developer donation configured. You can decrease/increase this with `&setProperty devDonation 0.04`, for 4% as an example. A value of 0 disables it, but please consider supporting us as we've put hundreds of payless hours into this project.
-
-### Scholar Import Script
-The script `importScholars.py` depends on: `config.cfg`, `import.txt`, and `SecretStorage.py`. So make sure your `config.cfg` and `import.txt` are filled out before running it. The `SecretStorage.py` really just needs the bot token, since the import script will run as a bot that terminates.
-
-Explanation of `import.txt`:
-seedNum: refers to which seedphrase this wallet is on. If you only have one seedphrase, then every row should have a `1` here.
-accountNum: refers to which wallet on the seedphrase is used. For example, the top wallet on the ronin extension would be `1`. Make sure you don't count any imported hardware wallets.
-discordID: the scholar's discord ID
-scholarShare: the scholar share, between 0.01 to 1.00
-
-The bot does not yet use seed phrases, this data entry is just in preparation for when `SecretStorage.py` of private keys becomes obsolete and we switch to encrypted seed phrase mnemonics instead, which we will index by seed phrase and wallet order on that seed phrase.
-
-To run the import, just do `python3 importScholars.py`
 

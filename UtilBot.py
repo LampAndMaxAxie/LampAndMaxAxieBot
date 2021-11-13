@@ -108,6 +108,25 @@ async def sendErrorToManagers(e, flag):
 
     await messageManagers(msg, mgrIds)
 
+def getEmojiFromReact(reaction):
+    emoji = None
+    if type(reaction.emoji) is str:
+        emoji = reaction.emoji
+    else:
+        emoji = reaction.emoji.name
+    return emoji
+
+async def getKeyForUser(user):
+    seedNum = user["seed_num"]
+    accountNum = user["account_num"]
+    scholarAddr = user["scholar_addr"]
+    ret = await getFromMnemonic(seedNum, accountNum, scholarAddr)
+
+    if ret is None:
+        return None, None
+
+    return ret["key"], ret["address"]
+
 # fetch a remote image
 def saveUrlImage(url, name):
     try:
@@ -188,7 +207,6 @@ async def makeJsonRequestWeb(url):
             url,
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                # "it's a me, mario",
                 "Accept": "*/*",
             }
         )
@@ -244,7 +262,7 @@ async def makeJsonRequest(url, token, attempt=0):
         jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
         succ = False
         if 'success' in jsonDat:
-            succ = jsonDat[u'success']
+            succ = jsonDat['success']
 
         if 'story_id' in jsonDat:
             succ = True
@@ -282,6 +300,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     global scholarCache
 
     # check caching
+    print(scholarCache)
+    print(targetId)
     if targetId in scholarCache and int(scholarCache[targetId]["cache"]) - int(time.time()) > 0:
         return scholarCache[targetId]["data"]
 
@@ -907,14 +927,19 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
 
     return res
 
-async def getScholarExport(scholarsDict):
-    df = pd.DataFrame(columns=['Scholar','ronin'])
-    for scholar in scholarsDict:
-        df.loc[len(df.index)] = [scholarsDict[scholar][0],scholarsDict[scholar][1].replace("0x","ronin:")]
+async def getScholarExport():
+    df = pd.DataFrame(columns=['ScholarID','Seed','Account','ScholarAddr','PayoutAddr','Share'])
+    
+    scholarsDict = await DB.getAllScholars()
+    if scholarsDict["success"] is None:
+        return None, None
+
+    for scholar in scholarsDict["rows"]:
+        df.loc[len(df.index)] = [scholar["discord_id"],scholar["seed_num"],scholar["account_num"],scholar["scholar_addr"],scholar["payout_addr"],scholar["share"]]
     return df 
 
 # builds a summary table of all scholars
-async def getScholarSummary(scholarsDict, sort="avgslp", ascending=False, guildId=None):
+async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
     global summaryCache
 
     utc_time = int(datetime.datetime.now(tzutc).timestamp())
@@ -942,9 +967,16 @@ async def getScholarSummary(scholarsDict, sort="avgslp", ascending=False, guildI
         df = pd.DataFrame(
             columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins',
                      'PvESLP', 'Quest', 'NextClaim'])
-        for discordId in scholarsDict:
-            scholar = scholarsDict[discordId]
-            res = await getPlayerDailies(discordId, discordId, "", scholar[2], scholar[1], guildId)
+        scholarsDict = await DB.getAllScholars()
+        if scholarsDict["success"] is None:
+            return None, None
+
+        for scholar in scholarsDict["rows"]:
+            roninKey, roninAddr = await getKeyForUser(scholar)
+            if roninKey is None or roninAddr is None:
+                continue
+            discordId = str(scholar["discord_id"])
+            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr, guildId)
             time.sleep(0.05)  # brief delay
 
             if res is not None:
@@ -979,7 +1011,7 @@ async def getScholarSummary(scholarsDict, sort="avgslp", ascending=False, guildI
         return None, None
 
 
-async def getScholarTop10(scholarsDict, sort="slp"):
+async def getScholarTop10(sort="slp"):
     global summaryCache
     ascending = False
 
@@ -1011,9 +1043,17 @@ async def getScholarTop10(scholarsDict, sort="slp"):
         df = pd.DataFrame(
             columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins',
                      'PvESLP', 'Quest', 'NextClaim'])
-        for discordId in scholarsDict:
-            scholar = scholarsDict[discordId]
-            res = await getPlayerDailies(discordId, discordId, "", scholar[2], scholar[1])
+
+        scholarsDict = await DB.getAllScholars()
+        if scholarsDict["success"] is None:
+            return None, None
+
+        for scholar in scholarsDict["rows"]:
+            roninKey, roninAddr = await getKeyForUser(scholar)
+            if roninKey is None or roninAddr is None:
+                continue
+            discordId = str(scholar["discord_id"])
+            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr)
             time.sleep(0.05)  # brief delay
 
             if res is not None:

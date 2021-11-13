@@ -7,6 +7,8 @@ from loguru import logger
 from discord.ext import tasks, commands
 from dislash import slash_commands
 from dislash.interactions import *
+from SeedStorage import *
+from eth_account import Account
 
 # Setup Discord Bot
 intents = discord.Intents.default()
@@ -61,7 +63,8 @@ except:
 # Globals
 alertPing = True
 forceAlert = False
-mnemonicList = {}
+mnemonicList = SeedList 
+Account.enable_unaudited_hdwallet_features()
 
 # Functions
 async def messageManagers(msg, managerIds):
@@ -112,14 +115,15 @@ if not os.path.exists("./images/"):
 
 
 async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
-    mnemonic = mnemonicList[seedNumber]
-    scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(accountNumber))
-    if scholarAddress == scholarAccount.address:
+    mnemonic = mnemonicList[seedNumber-1]
+    scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(accountNumber-1))
+    if scholarAddress.lower() == scholarAccount.address.lower():
         logger.info("Got the key for " + scholarAddress + " correctly")
         return {
             "key": Web3.toHex(scholarAccount.key),
-            "address": scholarAccount.address
+            "address": scholarAccount.address.lower()
         }
     else:
         logger.error("Account Address did not match derived address")
+        logger.error(f"{scholarAddress} != {scholarAccount.address}")
         return None

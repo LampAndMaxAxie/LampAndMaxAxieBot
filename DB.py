@@ -19,7 +19,7 @@ async def createMainTables():
             await c.execute('''CREATE TABLE IF NOT EXISTS users 
                 (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, 
                  is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, 
-                 account_num INTEGER, payout_addr TEXT, share REAL, 
+                 account_num INTEGER, scholar_addr TEXT, payout_addr TEXT, share REAL, 
                  created_at TIMESTAMP DEFAULT (strftime('%s', 'now')), updated_at TIMESTAMP DEFAULT (strftime('%s','now'))
                 )''')
             await c.execute('''CREATE TABLE IF NOT EXISTS properties 
@@ -51,7 +51,7 @@ async def createMainTables():
 ### Insert/Delete/Update
 
 @logger.catch
-async def addScholar(discordID, name, seedNum, accountNum, share):
+async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
         async with db.cursor() as c:
@@ -76,22 +76,22 @@ async def addScholar(discordID, name, seedNum, accountNum, share):
             await c.execute("BEGIN")
             try: 
                 if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_scholar"] is None or int(user["is_scholar"]) == 0):
-                    await c.execute('''UPDATE users SET is_scholar=1,seed_num=?,account_num=?,share=?
-                                where discord_id=?''', (seedNum, accountNum, share, discordID))
+                    await c.execute('''UPDATE users SET is_scholar=1,seed_num=?,account_num=?,scholar_addr=?,share=?
+                                where discord_id=?''', (seedNum, accountNum, roninAddr, share, discordID))
                 else:
                     await c.execute('''INSERT INTO users 
-                        (discord_id, name, is_scholar, seed_num, account_num, share) 
-                        VALUES (?, ?, ?, ?, ?, ?)''', (discordID, name, 1, seedNum, accountNum, share))
+                        (discord_id, name, is_scholar, seed_num, account_num, scholar_addr, share) 
+                        VALUES (?, ?, ?, ?, ?, ?)''', (discordID, name, 1, seedNum, accountNum, roninAddr, share))
                 await c.execute("COMMIT")
 
-                logger.info(f"Saved scholar {name}/{discordID} with seed/account {seedNum}/{accountNum} and share {share}")
+                logger.info(f"Saved scholar {name}/{discordID} with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share {share}")
 
             except:
                 await c.execute("ROLLBACK")
                 logger.error(f"Failed to save scholar {name}/{discordID}")
                 return {"success": False, "msg": f"Error in processing scholar addition for {name}/{discordID}"}
 
-    return {"success": True, "msg": f"Scholar {name}/{discordID} saved with seed/account {seedNum}/{accountNum} and share={share}"}
+    return {"success": True, "msg": f"Scholar {name}/{discordID} saved with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share={share}"}
 
 @logger.catch
 async def removeScholar(discordID):
@@ -164,7 +164,7 @@ async def updateScholarAddress(discordID, addr):
                 logger.error(f"Failed to update {discordID} because they are not in the database")
                 return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
             
-            if int(user["is_scholar"]) == 0:
+            if user["is_scholar"] is None or int(user["is_scholar"]) == 0:
                 logger.error(f"Failed to update {discordID}'s payout address because they are not a scholar")
                 return {"success": False, "msg": f"Failed to update {discordID}'s payout address because they are not a scholar"}
 
@@ -182,6 +182,48 @@ async def updateScholarAddress(discordID, addr):
                 return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
 
     return {"success": True, "msg": f"Scholar {discordID}'s payout address updated to {addr}"}
+
+@logger.catch
+async def updateScholarMainAddress(discordID, addr):
+    async with sql.connect(MAIN_DB) as db:
+        db.row_factory = sql.Row
+        async with db.cursor() as c:
+            userR = await getDiscordID(discordID, db)
+
+            if userR["success"]:
+                user = userR["rows"]
+            else:
+                return userR
+ 
+            logger.info(user)
+            out = "["
+            for col in user:
+                out += str(col) + ","
+            out += "]"
+            logger.info(out)
+ 
+            if user is None:
+                logger.error(f"Failed to update {discordID} because they are not in the database")
+                return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
+            
+            if user["is_scholar"] is None or int(user["is_scholar"]) == 0:
+                logger.error(f"Failed to update {discordID}'s address because they are not a scholar")
+                return {"success": False, "msg": f"Failed to update {discordID}'s scholar address because they are not a scholar"}
+
+            await c.execute("BEGIN")
+            try: 
+                await c.execute('''UPDATE users SET scholar_addr=?
+                        WHERE discord_id=?''', (addr.replace('ronin:','0x'),discordID)) 
+                await c.execute("COMMIT")
+
+                logger.info(f"Updated {discordID}'s scholar address to {addr}")
+
+            except:
+                await c.execute("ROLLBACK")
+                logger.error(f"Failed to update scholar {discordID}")
+                return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
+
+    return {"success": True, "msg": f"Scholar {discordID}'s scholar address updated to {addr}"}
 
 @logger.catch
 async def addManager(discordID, name):
@@ -524,6 +566,11 @@ async def getDiscordID(discordID, db=None):
         await c.execute("SELECT * FROM users WHERE discord_id=? LIMIT 1", (int(discordID),))
         rows = await c.fetchone()
         logger.info(f"Fetched discord ID {discordID}")
+        out = "["
+        for col in rows:
+            out += str(col) + ","        
+        out += "]"
+        logger.info(out)
 
     except Exception as e:
         logger.error(f"Failed to get discord ID {discordID}")

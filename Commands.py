@@ -71,15 +71,18 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
 
         return
 
-    if str(message.author.id) in ScholarsDict:
+    author = await DB.getDiscordID(message.author.id)
+    if (author["success"] and author["rows"]["is_scholar"]):
         logger.info("This user received their QR Code : " + message.author.name)
 
-        scholar = ScholarsDict[str(message.author.id)]
+        scholar = author["rows"]
+        
+        accountPrivateKey, accountAddress = await getKeyForUser(targ) 
+        if accountPrivateKey is None or accountAddress is None:
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            return
 
-        # discordID's privateKey
-        accountPrivateKey = scholar[2]
-        # discordID's address
-        accountAddress = scholar[1]
+        logger.info(f"Scholar {discordId} account addr confirmed as {accountAddress} via mnemonic")
 
         if accountPrivateKey == "" or accountAddress == "":
             msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured QR code generation.'
@@ -164,15 +167,6 @@ async def getPropertyCommand(message, args, isManager, discordId, guildId, isSla
         await message.edit(embed=embed)
     else:
         await message.reply(embed=embed)
-
-
-def getEmojiFromReact(reaction):
-    emoji = None
-    if type(reaction.emoji) is str:
-        emoji = reaction.emoji
-    else:
-        emoji = reaction.emoji.name
-    return emoji
 
 
 async def processConfirmationAuthor(message, embed, timeoutSecs=None):
@@ -668,6 +662,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     
     name = user['name']
     payoutAddr = user['payout_addr']
+    scholarAddr = user['scholar_addr']
     share = float(user['share'])
     seedNum = user['seed_num']
     accountNum = user['account_num']
@@ -701,9 +696,12 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
     
-    scholarSS = ScholarsDict[str(discordId)]
-    key = scholarSS[2]        # discordID's privateKey
-    address = scholarSS[1]    # discordID's address
+    key, address = await getKeyForUser(targ) 
+    if key is None or address is None:
+        await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+        return
+
+    logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
     try:
         #devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
@@ -803,9 +801,22 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     for row in scholarsDB["rows"]:
         scholarID = row['discord_id']
         
-        scholarSS = ScholarsDict[str(scholarID)]
-        key = scholarSS[2]        # discordID's privateKey
-        address = scholarSS[1]    # discordID's address
+        #scholarSS = ScholarsDict[str(scholarID)]
+        #key = scholarSS[2]        # discordID's privateKey
+        #address = scholarSS[1]    # discordID's address
+
+        scholarAddr = user['scholar_addr']
+        seedNum = user['seed_num']
+        accountNum = user['account_num']
+
+        key, address = await getKeyForUser(targ) 
+        if key is None or address is None:
+            skipped += 1
+            msg = getLoadingContent(processed+skipped, scholarCount)
+            await loadMsg.edit(content=msg)
+            continue
+
+        logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
         scholarAddress = row['payout_addr']
         scholarShare = round(float(row['share']),3)
@@ -863,36 +874,36 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         await message.channel.trigger_typing()     
 
     # check if they're a valid scholar
-    if str(message.author.id) in ScholarsDict or isManager:
-
+    author = await DB.getDiscordID(message.author.id)
+    if (author["success"] and author["rows"]["is_scholar"]) or isManager:
         # check if the request is for someone else's data
         tId = discordId
         if len(args) > 1 and len(args[1].strip()) > 0:
-            for dId in ScholarsDict:
-                if args[1] in ScholarsDict[dId][0]:
-                    tId = dId
+            targ = await DB.getDiscordID(args[1])
+            if targ["success"]:
+                targ = targ["rows"]
+                tId = targ["discord_id"]
+            else:
+                targ = author["rows"]
 
-        scholar = ScholarsDict[str(tId)]
+        roninKey, roninAddr = await getKeyForUser(targ) 
+        if roninKey is None or roninAddr is None:
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            return
 
-        roninAddr = scholar[1]
-        roninKey = scholar[2]
+        logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
 
         if roninAddr == "" or roninKey == "":
             msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured game data access.'
-            if isSlash:
-                await message.edit(content=msg)
-            else:
-                await message.reply(msg)
+            await handleResponse(message, msg,isSlash)
+            return
 
         # fetch data
-        res = await getPlayerDailies(discordId, tId, scholar[0], roninKey, roninAddr, guildId)
+        res = await getPlayerDailies(discordId, tId, targ["name"], roninKey, roninAddr, guildId)
 
         if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your stats. Please try again later.'
-            if isSlash:
-                await message.edit(content=msg)
-            else:
-                await message.reply(msg)
+            await handleResponse(message, msg,isSlash)
             return
 
         # send results
@@ -904,10 +915,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
 
     else:
         msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
-        if isSlash:
-            await message.edit(content=msg)
-        else:
-            await message.reply(msg)
+        await handleResponse(message, msg,isSlash)
 
     return
 
@@ -924,10 +932,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
 
         if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching the battles, or there are 0 battles to fetch. Please try again later.'
-            if isSlash:
-                await message.edit(content=msg)
-            else:
-                await message.reply(msg)
+            await handleResponse(message, msg,isSlash)
             return
 
         # send results
@@ -946,36 +951,37 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
 
     else:
         # check if they're a valid scholar
-        if str(message.author.id) in ScholarsDict or isManager:
+        author = await DB.getDiscordID(message.author.id)
+        if (author["success"] and author["rows"]["is_scholar"]) or isManager:
 
             # check if the request is for someone else's data
             tId = discordId
             if len(args) > 1 and len(args[1].strip()) > 0:
-                for dId in ScholarsDict:
-                    if args[1] in ScholarsDict[dId][0]:
-                        tId = dId
+                targ = await DB.getDiscordID(args[1])
+                if targ["success"]:
+                    targ = targ["rows"]
+                    tId = targ["discord_id"]
+                else:
+                    targ = author["rows"]
 
-            scholar = ScholarsDict[str(tId)]
+            roninKey, roninAddr = await getKeyForUser(targ) 
+            if roninKey is None or roninAddr is None:
+                await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+                return
 
-            roninAddr = scholar[1]
-
+            logger.info(f"Scholar {discordId} account addr confirmed as {scholarAddr} via mnemonic")
+            
             if roninAddr == "":
                 msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured game data access.'
-                if isSlash:
-                    await message.edit(content=msg)
-                else:
-                    await message.reply(msg)
+                await handleResponse(message, msg,isSlash)
                 return
 
             # fetch data
-            res = await getScholarBattles(discordId, tId, scholar[0], roninAddr)
+            res = await getScholarBattles(discordId, tId, targ["name"], roninAddr)
 
             if res is None:
                 msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your battles, or there are 0 battles to fetch. Please try again later.' 
-                if isSlash:
-                    await message.edit(content=msg)
-                else:
-                    await message.reply(msg)
+                await handleResponse(message, msg,isSlash)
                 return
 
             # send results
@@ -993,10 +999,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
                     await message.reply(file=combinedFile,embed=res["embed"])
         else:
             msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
-            if isSlash:
-                await message.edit(content=msg)
-            else:
-                await message.reply(msg)
+            await handleResponse(message, msg,isSlash)
 
         return
 
@@ -1006,14 +1009,25 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         await message.channel.trigger_typing()     
 
     # check if user is a valid scholar
-    if str(message.author.id) in ScholarsDict or isManager:
+    author = await DB.getDiscordID(message.author.id)
+    if (author["success"] and author["rows"]["is_scholar"]) or isManager:
 
-        # check if request is for another user's data
-        tId = str(discordId)
+        # check if the request is for someone else's data
+        tId = discordId
         if len(args) > 1 and len(args[1].strip()) > 0:
-            for dId in ScholarsDict:
-                if args[1] in ScholarsDict[dId][0]:
-                    tId = str(dId)
+            targ = await DB.getDiscordID(args[1])
+            if targ["success"]:
+                targ = targ["rows"]
+                tId = targ["discord_id"]
+            else:
+                targ = author["rows"]
+
+        roninKey, roninAddr = await getKeyForUser(targ) 
+        if roninKey is None or roninAddr is None:
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            return
+
+        logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
 
         ind = -1
         if len(args) > 2 and args[2].isnumeric():
@@ -1023,20 +1037,12 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         if len(args) > 3 and (args[3] == "1" or args[3].lower() == "m"):
             mobile = 1
 
-        scholar = ScholarsDict[str(tId)]
-
-        roninAddr = scholar[1]
-        roninKey = scholar[2]
-
         # fetch axie data
-        res = await getPlayerAxies(tId, scholar[0], roninKey, roninAddr, ind)
+        res = await getPlayerAxies(tId, targ["name"], roninKey, roninAddr, ind)
 
         if res is None:
             msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your axies. Please try again later.'
-            if isSlash:
-                await message.edit(content=msg)
-            else:
-                await message.reply(msg)
+            await handleResponse(message, msg,isSlash)
             return
 
         # send results
@@ -1061,10 +1067,7 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
 
     else:
         msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + programName + '\'s scholars.'
-        if isSlash:
-            await message.edit(content=msg)
-        else:
-            await message.reply(msg)
+        await handleResponse(message, msg,isSlash)
 
     return
 
@@ -1086,7 +1089,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
             ascText = "asc"
 
     # fetch the data
-    table, cacheExp = await getScholarSummary(ScholarsDict, sort.lower(), asc, guildId)
+    table, cacheExp = await getScholarSummary(sort.lower(), asc, guildId)
 
     # error
     if table is None or cacheExp is None:
@@ -1132,7 +1135,7 @@ async def exportCommand(message, isManager, isSlash=False):
         message.reply("Sorry, this command is only for managers!")
         return
 
-    df = await getScholarExport(ScholarsDict)
+    df = await getScholarExport()
     df.to_csv("export.csv", index=False)
 
     if isSlash:
@@ -1154,7 +1157,7 @@ async def topCommand(message, args, isManager, discordId, guildId, isSlash=False
         sort = args[1].lower()
 
     # fetch the data
-    table, cacheExp = await getScholarTop10(ScholarsDict, sort.lower())
+    table, cacheExp = await getScholarTop10(sort.lower())
 
     # error
     if table is None or cacheExp is None:

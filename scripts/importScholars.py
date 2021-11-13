@@ -4,9 +4,17 @@ from loguru import logger
 from SecretStorage import *
 from Common import *
 import DB
+import sys
+import os
 
 fName = "import.txt"
 
+if len(sys.argv) > 1:
+    fName = str(sys.argv[1])
+
+if not os.path.exists(fName):
+    print(f"File {fName} not found, please provide the import file")
+    exit()
 
 @client.event
 async def on_ready():
@@ -31,11 +39,12 @@ async def importScholars(fName):
 
             seedNum = args[0]
             accountNum = args[1]
-            discordID = args[2]
-            scholarShare = round(float(args[3]),3)
+            roninAddr = args[2]
+            discordID = args[3]
+            scholarShare = round(float(args[4]),3)
             name = await getNameFromDiscordID(discordID)
 
-            res = await DB.addScholar(discordID, name, seedNum, accountNum, scholarShare)
+            res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
             if not res["success"]:
                 logger.error(f"failed to import scholar {discordID}")
                 logger.error(res)
