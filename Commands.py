@@ -77,7 +77,7 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
 
         scholar = author["rows"]
         
-        accountPrivateKey, accountAddress = await getKeyForUser(targ) 
+        accountPrivateKey, accountAddress = await getKeyForUser(scholar) 
         if accountPrivateKey is None or accountAddress is None:
             await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
             return
@@ -874,6 +874,8 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
                 tId = targ["discord_id"]
             else:
                 targ = author["rows"]
+        else:
+            targ = author
 
         roninKey, roninAddr = await getKeyForUser(targ) 
         if roninKey is None or roninAddr is None:
@@ -952,6 +954,8 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
                     tId = targ["discord_id"]
                 else:
                     targ = author["rows"]
+            else:
+                targ = author
 
             roninKey, roninAddr = await getKeyForUser(targ) 
             if roninKey is None or roninAddr is None:
@@ -1010,6 +1014,8 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
                 tId = targ["discord_id"]
             else:
                 targ = author["rows"]
+        else:
+            targ = author
 
         roninKey, roninAddr = await getKeyForUser(targ) 
         if roninKey is None or roninAddr is None:
