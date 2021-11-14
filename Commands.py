@@ -662,10 +662,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     
     name = user['name']
     payoutAddr = user['payout_addr']
-    scholarAddr = user['scholar_addr']
     share = float(user['share'])
-    seedNum = user['seed_num']
-    accountNum = user['account_num']
 
     if payoutAddr is None or payoutAddr == "":
         await handleResponse(message,"Please set your payout address with '&setPayoutAddress ronin:...' first",isSlash)
@@ -696,7 +693,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
     
-    key, address = await getKeyForUser(targ) 
+    key, address = await getKeyForUser(user) 
     if key is None or address is None:
         await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
         return
@@ -800,16 +797,8 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     scholarTotal = 0
     for row in scholarsDB["rows"]:
         scholarID = row['discord_id']
-        
-        #scholarSS = ScholarsDict[str(scholarID)]
-        #key = scholarSS[2]        # discordID's privateKey
-        #address = scholarSS[1]    # discordID's address
 
-        scholarAddr = user['scholar_addr']
-        seedNum = user['seed_num']
-        accountNum = user['account_num']
-
-        key, address = await getKeyForUser(targ) 
+        key, address = await getKeyForUser(row) 
         if key is None or address is None:
             skipped += 1
             msg = getLoadingContent(processed+skipped, scholarCount)
