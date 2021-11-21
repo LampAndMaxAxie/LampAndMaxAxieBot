@@ -1,5 +1,6 @@
 import aiosqlite as sql
 import json
+import traceback
 
 from loguru import logger
 from Common import *
@@ -65,7 +66,8 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
 
             for row in rows:
                 if int(row['discord_id']) == int(discordID):
@@ -81,13 +83,14 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
                 else:
                     await c.execute('''INSERT INTO users 
                         (discord_id, name, is_scholar, seed_num, account_num, scholar_addr, share) 
-                        VALUES (?, ?, ?, ?, ?, ?)''', (discordID, name, 1, seedNum, accountNum, roninAddr, share))
+                        VALUES (?, ?, ?, ?, ?, ?, ?)''', (discordID, name, 1, seedNum, accountNum, roninAddr, share))
                 await c.execute("COMMIT")
 
                 logger.info(f"Saved scholar {name}/{discordID} with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share {share}")
 
-            except:
+            except Exception as e:
                 await c.execute("ROLLBACK")
+                logger.error(traceback.format_exc())
                 logger.error(f"Failed to save scholar {name}/{discordID}")
                 return {"success": False, "msg": f"Error in processing scholar addition for {name}/{discordID}"}
 
