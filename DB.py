@@ -291,13 +291,15 @@ async def setOwner(discordID, name):
             if rowsR["success"]:
                 owner = rowsR["rows"]
             else:
-                return rowsR
+                owner = None
+                #return rowsR
 
             userR = await getDiscordID(discordID,db)
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
 
             if owner is not None:
                 return {"success": False, "msg": "An owner already exists"}
