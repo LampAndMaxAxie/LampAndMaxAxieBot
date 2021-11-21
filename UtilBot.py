@@ -300,8 +300,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     global scholarCache
 
     # check caching
-    print(scholarCache)
-    print(targetId)
+    #print(scholarCache)
+    #print(targetId)
     if targetId in scholarCache and int(scholarCache[targetId]["cache"]) - int(time.time()) > 0:
         return scholarCache[targetId]["data"]
 

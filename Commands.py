@@ -333,6 +333,12 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
             await handleResponse(message,"A scholar already exists with that seed/account pair",isSlash)
             return
 
+    user = {"seed_num": seedNum, "account_num": accountNum, "scholar_addr": roninAddr}
+    key, address = await getKeyForUser(user) 
+    if key is None or address is None:
+        await handleResponse(message,"Mismatch detected between given wallet address and seed/account indices. Please try again with the correct wallet information.",isSlash)
+        return
+
     # confirm with react
     embed = discord.Embed(title="Add Scholar Confirmation", description=f"Confirming addition of scholar {name}/{discordUID}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
@@ -341,7 +347,9 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     embed.add_field(name=":bar_chart: Scholar Share", value=f"{round(scholarShare*100,2)}%")
     embed.add_field(name="Seed", value=f"{seedNum}")
     embed.add_field(name="Account", value=f"{accountNum}")
+    embed.add_field(name="Address", value=f"{roninAddr}")
 
+    confMsg, conf = await processConfirmationAuthor(message, embed, 60)
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
     if conf is None:
@@ -627,7 +635,19 @@ async def membershipCommand(message, args, isManager, discordId, guildId, isSlas
 def getLoadingContent(complete, total):
     unixtime = int(time.time())
     disptime = str(datetime.datetime.fromtimestamp(unixtime).strftime("%H:%M:%S"))
-    msg = 'Mass Payout Progress\n'
+
+    if massPayoutGlobal["txs"] is not None:
+        scholars = massPayoutGlobal["scholarSLP"]
+        manager = massPayoutGlobal["managerSLP"]
+        devs = massPayoutGlobal["devSLP"]
+
+        msg = 'Mass Payout Progress\n\n'
+        msg += f"Paid to scholars: {scholars}\n"
+        msg += f"Paid to manager: {manager}\n"
+        msg += f"Paid to devs: {devs}\n"
+    else:
+        msg = 'Mass Payout Progress\n'
+
     msg += '\n['
     percent = (float(complete) / float(total))*100.0
     for i in range(1,11):
@@ -677,7 +697,7 @@ async def asyncLoadingUpdate(message):
         if massPayoutGlobal["counter"] == massPayoutGlobal["total"]:
             break
 
-        asyncio.sleep(5)
+        asyncio.sleep(3)
 
 # Wrapper to multi-call payouts
 async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, discordId):
@@ -689,18 +709,24 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
         massPayoutGlobal["counter"] += 1
         return res
     else:
-        if "devAmount" in res:
-            massPayoutGlobal["devSLP"] += res["devAmount"]
-        if "ownerAmount" in res:
-            massPayoutGlobal["managerSLP"] += res["ownerAmount"]
-        if "scholarAmount" in res:
-            massPayoutGlobal["scholarSLP"] += res["scholarAmount"]
-        if "scholarTx" in res and res["scholarTx"] is not None and "scholarAmount" in res and res["scholarAmount"] > 0:
-            massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Scholar", scholarAddress, res["scholarAmount"], res["scholarTx"]]
-        if "ownerTx" in res and res["ownerTx"] is not None and "ownerAmount" in res and res["ownerAmount"] > 0:
-            massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Owner", ownerRonin, res["ownerAmount"], res["ownerTx"]]
-        if "devTx" in res and res["devTx"] is not None and "devAmount" in res and res["devAmount"] > 0:
-            massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], res["devTx"]]
+        if "scholarTx" in res and "scholarAmount" in res and res["scholarAmount"] > 0:
+            if res["scholarTx"] is not None:
+                massPayoutGlobal["scholarSLP"] += res["scholarAmount"]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Scholar", scholarAddress, res["scholarAmount"], "SUCCESS", res["scholarTx"]]
+            else:
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Scholar", scholarAddress, res["scholarAmount"], "FAILURE", None]
+        if "ownerTx" in res and "ownerAmount" in res and res["ownerAmount"] > 0:
+            if res["ownerTx"] is not None:
+                massPayoutGlobal["managerSLP"] += res["ownerAmount"]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Owner", ownerRonin, res["ownerAmount"], "SUCCESS", res["ownerTx"]]
+            else:
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Owner", ownerRonin, res["ownerAmount"], "FAILURE", None]
+        if "devTx" in res and "devAmount" in res and res["devAmount"] > 0:
+            if res["devTx"] is not None:
+                massPayoutGlobal["devSLP"] += res["devAmount"]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "SUCCESS", res["devTx"]]
+            else:
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "FAILURE", None]
         massPayoutGlobal["counter"] += 1
         return res
 
@@ -747,6 +773,24 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         await handleResponse(message,"Please set your payout address with '&setPayoutAddress ronin:...' first",isSlash)
         return
 
+    key, address = await getKeyForUser(user) 
+    if key is None or address is None:
+        await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices.",isSlash)
+        return
+
+    #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
+
+    accessToken = getPlayerToken(key, address)
+    slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
+    claimable = slp_data['claimable_total']
+    nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
+    if nextClaimTime > time.time():
+        await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R>.", isSlash)
+        return
+    if claimable == 0:
+        await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R> but there is no claimable SLP.", isSlash)
+        return
+
     # confirm with react
     embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
@@ -772,13 +816,6 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
     
-    key, address = await getKeyForUser(user) 
-    if key is None or address is None:
-        await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices.",isSlash)
-        return
-
-    #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
-
     try:
         #devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
         claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
@@ -814,12 +851,26 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     roninAddr = "https://explorer.roninchain.com/address/"
     embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
-    embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
+
+    failedSend = ""
+    if scholarTx is not None:
+        embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
+    else:
+        failedSend += f"Scholar ({scholarAmt}), "
     if devTx is not None:
         embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
-    embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
+    elif devAmt > 0:
+        failedSend += f"Devs ({devAmt}), "
+    if ownerTx is not None:
+        embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
+    else:
+        failedSend += f"Owner ({ownerAmt})"
+
     embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
     embed.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
+
+    if failedSend != "":
+        embed.add_field(name="Possible Failures", value=f"{failedSend}")
     
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
 
@@ -833,7 +884,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     massPayoutGlobal = {"counter": 0, "total": 0, "devSLP": 0, "managerSLP": 0, "scholarSLP": 0, "txs": None}
 
-    massPayoutGlobal["txs"] = pd.DataFrame(columns=["DiscordID","ScholarAddress","Target","Address","Amount","Hash"])
+    massPayoutGlobal["txs"] = pd.DataFrame(columns=["DiscordID","ScholarAddress","Target","Address","Amount","Status","Hash"])
 
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -892,30 +943,47 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     calls = []
 
     for row in scholarsDB["rows"]:
-        scholarID = row['discord_id']
+        try:
+            scholarID = row['discord_id']
 
-        if int(scholarID) in payBlacklist:
+            if int(scholarID) in payBlacklist:
+                skipped += 1
+                continue
+
+            key, address = await getKeyForUser(row) 
+            if key is None or address is None:
+                skipped += 1
+                continue
+
+            #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
+            
+            name = await getNameFromDiscordID(scholarID)
+            scholarAddress = row['payout_addr']
+            scholarShare = round(float(row['share']),3)
+
+            if scholarAddress is None or scholarAddress == "":
+                skipped += 1
+                continue
+
+            accessToken = getPlayerToken(key, address)
+            slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
+            claimable = slp_data['claimable_total']
+            nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
+            if claimable == 0 or nextClaimTime > time.time():
+                skipped += 1
+                continue
+
+            calls.append(massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, scholarID, name))
+        except Exception as e:
             skipped += 1
-            continue
-
-        key, address = await getKeyForUser(row) 
-        if key is None or address is None:
-            skipped += 1
-            continue
-
-        #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
-
-        scholarAddress = row['payout_addr']
-        scholarShare = round(float(row['share']),3)
-
-        if scholarAddress is None or scholarAddress == "":
-            skipped += 1
-            continue
-
-        calls.append(massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, scholarID))
+            logger.error(f"Failed to queue claim for a scholar (skipping)")
+            logger.error(traceback.format_exc())
 
     massPayoutGlobal["counter"] = skipped
     out = await asyncio.gather(*calls, asyncLoadingUpdate(loadMsg), return_exceptions=True)
+
+    msg = getLoadingContent(scholarCount, scholarCount)
+    await loadMsg.edit(content=msg)
 
     devTotal = massPayoutGlobal["devSLP"]
     ownerTotal = massPayoutGlobal["managerSLP"]
@@ -1301,4 +1369,3 @@ async def alertsCommand(message, args, isSlash=False):
         await message.edit(content="Processing!")
     else:
         await message.reply("Processing!")
-
