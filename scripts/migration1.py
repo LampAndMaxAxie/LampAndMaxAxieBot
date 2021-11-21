@@ -1,7 +1,7 @@
 import asyncio
 import aiosqlite as sql
 from loguru import logger
-from SecretStorage import *
+from SeedStorage import *
 from Common import *
 import DB
 import sys
