@@ -100,8 +100,8 @@ async def removeScholar(discordID):
         async with db.cursor() as c:
             await c.execute("BEGIN")
             try: 
-                await c.execute('''UPDATE users SET is_scholar=0,seed_num=?,account_num=?,share=?
-                        WHERE discord_id=?''', (None,None,None,discordID)) 
+                await c.execute('''UPDATE users SET is_scholar=0,seed_num=?,account_num=?,scholar_addr=?,share=?
+                        WHERE discord_id=?''', (None,None,None,None,discordID)) 
                 await c.execute("COMMIT")
 
                 logger.info(f"Deleted scholar {discordID}")

@@ -178,6 +178,46 @@ async def on_message(message):
         await Commands.payoutAllScholars(message, args, isManager, discordId, guildId)
         return
 
+    elif args[0] == prefix + "exportRole" and isManager:
+        guild = message.guild
+
+        # Check for role name parameter
+        roleName = None
+        if len(args) > 0:
+            roleName = ''
+            for arg in args[1:]:
+                roleName += arg + " "
+            roleName = roleName[:-1]
+        else:
+            await message.reply("Provide a role name")
+            return
+
+        # Search server for role
+        roleObj = None
+        for r in guild.roles:
+            if r.name.startswith(roleName):
+                roleObj = r
+                break
+
+        # Role not found
+        if roleObj is None:
+            await message.reply(f"Role matching {roleName} was not found")
+
+        # Construct table of members with the role
+        df = pd.DataFrame(columns=["Discord_ID", "Discord_Name", "Role"])
+        for member in roleObj.members:
+            df.loc[len(df.index)] = [member.id, member.name + '#' + member.discriminator, roleObj.name]
+
+        # Produce CSV for the member list
+        fName = roleObj.name + "_export.csv"
+        df.to_csv(fName, index=False)
+
+        # Send the CSV and clean up
+        await message.reply(content=f"Member export for {roleObj.name} role, {len(roleObj.members)} members", file=discord.File(fName))
+        os.remove(fName)
+
+        return
+
     # user asked for command help
     elif message.content == prefix + "help":
         await helpCommand(message, discordId)

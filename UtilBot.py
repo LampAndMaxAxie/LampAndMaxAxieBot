@@ -341,8 +341,9 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         maxSlp = meta['max_slp_by_day']
 
         daysSinceCreated = round((utc_time - int(float(jsonDat['created_at']))) / (60 * 60 * 24), 1)
-        lastUpdatedEast = datetime.datetime.fromtimestamp(int(jsonDat['updated_at'])).replace(tzinfo=tzutc).astimezone(tz1)
-        lastUpdatedPhil = datetime.datetime.fromtimestamp(int(jsonDat['updated_at'])).replace(tzinfo=tzutc).astimezone(tz2)
+        lastUpdatedStamp = int(jsonDat['updated_at'])
+        lastUpdatedEast = datetime.datetime.fromtimestamp(lastUpdatedStamp).replace(tzinfo=tzutc).astimezone(tz1)
+        lastUpdatedPhil = datetime.datetime.fromtimestamp(lastUpdatedStamp).replace(tzinfo=tzutc).astimezone(tz2)
 
         # player-stats, energy/daily SLP/match counts
         remainingEnergy = int(jsonDat['remaining_energy'])
@@ -404,6 +405,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         inGameSlp = int(totalSlp - roninSlp)
 
         lastClaim = tz1.fromutc(datetime.datetime.fromtimestamp(int(jsonDatBalance["last_claimed_item_at"])))
+        lastClaimStamp = int(jsonDatBalance["last_claimed_item_at"])
+        nextClaimStamp = lastClaimStamp + (14 * 24 * 60 * 60)
         daysSinceClaim = math.ceil((utc_time - int(jsonDatBalance["last_claimed_item_at"])) / (60 * 60 * 24))
         claimDate = tz1.fromutc(
             datetime.datetime.fromtimestamp(int(jsonDatBalance["last_claimed_item_at"]) + (14 * 24 * 60 * 60)))
@@ -455,7 +458,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
                               timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
         embed.add_field(name=":book: Scholar Name", value=f"{name}")
         embed.add_field(name=":house: Ronin Address", value=f"{roninAddr}")
-        embed.add_field(name=":baggage_claim: Next Claim", value=f"{claimText}")
+        embed.add_field(name=":baggage_claim: Next Claim Ready", value=f"<t:{nextClaimStamp}:R>")
         embed.add_field(name="Lifetime SLP", value=f"{lifetimeSlp} {slpIcon}")
         embed.add_field(name="Current SLP", value=f"{inGameSlp} {slpIcon}")
         embed.add_field(name="Avg SLP/Day", value=f"{slpPerDay} {slpIcon}")
@@ -466,8 +469,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         embed.add_field(name=":bear: Quest - PvE", value=f"{pveTxt}, {pveSlp}/50 SLP")
         embed.add_field(name=":bow_and_arrow: Quest - PvP", value=f"{pvpTxt}")
         embed.add_field(name=":scroll: Daily Quest", value=f"{questTxt}")
-        embed.add_field(name=":clock1: Last Updated", value=f"{updatedTxt}")
-        embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
+        embed.add_field(name=":clock1: Last Updated", value=f"<t:{lastUpdatedStamp}:f>")
+        embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
 
         # package the data to cache and return
         res = {
@@ -669,7 +672,7 @@ async def getRoninBattles(roninAddr):
         embed = discord.Embed(title="Account Recent Battles", description="Recent battles for address " + roninAddr,
                               timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
         embed.add_field(name=":book: In Game Name", value=f"{name}")
-        embed.add_field(name=":clock1: Last Match Time", value=f"{lastTxt}")
+        embed.add_field(name=":clock1: Last Match Time", value=f"<t:{lastTime}:R>")
         embed.add_field(name=":anger: Arena Matches", value=f"{matches}, last ~7 days")
         embed.add_field(name=":crossed_swords: Arena MMR", value=f"{mmr}")
         embed.add_field(name=":trophy: Arena Rank", value=f"{rank}")
@@ -679,8 +682,8 @@ async def getRoninBattles(roninAddr):
         embed.add_field(name=":broken_heart: Arena Draws", value=f"{draws}, {drawrate}%")
         embed.add_field(name="Last 5 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
-        embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
-        embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
+        embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
+        #embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
         if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
@@ -881,7 +884,7 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         embed = discord.Embed(title="Scholar Recent Battles", description="Recent battles for scholar " + discordName,
                               timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
         embed.add_field(name=":book: In-Game Name", value=f"{name}")
-        embed.add_field(name=":clock1: Last Match Time", value=f"{lastTxt}")
+        embed.add_field(name=":clock1: Last Match Time", value=f"<t:{lastTime}:R>")
         embed.add_field(name=":anger: Arena Matches", value=f"{matches}, last ~7 days")
         embed.add_field(name=":crossed_swords: Arena MMR", value=f"{mmr}")
         embed.add_field(name=":trophy: Arena Rank", value=f"{rank}")
@@ -891,8 +894,8 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         embed.add_field(name=":broken_heart: Arena Draws", value=f"{draws}, {drawrate}%")
         embed.add_field(name="Last 5 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
-        embed.add_field(name=":floppy_disk: Cached Until", value=f"{cacheTxt}")
-        embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
+        embed.add_field(name=":floppy_disk: Cached Until", value=f"<t:{cacheExp}:R>")
+        #embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
         if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")

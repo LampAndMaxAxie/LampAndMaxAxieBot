@@ -9,9 +9,9 @@ import AccessToken
 import asyncio
 
 # DONT TOUCH ANYTHING BELOW THIS LINE
-web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc'))
+web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
 #web3a = Web3(AsyncHTTPProvider('https://proxy.roninchain.com/free-gas-rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
-w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
+w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
 #w3a = Web3(AsyncHTTPProvider('https://api.roninchain.com/rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
 slp_abi = "[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_createdAt\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_signature\",\"type\":\"bytes\"}],\"name\":\"checkpoint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
 slp_address = "0xa8754b9fa15fc18bb59458815510e40a12cd2014"
@@ -83,21 +83,25 @@ async def ClaimSLP(key, address, token, data, attempt=0):
     signed_txn = web3.eth.account.sign_transaction(claim_txn, private_key=key)
     tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     slpClaimed = web3.toHex(web3.keccak(signed_txn.rawTransaction))
+    listenCount = 0
     while True: # listen for 1 second then wait for 4 seconds repeatedly
         try:
-            receipt = web3.eth.wait_for_transaction_receipt(tx, 1)
+            receipt = web3.eth.wait_for_transaction_receipt(tx, 0.5)
             if receipt["status"] == 1:
                 success = True
             else:
                 success = False
             break
         except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
-            logger.info("Not found yet, waiting. Nothing to worry about.")
-            await asyncio.sleep(4)
+            await asyncio.sleep(4.5)
+            listenCount += 1
+            if listenCount % 12 == 0:
+                logger.info(f"Tx for {address} not found yet, trying again. Nothing to worry about.")
+                tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     if success:
         logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
         return slpClaimed
-    elif attempt > 3:
+    elif attempt > 5:
         logger.error("Failed to claim scholar " + address + " retried " + str(attempt) + " times.")
         return None
     else:
@@ -119,21 +123,25 @@ async def sendTx(key, address, token, amount, destination, attempt=0):
     signed_txn = web3.eth.account.sign_transaction(send_txn, private_key=key)
     tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     slpSent = web3.toHex(web3.keccak(signed_txn.rawTransaction))
+    listenCount = 0
     while True: # listen for 1 second then wait for 4 seconds repeatedly
         try:
-            receipt = web3.eth.wait_for_transaction_receipt(tx, 1)
+            receipt = web3.eth.wait_for_transaction_receipt(tx, 0.5)
             if receipt["status"] == 1:
                 success = True
             else:
                 success = False
             break
         except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
-            logger.info("Tx not found yet, waiting. Nothing to worry about.")
-            await asyncio.sleep(4)
+            await asyncio.sleep(4.5)
+            listenCount += 1
+            if listenCount % 12 == 0:
+                logger.info(f"Tx for {address} not found yet, trying again. Nothing to worry about.")
+                tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
     if success:
         logger.success(str(amount) + " slp sent to " + destination + " at tx " + slpSent)
         return slpSent
-    elif attempt > 3:
+    elif attempt > 5:
         logger.error("Failed to send " + str(amount) + "slp to " + destination + " retried " + str(attempt) + " times.")
         return None
     else:
@@ -192,7 +200,7 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
         else:
             if slp_data['last_claimed_item_at'] + 1209600 > time.time():
                 logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
-                return False # false indicates "not ready to claim"
+                return slp_data['last_claimed_item_at'] + 1209600#False # integer indicates "not ready to claim"
             elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
                 return None # none indicates "error"

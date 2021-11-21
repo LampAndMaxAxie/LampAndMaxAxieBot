@@ -44,6 +44,7 @@ except:
 
 try:
     qrBlacklist = json.loads(config.get('Bot', 'qrBlacklistIds'))
+    payBlacklist = json.loads(config.get('Bot', 'payBlacklistIds'))
     prefix = config.get('Bot', 'prefix')
     hideScholarRonins = config.get('Bot', 'hideScholarRonins')
     if hideScholarRonins == "True":

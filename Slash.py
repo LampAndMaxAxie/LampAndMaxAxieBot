@@ -13,7 +13,6 @@ from dislash import slash_commands
 from dislash.interactions import *
 from datetime import datetime, timezone
 
-from SecretStorage import *
 from Common import *
 from UtilBot import *
 from Commands import *

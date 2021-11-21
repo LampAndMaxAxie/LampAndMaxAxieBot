@@ -7,7 +7,7 @@ from web3 import Web3
 def signRoninMessage(message, key, attempts2=0):
     try:
         mes = encode_defunct(text=message)
-        ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
+        ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
         sig = ronweb3.eth.account.sign_message(mes, private_key=key)
         signature = sig['signature'].hex()
         temp = signature[-2:]
@@ -52,7 +52,7 @@ def GenerateAccessToken(key, address, attempts=0):
     def signRoninMessage(message, key, attempts2=0):
         try:
             mes = encode_defunct(text=message)
-            ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc'))
+            ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
             sig = ronweb3.eth.account.sign_message(mes, private_key=key)
             signature = sig['signature'].hex()
             temp = signature[-2:]
