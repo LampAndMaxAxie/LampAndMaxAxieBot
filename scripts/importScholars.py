@@ -42,9 +42,19 @@ async def importScholars(fName):
             roninAddr = args[2]
             discordID = args[3]
             scholarShare = round(float(args[4]),3)
+
+            if len(ars) > 5:
+                payoutAddr = args[5]
+            else:
+                payoutAddr = None
+
             name = await getNameFromDiscordID(discordID)
 
             res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
+
+            if payoutAddr is not None:
+                await DB.updateScholarAddress(discordID, payoutAddr)                
+
             if not res["success"]:
                 logger.error(f"failed to import scholar {discordID}")
                 logger.error(res)
