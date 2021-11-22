@@ -350,7 +350,6 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     embed.add_field(name="Address", value=f"{roninAddr}")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
-    confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
     if conf is None:
         # timeout
