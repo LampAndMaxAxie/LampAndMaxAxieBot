@@ -126,7 +126,8 @@ async def updateScholarShare(discordID, share):
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
            
             if user is None:
                 logger.error(f"Failed to update {discordID} because they are not in the database")
@@ -161,7 +162,8 @@ async def updateScholarAddress(discordID, addr):
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
            
             if user is None:
                 logger.error(f"Failed to update {discordID} because they are not in the database")
@@ -196,7 +198,8 @@ async def updateScholarMainAddress(discordID, addr):
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
  
             logger.info(user)
             out = "["
@@ -237,7 +240,8 @@ async def addManager(discordID, name):
             if userR["success"]:
                 user = userR["rows"]
             else:
-                return userR
+                user = None
+                #return userR
             
             if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_manager"] is not None and int(user["is_manager"]) == 1):
                 return {"success": False, "msg": "A manager already exists with that discord ID"}
@@ -578,8 +582,8 @@ async def getDiscordID(discordID, db=None):
         logger.info(out)
 
     except Exception as e:
-        logger.error(f"Failed to get discord ID {discordID}")
-        logger.error(e)
+        logger.warn(f"Failed to get discord ID {discordID}, not in database")
+        #logger.error(e)
 
         if created:
             await c.close()
