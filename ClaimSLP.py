@@ -40,7 +40,7 @@ async def getSLP(token, address, requestType, attempts=0):
             return None
         else:
             logger.error("Could not get the slp of " + address + " trying again #" + str(attempts) + ".")
-            return getSLP(token, address, requestType, attempts+1)
+            return await getSLP(token, address, requestType, attempts+1)
 
 
 async def ClaimSLP(key, address, data, attempt=0):
@@ -70,7 +70,7 @@ async def ClaimSLP(key, address, data, attempt=0):
     else:
         logger.warning("Failed to claim scholar " + address + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return ClaimSLP(key, address, data, attempt+1)
+        return await ClaimSLP(key, address, data, attempt+1)
 
 
 async def sendTx(key, address, amount, destination, attempt=0):
@@ -95,7 +95,7 @@ async def sendTx(key, address, amount, destination, attempt=0):
     else:
         logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return sendTx(key, address, amount, destination, attempt + 1)
+        return await sendTx(key, address, amount, destination, attempt + 1)
 
 
 async def sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent):
