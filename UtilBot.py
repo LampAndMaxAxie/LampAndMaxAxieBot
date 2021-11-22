@@ -199,7 +199,7 @@ def getPlayerToken(roninKey, roninAddr):
                 json.dump(tokenBook, f)
     except:
         logger.error("Failed to get token for: " + roninAddr)
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
         return None
     return token
 
@@ -316,6 +316,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     # get auth token
     token = getPlayerToken(roninKey, roninAddr)
     if token is None:
+        logger.error(f"Failed to get auth token for daily for {roninAddr}")
         return None
 
     # fetch data
@@ -333,6 +334,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
 
     # fail out if any data is missing
     if jsonDat is None or jsonDatQuests is None or jsonDatBattle is None or jsonDatBalance is None:
+        logger.error(f"Failed an API call for daily for {roninAddr}")
         return None
 
     cacheExp = int(time.time()) + CACHE_TIME * 60
@@ -502,6 +504,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     except Exception as e:
         #traceback.print_exc()
         logger.error(e)
+        logger.error(traceback.format_exc())
         await sendErrorToManagers(e, discordName)    
         
         return None
