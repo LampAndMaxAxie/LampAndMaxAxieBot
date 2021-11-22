@@ -72,7 +72,7 @@ async def importScholars(fName):
 
             res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
 
-            if payoutAddr is not None:
+            if payoutAddr is not None and payoutAddr != "":
                 await DB.updateScholarAddress(discordID, payoutAddr)                
 
             if not res["success"]:
