@@ -310,7 +310,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     #print(scholarCache)
     #print(targetId)
     if targetId in scholarCache and int(scholarCache[targetId]["cache"]) - int(time.time()) > 0:
-        return scholarCache[targetId]["data"]
+        if scholarCache[targetId]["data"] is not None:
+            return scholarCache[targetId]["data"]
 
     # get auth token
     token = getPlayerToken(roninKey, roninAddr)
@@ -1146,7 +1147,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         k = 0
         # request genetic data for each axie
         for axId in axieIds:
-            urlParts = "https://api.axie.technology/invalidateaxie/" + str(axId)
+            urlParts = "https://api.axie.technology/xaxie/" + str(axId)
             res = await makeJsonRequestWeb(urlParts)
 
             axieParts[axId] = {"stats": res["stats"], "class": res["class"], "parts": res["parts"], "name": res["name"],
