@@ -582,7 +582,7 @@ async def getDiscordID(discordID, db=None):
         logger.info(out)
 
     except Exception as e:
-        logger.warn(f"Failed to get discord ID {discordID}, not in database")
+        logger.warning(f"Failed to get discord ID {discordID}, not in database")
         #logger.error(e)
 
         if created:
