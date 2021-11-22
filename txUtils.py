@@ -75,13 +75,13 @@ def checkTxs(txs):
 
 
 async def checkTx(txHash):
-    for a in range(12):
+    for a in range(20):
         try:
             web3.eth.get_transaction_receipt(txHash)
         except:
             return False
-        logger.info("waiting")
-        await asyncio.sleep(5)
+        #logger.info("waiting")
+        await asyncio.sleep(3)
     return True
 
 
