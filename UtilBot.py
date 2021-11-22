@@ -942,15 +942,15 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
     return res
 
 async def getScholarExport():
-    df = pd.DataFrame(columns=['ScholarID','Seed','Account','ScholarAddr','PayoutAddr','Share'])
+    df = pd.DataFrame(columns=['ScholarID','ScholarName', 'Seed','Account','ScholarAddr','PayoutAddr','Share'])
     
     scholarsDict = await DB.getAllScholars()
     if scholarsDict["success"] is None:
         return None, None
 
     for scholar in scholarsDict["rows"]:
-        df.loc[len(df.index)] = [scholar["discord_id"],scholar["seed_num"],scholar["account_num"],scholar["scholar_addr"],scholar["payout_addr"],scholar["share"]]
-    return df 
+        df.loc[len(df.index)] = [scholar["discord_id"],scholar["name"],scholar["seed_num"],scholar["account_num"],scholar["scholar_addr"],scholar["payout_addr"],scholar["share"]]
+    return df
 
 # builds a summary table of all scholars
 async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
