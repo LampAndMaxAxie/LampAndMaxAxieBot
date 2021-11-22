@@ -9,23 +9,22 @@ import AccessToken
 import asyncio
 
 # DONT TOUCH ANYTHING BELOW THIS LINE
-web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
-#web3a = Web3(AsyncHTTPProvider('https://proxy.roninchain.com/free-gas-rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
-w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
-#w3a = Web3(AsyncHTTPProvider('https://api.roninchain.com/rpc'), modules={'eth': (AsyncEth,)}, middlewares=[])
-slp_abi = "[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_createdAt\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_signature\",\"type\":\"bytes\"}],\"name\":\"checkpoint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}]"
-slp_address = "0xa8754b9fa15fc18bb59458815510e40a12cd2014"
-slp_contract = web3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
-slp_contract_call = w3.eth.contract(address=Web3.toChecksumAddress(slp_address), abi=slp_abi)
+import txUtils
+
+contract, contractCall = txUtils.slp()
 dev_address = '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd'
 
-async def updateSLP(token, address, attempts=0):
-    url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1/claim"
+
+async def getSLP(token, address, requestType, attempts=0):
+    if requestType == "POST":
+        url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1/claim"
+    else:
+        url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1"
     headers = {
         'Authorization': 'Bearer ' + token,
         'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
     }
-    response = requests.request("POST", url, headers=headers)
+    response = requests.request(requestType, url, headers=headers)
     try:
         slp = json.loads(response.text)
         if slp['success']:
@@ -33,43 +32,22 @@ async def updateSLP(token, address, attempts=0):
         else:
             raise Exception ("success = false")
     except Exception as e:
-        if attempts > 3:
+        if attempts >= 3:
             logger.error(e)
-            logger.error("Was not able to update the slp of " + address + ". Tried 3 times. If the error persists, tell the Developers.")
+            logger.error(response)
+            logger.error(response.text)
+            logger.error("Was not able to get the slp of " + address + ". Tried 3 times. Request type " + requestType)
             return None
         else:
-            logger.warning("Could not update the slp of " + address + " trying again #" + str(attempts) + ". Nothing to be worried about.")
-            return updateSLP(token, address, attempts+1)
+            logger.error("Could not get the slp of " + address + " trying again #" + str(attempts) + ".")
+            return getSLP(token, address, requestType, attempts+1)
 
 
-async def getSLP(token, address, attempts=0):
-    url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1"
-    headers = {
-        'Authorization': 'Bearer ' + token,
-        'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
-    }
-    response = requests.request("GET", url, headers=headers)
-    try:
-        slp = json.loads(response.text)
-        if slp['success']:
-            return response.text
-        else:
-            raise Exception ("success = false")
-    except Exception as e:
-        if attempts > 3:
-            logger.error(e)
-            logger.error("Was not able to get the slp of " + address + ". Tried 3 times. If the error persists, tell the Developers.")
-            return None
-        else:
-            logger.warning("Could not get the slp of " + address + " trying again #" + str(attempts) + ". Nothing to be worried about.")
-            return getSLP(token, address, attempts+1)
-
-
-async def ClaimSLP(key, address, token, data, attempt=0):
+async def ClaimSLP(key, address, data, attempt=0):
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
-    claim_txn = slp_contract.functions.checkpoint(
+    claim_txn = contract.functions.checkpoint(
         Web3.toChecksumAddress(address),
         amount,
         timestamp,
@@ -77,27 +55,12 @@ async def ClaimSLP(key, address, token, data, attempt=0):
     ).buildTransaction({
         'chainId': 2020,
         'gas': 500000,
-        'gasPrice': web3.toWei('0', 'gwei'),
-        'nonce': web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'gasPrice': Web3.toWei('0', 'gwei'),
+        'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
-    signed_txn = web3.eth.account.sign_transaction(claim_txn, private_key=key)
-    tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
-    slpClaimed = web3.toHex(web3.keccak(signed_txn.rawTransaction))
-    listenCount = 0
-    while True: # listen for 1 second then wait for 4 seconds repeatedly
-        try:
-            receipt = web3.eth.wait_for_transaction_receipt(tx, 0.5)
-            if receipt["status"] == 1:
-                success = True
-            else:
-                success = False
-            break
-        except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
-            await asyncio.sleep(4.5)
-            listenCount += 1
-            if listenCount % 12 == 0:
-                logger.info(f"Tx for {address} not found yet, trying again. Nothing to worry about.")
-                tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    signed_txn = txUtils.web3.eth.account.sign_transaction(claim_txn, private_key=key)
+    success = await txUtils.sendTx(signed_txn)
+    slpClaimed = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
     if success:
         logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
         return slpClaimed
@@ -107,37 +70,22 @@ async def ClaimSLP(key, address, token, data, attempt=0):
     else:
         logger.warning("Failed to claim scholar " + address + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return ClaimSLP(key, address, token, data, attempt+1)
+        return ClaimSLP(key, address, data, attempt+1)
 
 
-async def sendTx(key, address, token, amount, destination, attempt=0):
-    send_txn = slp_contract.functions.transfer(
+async def sendTx(key, address, amount, destination, attempt=0):
+    send_txn = contract.functions.transfer(
         Web3.toChecksumAddress(destination),
         amount
     ).buildTransaction({
         'chainId': 2020,
         'gas': 500000,
-        'gasPrice': web3.toWei('0', 'gwei'),
-        'nonce': web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'gasPrice': Web3.toWei('0', 'gwei'),
+        'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
-    signed_txn = web3.eth.account.sign_transaction(send_txn, private_key=key)
-    tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
-    slpSent = web3.toHex(web3.keccak(signed_txn.rawTransaction))
-    listenCount = 0
-    while True: # listen for 1 second then wait for 4 seconds repeatedly
-        try:
-            receipt = web3.eth.wait_for_transaction_receipt(tx, 0.5)
-            if receipt["status"] == 1:
-                success = True
-            else:
-                success = False
-            break
-        except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
-            await asyncio.sleep(4.5)
-            listenCount += 1
-            if listenCount % 12 == 0:
-                logger.info(f"Tx for {address} not found yet, trying again. Nothing to worry about.")
-                tx = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    signed_txn = txUtils.web3.eth.account.sign_transaction(send_txn, private_key=key)
+    success = await txUtils.sendTx(signed_txn)
+    slpSent = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
     if success:
         logger.success(str(amount) + " slp sent to " + destination + " at tx " + slpSent)
         return slpSent
@@ -147,31 +95,45 @@ async def sendTx(key, address, token, amount, destination, attempt=0):
     else:
         logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return sendTx(key, address, token, amount, destination, attempt + 1)
+        return sendTx(key, address, amount, destination, attempt + 1)
 
 
-async def sendSLP(key, address, token, scholar_address, owner_address, scholar_percent, devPercent):
+async def sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent):
     try:
-        amount = slp_contract_call.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        amount = contractCall.functions.balanceOf(Web3.toChecksumAddress(address)).call()
     except Exception as e:
         logger.error(e)
         return None
     if not isinstance(amount, int):
         logger.error("amount is not an int")
         return None
+
+    if amount == 0:
+        logger.error(f"Tried sending SLP for {address} but there is no balance")
+        return {
+            "totalAmount": 0,
+            "devTx": None,
+            "devAmount": 0,
+            "ownerTx": None,
+            "ownerAmount": 0,
+            "scholarTx": None,
+            "scholarAmount": 0
+        }
+
     scholar_slp = floor(amount * scholar_percent)
+
     if devPercent:
         dev_slp = floor(devPercent * amount)
         owner_slp = amount - (scholar_slp + dev_slp)
-        devTx = await sendTx(key, address, token, dev_slp, dev_address)
+        devTx = await sendTx(key, address, dev_slp, dev_address)
         await asyncio.sleep(4)
     else:
         devTx = None
         dev_slp = 0
         owner_slp = amount - scholar_slp
-    ownerTx = await sendTx(key, address, token, owner_slp, owner_address)
+    ownerTx = await sendTx(key, address, owner_slp, owner_address)
     await asyncio.sleep(4)
-    scholarTx = await sendTx(key, address, token, scholar_slp, scholar_address)
+    scholarTx = await sendTx(key, address, scholar_slp, scholar_address)
     logger.success("Scholar " + address + " payout successful")
     return {
         "totalAmount": amount,
@@ -187,23 +149,26 @@ async def sendSLP(key, address, token, scholar_address, owner_address, scholar_p
 async def slpClaiming(key, address, scholar_address, owner_address, scholar_percent, devPercent=None):
     accessToken = AccessToken.GenerateAccessToken(key, address)
     try:
-        slp_data = json.loads(await getSLP(accessToken, address))
-        if slp_data['blockchain_related']['balance'] != 0 or slp_data['claimable_total'] != 0 or slp_data['last_claimed_item_at'] + 1209600 <= time.time():
-            claim = json.loads(await updateSLP(accessToken, address))
-            if claim['blockchain_related']['checkpoint'] != claim['blockchain_related']['signature']['amount']:
-                claimTx = await ClaimSLP(key, address, accessToken, claim)
-            else:
-                claimTx = None
-            sendTxs = await sendSLP(key, address, accessToken, scholar_address, owner_address, scholar_percent, devPercent)
-            sendTxs["claimTx"] = claimTx
-            return sendTxs
+        slp_data = json.loads(await getSLP(accessToken, address, "GET"))
+
+        if slp_data['last_claimed_item_at'] + 1209600 <= time.time():
+            json_data = json.loads(await getSLP(accessToken, address, "POST"))
+            logger.info(address + "\tclaim and update")
+            claimTx = await ClaimSLP(key, address, json_data)
+        elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount']:
+            logger.info(address + "\tclaim, no update")
+            claimTx = await ClaimSLP(key, address, slp_data)
         else:
+            claimTx = None
             if slp_data['last_claimed_item_at'] + 1209600 > time.time():
                 logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
-                return slp_data['last_claimed_item_at'] + 1209600#False # integer indicates "not ready to claim"
+                return slp_data['last_claimed_item_at'] + 1209600 # integer indicates "not ready to claim"
             elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
                 return None # none indicates "error"
+        sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
+        sendTxs["claimTx"] = claimTx
+        return sendTxs
     except Exception as e:
         logger.error(e)
         logger.error("Could not claim SLP")

@@ -697,10 +697,10 @@ async def asyncLoadingUpdate(message):
         if massPayoutGlobal["counter"] == massPayoutGlobal["total"]:
             break
 
-        asyncio.sleep(3)
+        asyncio.sleep(1)
 
 # Wrapper to multi-call payouts
-async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, discordId):
+async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, discordId, name):
     global massPayoutGlobal
 
     res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
@@ -712,21 +712,21 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
         if "scholarTx" in res and "scholarAmount" in res and res["scholarAmount"] > 0:
             if res["scholarTx"] is not None:
                 massPayoutGlobal["scholarSLP"] += res["scholarAmount"]
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Scholar", scholarAddress, res["scholarAmount"], "SUCCESS", res["scholarTx"]]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Scholar", scholarAddress, res["scholarAmount"], "SUCCESS", res["scholarTx"]]
             else:
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Scholar", scholarAddress, res["scholarAmount"], "FAILURE", None]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Scholar", scholarAddress, res["scholarAmount"], "FAILURE", None]
         if "ownerTx" in res and "ownerAmount" in res and res["ownerAmount"] > 0:
             if res["ownerTx"] is not None:
                 massPayoutGlobal["managerSLP"] += res["ownerAmount"]
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Owner", ownerRonin, res["ownerAmount"], "SUCCESS", res["ownerTx"]]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Owner", ownerRonin, res["ownerAmount"], "SUCCESS", res["ownerTx"]]
             else:
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Owner", ownerRonin, res["ownerAmount"], "FAILURE", None]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Owner", ownerRonin, res["ownerAmount"], "FAILURE", None]
         if "devTx" in res and "devAmount" in res and res["devAmount"] > 0:
             if res["devTx"] is not None:
                 massPayoutGlobal["devSLP"] += res["devAmount"]
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "SUCCESS", res["devTx"]]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "SUCCESS", res["devTx"]]
             else:
-                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "FAILURE", None]
+                massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Devs", "0xc5f700ca10dd77b51669513cdca53a21cbac3bcd", res["devAmount"], "FAILURE", None]
         massPayoutGlobal["counter"] += 1
         return res
 
@@ -780,16 +780,16 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
 
     #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
-    accessToken = getPlayerToken(key, address)
-    slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
-    claimable = slp_data['claimable_total']
-    nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
-    if nextClaimTime > time.time():
-        await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R>.", isSlash)
-        return
-    if claimable == 0:
-        await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R> but there is no claimable SLP.", isSlash)
-        return
+    #accessToken = getPlayerToken(key, address)
+    #slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
+    #claimable = slp_data['claimable_total']
+    #nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
+    #if nextClaimTime > time.time():
+    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R>.", isSlash)
+    #    return
+    #if claimable == 0:
+    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R> but there is no claimable SLP.", isSlash)
+    #    return
 
     # confirm with react
     embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
@@ -847,6 +847,10 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     totalAmt = claimRes["totalAmount"]
     claimTx = claimRes["claimTx"]
 
+    if totalAmt == 0:
+        await processMsg.reply(content=f"<@{discordId}> there was no SLP to claim.")
+        return
+
     roninTx = "https://explorer.roninchain.com/tx/"
     roninAddr = "https://explorer.roninchain.com/address/"
     embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout",
@@ -884,7 +888,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     massPayoutGlobal = {"counter": 0, "total": 0, "devSLP": 0, "managerSLP": 0, "scholarSLP": 0, "txs": None}
 
-    massPayoutGlobal["txs"] = pd.DataFrame(columns=["DiscordID","ScholarAddress","Target","Address","Amount","Status","Hash"])
+    massPayoutGlobal["txs"] = pd.DataFrame(columns=["DiscordID","DiscordName","ScholarAddress","Target","Address","Amount","Status","Hash"])
 
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -965,13 +969,13 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
                 skipped += 1
                 continue
 
-            accessToken = getPlayerToken(key, address)
-            slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
-            claimable = slp_data['claimable_total']
-            nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
-            if claimable == 0 or nextClaimTime > time.time():
-                skipped += 1
-                continue
+            #accessToken = getPlayerToken(key, address)
+            #slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
+            #claimable = slp_data['claimable_total']
+            #nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
+            #if claimable == 0 or nextClaimTime > time.time():
+            #    skipped += 1
+            #    continue
 
             calls.append(massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, scholarID, name))
         except Exception as e:
@@ -992,7 +996,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     grandTotal = devTotal + ownerTotal + scholarTotal
 
     for entry in out[:-1]:
-        if entry is None or isinstance(entry, int) or isinstance(entry, Exception):
+        if entry is None or isinstance(entry, int) or isinstance(entry, Exception) or ("totalAmount" in entry and entry["totalAmount"] == 0):
             skipped += 1
         else:
             processed += 1 
