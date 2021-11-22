@@ -257,7 +257,7 @@ async def addManager(discordID, name):
                         VALUES (?, ?, ?)''', (discordID, name, 1))
                 await c.execute("COMMIT")
 
-                logger.info(f"Saved manager {name}/{discordID}")
+                logger.success(f"Saved manager {name}/{discordID}")
 
             except:
                 await c.execute("ROLLBACK")
@@ -277,7 +277,7 @@ async def removeManager(discordID):
                         WHERE discord_id=?''', (discordID,)) 
                 await c.execute("COMMIT")
 
-                logger.info(f"Deleted manager {discordID}")
+                logger.success(f"Deleted manager {discordID}")
 
             except:
                 await c.execute("ROLLBACK")

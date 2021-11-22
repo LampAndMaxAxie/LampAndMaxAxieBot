@@ -568,9 +568,14 @@ async def addManager(message, args, isManager, discordId, guildId, isSlash=False
         await confMsg.reply(content="Canceling the request!")
         return
 
-    # remove manager from DB
+    # add manager to DB
     
     res = await DB.addManager(discordUID, name)
+
+    if res is None:
+        confMsg.reply(content="Experienced unusual error, please check logs.")
+        return
+
     await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
 
 # Revoke a user's manager privileges
