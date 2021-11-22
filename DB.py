@@ -63,7 +63,7 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
                 return rowsR
             
             userR = await getDiscordID(discordID, db)
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
@@ -123,7 +123,7 @@ async def updateScholarShare(discordID, share):
         async with db.cursor() as c:
             userR = await getDiscordID(discordID, db)
             
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
@@ -159,7 +159,7 @@ async def updateScholarAddress(discordID, addr):
         async with db.cursor() as c:
             userR = await getDiscordID(discordID, db)
 
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
@@ -195,7 +195,7 @@ async def updateScholarMainAddress(discordID, addr):
         async with db.cursor() as c:
             userR = await getDiscordID(discordID, db)
 
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
@@ -237,7 +237,7 @@ async def addManager(discordID, name):
         db.row_factory = sql.Row
         async with db.cursor() as c:
             userR = await getDiscordID(discordID, db)
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
@@ -302,7 +302,7 @@ async def setOwner(discordID, name):
                 #return rowsR
 
             userR = await getDiscordID(discordID,db)
-            if userR["success"]:
+            if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
