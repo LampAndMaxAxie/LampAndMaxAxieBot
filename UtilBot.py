@@ -127,6 +127,13 @@ async def getKeyForUser(user):
 
     return ret["key"], ret["address"]
 
+def is_int(val):
+    try:
+        num = int(val)
+    except ValueError:
+        return False
+    return True
+
 # fetch a remote image
 def saveUrlImage(url, name):
     try:
