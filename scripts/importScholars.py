@@ -63,7 +63,7 @@ async def importScholars(fName):
             discordID = args[3]
             scholarShare = round(float(args[4]),3)
 
-            if len(ars) > 5:
+            if len(args) > 5:
                 payoutAddr = args[5]
             else:
                 payoutAddr = None
