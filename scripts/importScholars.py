@@ -59,12 +59,12 @@ async def importScholars(fName):
 
             seedNum = args[0]
             accountNum = args[1]
-            roninAddr = args[2]
+            roninAddr = args[2].replace("ronin:", "0x")
             discordID = args[3]
             scholarShare = round(float(args[4]),3)
 
             if len(args) > 5:
-                payoutAddr = args[5]
+                payoutAddr = args[5].replace("ronin:", "0x")
             else:
                 payoutAddr = None
 
