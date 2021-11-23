@@ -5,7 +5,7 @@
 2. Install python3 via your preferred method, if you don't already have it.
 3. Setup your github ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 3. Clone the github repository: `git clone git@github.com:maconard/Lamp-sAxieBot-Base.git`
-4. Move the install script from the scripts folder to main folder. `cp scripts/install_ubuntu.sh install.sh` 
+4. Move the install script from the scripts folder to main folder. `cp scripts/install-ubuntu.sh install.sh` 
 5. Run the installation script `./install.sh` to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`. Can then remove the script `rm install.sh`.
 6. Fill out/replace the values in `config.cfg`. Everything is required.
 7. Fill out the `SeedStorage.py` file with your seed phrases, this is used to pull private keys for your configured scholars to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order related to how you mark seed index on your scholar data. (See import section below.)
