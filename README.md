@@ -1,17 +1,21 @@
 # Author: Michael Conard
 
 ### Code Setup
-1. Install python3 via your preferred method, if you don't already have it.
-2. Run the installation script to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`.
-3. Fill out/replace the values in `config.cfg`. Everything is required.
-4. Fill out the `SeedStorage.py` file with your seed phrases, this is used to pull private keys for your configured scholars to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order.
-5. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
-6. Add the bot's "client secret" to the `SeedStorage.py` file.
+1. If on Linux, you're good to go. If on Windows, I recommend setting up Windows Subsystem for Linux: https://www.notion.so/Script-Install-Guide-1bfef048044d47dc8c665bbe502a159a
+2. Install python3 via your preferred method, if you don't already have it.
+3. Setup your github ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+3. Clone the github repository: `git clone git@github.com:maconard/Lamp-sAxieBot-Base.git`
+4. Move the install script from the scripts folder to main folder. `cp scripts/install_ubuntu.sh install.sh` 
+5. Run the installation script `./install.sh` to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`. Can then remove the script `rm install.sh`.
+6. Fill out/replace the values in `config.cfg`. Everything is required.
+7. Fill out the `SeedStorage.py` file with your seed phrases, this is used to pull private keys for your configured scholars to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order related to how you mark seed index on your scholar data. (See import section below.)
+8. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
+9. Add the bot's "client token" to the `SeedStorage.py` file.
 
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:
 1. Scopes: bot, applications.commands
-2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands, etc.
+2. Permissions: view channels, send messages, embed links, attach files, read message history, add reactions, use slash commands, etc. The bot does NOT need admin privileges.
 3. Go to the Bot menu in the Dev Portal and under "Privileged Gateway Intents" enable the "Server Members Intent"
 
 For launching your bot on your server, start with database creation and scholar import/migration. Migration is for if you've been using a previous version of the bot and the new version has database changes.
@@ -19,19 +23,21 @@ For launching your bot on your server, start with database creation and scholar 
 If migrating (i.e. upgrading to new bot version that needs migration):
 1. Make sure your config.cfg file is up to date and accurate.
 2. Create your migration file. See the `sampleTexts/` directory for an example for the migration you need.
-3. From your main bot directory, run `scripts/migration1.py myMigrationFile.txt` for whichever migration script and input text you need.
+3. Copy the migration.py file from the scripts folder to the main code file.
+3. From your main bot directory, run `migration1.py myMigrationFile.txt` for whichever migration script and input text you need.
 
 If importing (i.e. first time using the bot):
 1. Make sure your config.cfg file is up to date and accurate.
 2. Create your import file. Currently this takes the form: `seedNum, accountNum, accountAddr, discordId, scholarShare`, see `sampleTexts/` for an example.
-3. From your main bot directory, run `scripts/importScholars.py myImportFile.txt` for your input file. 
+3. Copy the importScholars.py file from the scripts folder to the main code file.
+3. From your main bot directory, run `importScholars.py myImportFile.txt` for your input file. 
 
-Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. 
+Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. Can delete the script and import filw when no longer needed.
 
 ### Guide
 1. Adding Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&addManager discordID`
 2. Removing Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&removeManager discordID`
-3. Add Scholars. This can be done by owner/managers. `&addScholar seedNum accountNum discordID scholarShare`. `scholarShare` is between 0.01 to 1.00.
+3. Add Scholars. This can be done by owner/managers. `&addScholar, seedNum, accountNum, roninAddr, discordID, scholarShare, payoutAddr`. `scholarShare` is between 0.50 to 1.00. `payoutAddr` is optional, if you happen to have it; scholars can set it themselves via the bot.
 4. Remove Scholars. This can be done by owner/managers. `&removeScholar discordID`
 5. Update Scholar Share. This can be done by owner/managers. `&updateScholarShare discordID scholarShare`. `scholarShare` is between 0.01 to 1.00.
 6. Set Scholar Payout Address. This can be done by the scholar themself, or by owner/managers. `&setPayoutAddress addr [discordID]`. discordID is optional and only usable by owner/managers.
@@ -54,9 +60,11 @@ For other utility commands, run the `&help` command on your active bot.
 5. Generate a scholar summary of all scholars, ranked on what you'd like to sort by
 6. Automatically sends alerts in a specified channel an hour before reset if people are missing progress
 7. Automatically post summaries in a specified channel at some interval of hours. Set the leaderboardPeriod to 25 to disable.
-8. Get recent battles for a scholar/ronin address
+8. Get recent battles for a scholar/ronin address (disabled by Axie servers)
 
 ### Additional Information
+NOTE: slash commands currently not functioning.
+
 Supports text commands with prefix and slash commands! Note that embeds in slash commands can't contain images due to "API limitations" (quote the shitty API docs), so if you want the images in `battles` and `axies` calls, use a text command instead of a slash command.
 
 Feel free to reach out to MaikeruKonare#3141 on Discord for support or bug reports.
