@@ -31,13 +31,12 @@ If importing (i.e. first time using the bot):
 2. Create your import file. Currently this takes the form: `seedNum, accountNum, accountAddr, discordId, scholarShare`, see `sampleTexts/` for an example.
 3. Copy the importScholars.py file from the scripts folder to the main code file.
 3. From your main bot directory, run `importScholars.py myImportFile.txt` for your input file. 
-
-Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. Can delete the script and import filw when no longer needed.
+Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. Can delete the script and import file when no longer needed.
 
 ### Guide
 1. Adding Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&addManager discordID`
 2. Removing Managers. This must be done by the ownerDiscordId configured in the config.cfg; there can only be ONE owner. `&removeManager discordID`
-3. Add Scholars. This can be done by owner/managers. `&addScholar, seedNum, accountNum, roninAddr, discordID, scholarShare, payoutAddr`. `scholarShare` is between 0.50 to 1.00. `payoutAddr` is optional, if you happen to have it; scholars can set it themselves via the bot.
+3. Add Scholars. This can be done by owner/managers. `&addScholar seedNum accountNum roninAddr discordID scholarShare payoutAddr`. `scholarShare` is between 0.50 to 1.00. `payoutAddr` is optional, if you happen to have it; scholars can set it themselves via the bot.
 4. Remove Scholars. This can be done by owner/managers. `&removeScholar discordID`
 5. Update Scholar Share. This can be done by owner/managers. `&updateScholarShare discordID scholarShare`. `scholarShare` is between 0.01 to 1.00.
 6. Set Scholar Payout Address. This can be done by the scholar themself, or by owner/managers. `&setPayoutAddress addr [discordID]`. discordID is optional and only usable by owner/managers.
