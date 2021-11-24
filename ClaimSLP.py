@@ -12,7 +12,7 @@ import asyncio
 import txUtils
 
 contract, contractCall = txUtils.slp()
-dev_address = '0xc5f700ca10dd77b51669513cdca53a21cbac3bcd'
+dev_address = '0xc381c963ec026572ea82d18dacf49a1fde4a72dc'
 
 
 async def getSLP(token, address, requestType, attempts=0):
