@@ -131,6 +131,6 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             logger.error(f"{scholarAddress} != {scholarAccount.address}")
             return None
     except Exception as e:
-        logger.error("Exception in getFromMnemonic")
-        logger.error(traceback.format_exc())
+        logger.error("Exception in getFromMnemonic, not logging trace because a seed typo could be involved")
+        #logger.error(traceback.format_exc())
         return None
