@@ -2,6 +2,7 @@ import discord
 import configparser
 import os
 import json
+import traceback
 from web3 import Account, Web3
 from loguru import logger
 from discord.ext import tasks, commands
@@ -129,6 +130,7 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             logger.error("Account Address did not match derived address")
             logger.error(f"{scholarAddress} != {scholarAccount.address}")
             return None
-    except:
+    except Exception as e:
         logger.error("Exception in getFromMnemonic")
+        logger.error(traceback.format_exc())
         return None
