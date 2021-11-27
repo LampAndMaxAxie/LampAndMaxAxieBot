@@ -238,7 +238,7 @@ async def checkEnergyQuest():
         rn = datetime.datetime.now(datetime.timezone.utc)
 
         # check if it's time to run a task
-        if rn.hour == 18 and rn.minute == 52:  # allow 7pm EST / 11pm UTC
+        if rn.hour == 23 and rn.minute == 0:  # allow 7pm EST / 11pm UTC
             # energy / quest alerts
             await nearResetAlerts(rn)
 
