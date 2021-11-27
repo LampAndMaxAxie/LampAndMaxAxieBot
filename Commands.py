@@ -1417,9 +1417,6 @@ async def topCommand(message, args, isManager, discordId, guildId, isSlash=False
 
 
 async def alertsCommand(message, args, isSlash=False):
-    global forceAlert
-    global alertPing
-    
     if not isSlash:
         await message.channel.trigger_typing()     
 
@@ -1427,12 +1424,13 @@ async def alertsCommand(message, args, isSlash=False):
     if len(args) > 1 and args[1] == "1":
         ping = True
 
-    alertPing = ping
-    forceAlert = True
-
-    logger.info(f"Processing on-demand alert, ping={alertPing},force={forceAlert}")
+    rn = datetime.datetime.now(datetime.timezone.utc)
+    logger.info(f"Processing on-demand alert, ping={ping}")
 
     if isSlash:
         await message.edit(content="Processing!")
     else:
         await message.reply("Processing!")
+
+    await nearResetAlerts(rn, True, ping)
+

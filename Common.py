@@ -63,8 +63,6 @@ except:
 
 
 # Globals
-alertPing = True
-forceAlert = False
 mnemonicList = SeedList 
 Account.enable_unaudited_hdwallet_features()
 

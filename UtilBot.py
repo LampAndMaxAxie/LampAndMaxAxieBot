@@ -1257,3 +1257,75 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         return None
 
 
+async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
+    try:
+        logger.info("Processing near-reset alerts")
+
+        channel = client.get_channel(alertChannelId);
+        msg = ""
+
+        if not forceAlert:
+            msg = "Hello %s! The %s daily reset is in 1 hour.\n\n" % (programName, str(rn.date()))
+        else:
+            msg = "Hello %s!\n\n" % (programName)
+
+        count = 0
+
+        greenCheck = ":white_check_mark:"
+        redX = ":x:"
+
+        # for each scholar
+        scholarsDict = await DB.getAllScholars()
+        if not scholarsDict["success"]:
+            return
+
+        for scholar in scholarsDict["rows"]:
+            roninKey, roninAddr = await getKeyForUser(scholar)
+            if roninKey is None or roninAddr is None:
+                continue
+
+            name = scholar["name"]
+            dId = scholar["discord_id"]
+
+            # fetch daily progress data
+            res = await getPlayerDailies("", dId, name, roninKey, roninAddr)
+
+            # configure alert messages
+            if res is not None:
+                alert = res["questSlp"] != 25 or res["energy"] > 0 or res["pveSlp"] < 50 or res["mmr"] < 1000
+                congrats = res["pvpCount"] >= 15
+                if alert or congrats:
+                    # send early to avoid message size limits
+                    if len(msg) >= 1600:
+                        await channel.send(msg)
+                        msg = ""
+
+                    if alertPing:
+                        msg += '<@' + str(dId) + '>:\n'
+                    else:
+                        msg += name.replace('`', '') + ":\n"
+
+                    if res["questSlp"] != 25:
+                        msg += '%s You have not completed/claimed the daily quest yet\n' % (redX)
+                    if res["energy"] > 0:
+                        msg += '%s You have %d energy remaining\n' % (redX, res["energy"])
+                    if res["pveSlp"] < 50:
+                        msg += '%s You only have %d/50 Adventure SLP completed\n' % (redX, res["pveSlp"])
+                    if res["mmr"] < 1000:
+                        msg += '%s You are only at %d MMR in Arena. <800 = no SLP.\n' % (redX, res["mmr"])
+                    if res["pvpCount"] >= 15:
+                        msg += '%s Congrats on your %d Arena wins! Wow!\n' % (greenCheck, res["pvpCount"])
+                if alert:
+                    count += 1
+
+        if count == 0:
+            msg += '\n'
+            msg += "Woohoo! It seems everyone has used their energy and completed the quest today!"
+
+        # send alerts
+        await channel.send(msg)
+    except Exception as e:
+        logger.error("Failed to process near reset alerts")
+        logger.error(e)
+        logger.error(traceback.format_exc())
+
