@@ -806,13 +806,8 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     if not mp["success"]:
         await handleResponse(message, "Failed to query database for massPay property", isSlash)
         return
-<<<<<<< HEAD
     if not isManager and mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) != 0):
         await handleResponse(message,"Individual payouts are disabled. Ask your manager to run a mass payout or to enable individual payouts.",isSlash)
-=======
-    if mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) != 0):
-        await handleResponse(message, "Individual payouts are disabled. Ask your manager to run a mass payout or to enable individual payouts.", isSlash)
->>>>>>> 15674502afb31c514580f11459a1a01ddafcc84c
         return
 
     res = await DB.getProperty("devDonation")
