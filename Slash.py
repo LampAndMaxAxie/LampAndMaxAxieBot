@@ -27,7 +27,7 @@ from Commands import *
 )
 async def helpsSlash(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     await helpCommand(ctx, discordId, True)
 
@@ -39,7 +39,7 @@ async def helpsSlash(ctx):
 )
 async def export(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     isManager = False
     if discordId in managerIds:
@@ -54,7 +54,7 @@ async def export(ctx):
 )
 async def qr(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -83,7 +83,7 @@ async def qr(ctx):
 )
 async def battles(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -116,7 +116,7 @@ async def battles(ctx):
 )
 async def daily(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -152,7 +152,7 @@ async def alert(ctx):
     global alertPing
 
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -203,7 +203,7 @@ async def alert(ctx):
 )
 async def axies(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -337,7 +337,7 @@ async def summary(ctx):
 )
 async def top(ctx):
     await ctx.create_response(type=5)
-    
+
     discordId = ctx.author.id
     guild = ctx.guild
     guildId = None
@@ -356,4 +356,3 @@ async def top(ctx):
         args.append("arena")
 
     await topCommand(ctx, args, isManager, discordId, guildId, True)
-

@@ -10,4 +10,5 @@ images/*
 *.cfg
 __pycache__
 SecretStorage.py
-
+node_modules/
+package-lock.json

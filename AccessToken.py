@@ -7,7 +7,7 @@ from web3 import Web3
 def signRoninMessage(message, key, attempts2=0):
     try:
         mes = encode_defunct(text=message)
-        ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
+        ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
         sig = ronweb3.eth.account.sign_message(mes, private_key=key)
         signature = sig['signature'].hex()
         temp = signature[-2:]
@@ -47,12 +47,12 @@ def GenerateAccessToken(key, address, attempts=0):
                 print(e)
                 return None
             else:
-                return getRandomMessage(attempts2+1)
+                return getRandomMessage(attempts2 + 1)
 
     def signRoninMessage(message, key, attempts2=0):
         try:
             mes = encode_defunct(text=message)
-            ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
+            ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
             sig = ronweb3.eth.account.sign_message(mes, private_key=key)
             signature = sig['signature'].hex()
             temp = signature[-2:]
@@ -70,8 +70,7 @@ def GenerateAccessToken(key, address, attempts=0):
                 print(e)
                 return None
             else:
-                return signRoninMessage(message, key, attempts2+1)
-
+                return signRoninMessage(message, key, attempts2 + 1)
 
     def CreateAccessToken(message, signature, address, attempts2=0):
         try:
@@ -94,7 +93,7 @@ def GenerateAccessToken(key, address, attempts=0):
                 print(e)
                 return None
             else:
-                return CreateAccessToken(message, signature, address, attempts2+1)
+                return CreateAccessToken(message, signature, address, attempts2 + 1)
 
     try:
         myResponse = getRandomMessage()
@@ -108,4 +107,4 @@ def GenerateAccessToken(key, address, attempts=0):
             print("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
             return None
         else:
-            return GenerateAccessToken(key, address, attempts+1)
+            return GenerateAccessToken(key, address, attempts + 1)

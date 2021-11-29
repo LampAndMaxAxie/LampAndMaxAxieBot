@@ -16,9 +16,10 @@ if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the migration file")
     exit()
 
+
 @client.event
 async def on_ready():
-    await migration(fName) 
+    await migration(fName)
 
 
 async def migration(fName):
@@ -27,7 +28,7 @@ async def migration(fName):
     except:
         logger.error("Failed to create tables")
         exit()
-    
+
     async with sql.connect(DB.MAIN_DB) as db:
 
         db.row_factory = sql.Row
@@ -82,5 +83,5 @@ async def migration(fName):
 
     exit()
 
-client.run(DiscordBotToken)
 
+client.run(DiscordBotToken)

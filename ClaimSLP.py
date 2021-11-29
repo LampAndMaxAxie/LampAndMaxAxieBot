@@ -3,8 +3,7 @@ from loguru import logger
 from math import floor
 import requests
 import json
-from web3 import Web3, exceptions#, AsyncHTTPProvider
-#from web3.eth import AsyncEth
+from web3 import Web3
 import AccessToken
 import asyncio
 
@@ -30,7 +29,7 @@ async def getSLP(token, address, requestType, attempts=0):
         if slp['success']:
             return response.text
         else:
-            raise Exception ("success = false")
+            raise Exception("success = false")
     except Exception as e:
         if attempts >= 3:
             logger.error(e)
@@ -40,7 +39,7 @@ async def getSLP(token, address, requestType, attempts=0):
             return None
         else:
             logger.error("Could not get the slp of " + address + " trying again #" + str(attempts) + ".")
-            return await getSLP(token, address, requestType, attempts+1)
+            return await getSLP(token, address, requestType, attempts + 1)
 
 
 async def ClaimSLP(key, address, data, attempt=0):
@@ -70,7 +69,7 @@ async def ClaimSLP(key, address, data, attempt=0):
     else:
         logger.warning("Failed to claim scholar " + address + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return await ClaimSLP(key, address, data, attempt+1)
+        return await ClaimSLP(key, address, data, attempt + 1)
 
 
 async def sendTx(key, address, amount, destination, attempt=0):
@@ -162,10 +161,10 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
             claimTx = None
             if slp_data['last_claimed_item_at'] + 1209600 > time.time():
                 logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
-                return slp_data['last_claimed_item_at'] + 1209600 # integer indicates "not ready to claim"
+                return slp_data['last_claimed_item_at'] + 1209600  # integer indicates "not ready to claim"
             elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
-                return None # none indicates "error"
+                return None  # none indicates "error"
         sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
         sendTxs["claimTx"] = claimTx
         return sendTxs
