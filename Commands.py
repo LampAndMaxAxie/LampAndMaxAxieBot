@@ -62,7 +62,7 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
     # check for user's Discord ID
     if message.author.id in qrBlacklist:
         msg = "Sorry, but QR generation isn't working for your account right now. Please talk to your manager."
-        message.author.send(msg)
+        await message.author.send(msg)
 
         if guildId is not None:
             msg = 'Hi <@' + str(discordId) + '>, please check your DMs!'
@@ -710,6 +710,7 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
     res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
 
     if isinstance(res, int) or res is None or isinstance(res, Exception):
+        logger.warning(f"Claim returned nothing for {address}")
         massPayoutGlobal["counter"] += 1
         return res
     else:
@@ -731,6 +732,54 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
                 massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Devs", "0xc381c963ec026572ea82d18dacf49a1fde4a72dc", res["devAmount"], "SUCCESS", res["devTx"]]
             else:
                 massPayoutGlobal["txs"].loc[len(massPayoutGlobal["txs"].index)] = [discordId, name, address, "Devs", "0xc381c963ec026572ea82d18dacf49a1fde4a72dc", res["devAmount"], "FAILURE", None]
+        
+        # DM scholar
+        try: 
+            devTx = claimRes["devTx"]
+            ownerTx = claimRes["ownerTx"]
+            scholarTx = claimRes["scholarTx"]
+            devAmt = claimRes["devAmount"]
+            ownerAmt = claimRes["ownerAmount"]
+            scholarAmt = claimRes["scholarAmount"]
+            totalAmt = claimRes["totalAmount"]
+            claimTx = claimRes["claimTx"]
+
+            roninTx = "https://explorer.roninchain.com/tx/"
+            roninAddr = "https://explorer.roninchain.com/address/"
+            embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout for {discordId}/{name}",
+                                  timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
+
+            failedSend = ""
+            if scholarTx is not None:
+                embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
+            else:
+                failedSend += f"Scholar ({scholarAmt}), "
+            if devTx is not None:
+                embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
+            elif devAmt > 0:
+                failedSend += f"Devs ({devAmt}), "
+            if ownerTx is not None:
+                embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
+            else:
+                failedSend += f"Owner ({ownerAmt})"
+
+            embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
+            embed2.add_field(name="Scholar Share Paid To", value=f"[{scholarAddress}]({roninAddr}{scholarAddress})")
+
+            if failedSend != "":
+                embed2.add_field(name="Possible Failures", value=f"{failedSend}")
+           
+            logger.info(f"DMing payout info to scholar {discordId}/{name}")
+            user = await client.fetch_user(int(discordId))
+            if user is not None:
+                tm = int(time.time())
+                await user.send(content=f"<t:{tm}:f> Payout Info", embed=embed2)
+            else:
+                logger.error(f"Failed to DM payout info to scholar {discordId}/{name}")
+        except Exception as e:
+            logger.error("Failed to DM scholar " + discordId)
+            logger.error(e)
+
         massPayoutGlobal["counter"] += 1
         return res
 
@@ -742,7 +791,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     if not mp["success"]:
         await handleResponse(message,"Failed to query database for massPay property",isSlash)
         return
-    if mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) != 0):
+    if not isManager and mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) != 0):
         await handleResponse(message,"Individual payouts are disabled. Ask your manager to run a mass payout or to enable individual payouts.",isSlash)
         return
 
@@ -857,7 +906,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
 
     roninTx = "https://explorer.roninchain.com/tx/"
     roninAddr = "https://explorer.roninchain.com/address/"
-    embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout",
+    embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout for {discordId}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
 
     failedSend = ""
@@ -875,11 +924,19 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         failedSend += f"Owner ({ownerAmt})"
 
     embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
-    embed.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
+    embed2.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
 
     if failedSend != "":
-        embed.add_field(name="Possible Failures", value=f"{failedSend}")
-    
+        embed2.add_field(name="Possible Failures", value=f"{failedSend}")
+   
+    logger.warning("DMing payout info to scholar: " + str(discordId))
+    user = await client.fetch_user(int(discordId))
+    if user is not None:
+        tm = int(time.time())
+        await user.send(content=f"<t:{tm}:f> Payout Info", embed=embed2)
+    else:
+        logger.error("Failed to DM payout info to scholar: " + str(discordId))
+ 
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
 
 # Command to payout all scholars
@@ -988,7 +1045,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
             logger.error(traceback.format_exc())
 
     massPayoutGlobal["counter"] = skipped
-    out = await asyncio.gather(*calls, asyncLoadingUpdate(loadMsg), return_exceptions=True)
+    out = await asyncio.gather(asyncLoadingUpdate(loadMsg), *calls, return_exceptions=True)
 
     msg = getLoadingContent(scholarCount, scholarCount)
     await loadMsg.edit(content=msg)
@@ -999,7 +1056,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     grandTotal = devTotal + ownerTotal + scholarTotal
 
-    for entry in out[:-1]:
+    for entry in out[1:]:
         if entry is None or isinstance(entry, int) or isinstance(entry, Exception) or ("totalAmount" in entry and entry["totalAmount"] == 0):
             skipped += 1
         else:
