@@ -17,7 +17,6 @@ intents.members = True
 client = commands.Bot("", intents=intents)
 slash = slash_commands.SlashClient(client)
 
-
 # Setup Config Parser
 config = configparser.ConfigParser()
 try:
@@ -61,10 +60,10 @@ except:
     logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
     exit()
 
-
 # Globals
-mnemonicList = SeedList 
+mnemonicList = SeedList
 Account.enable_unaudited_hdwallet_features()
+
 
 # Functions
 async def messageManagers(msg, managerIds):
@@ -107,6 +106,7 @@ def isFloat(val):
         return False
     return True
 
+
 # Setup Filesystem
 if not os.path.exists("./qr/"):
     os.mkdir("qr")
@@ -116,8 +116,8 @@ if not os.path.exists("./images/"):
 
 async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
     try:
-        mnemonic = mnemonicList[int(seedNumber)-1]
-        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber)-1))
+        mnemonic = mnemonicList[int(seedNumber) - 1]
+        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber) - 1))
         if scholarAddress.lower() == scholarAccount.address.lower():
             logger.info("Got the key for " + scholarAddress + " correctly")
             return {
@@ -128,7 +128,7 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             logger.error("Account Address did not match derived address")
             logger.error(f"{scholarAddress} != {scholarAccount.address}")
             return None
-    except Exception as e:
+    except Exception:
         logger.error("Exception in getFromMnemonic, not logging trace because a seed typo could be involved")
-        #logger.error(traceback.format_exc())
+        # logger.error(traceback.format_exc())
         return None

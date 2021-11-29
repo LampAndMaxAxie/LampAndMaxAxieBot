@@ -80,7 +80,7 @@ async def checkTx(txHash):
             web3.eth.get_transaction_receipt(txHash)
         except:
             return False
-        #logger.info("waiting")
+        # logger.info("waiting")
         await asyncio.sleep(3)
     return True
 
@@ -99,7 +99,7 @@ async def sendTx(signed_txn, timeout=0.1):
             if receipt["status"] == 1:
                 success = True
             break
-        except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
+        except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
             await asyncio.sleep(4.9)
             tries += 1
             logger.info("Not found yet, waiting...")
@@ -121,6 +121,7 @@ def getNonce(address):
 
 def sendTxThreads(txs, CONNECTIONS=100, TIMEOUT=10):
     claimTxs = []
+
     def sendTxn(signed_txn, timeout):
         print(signed_txn)
         attempts = 0

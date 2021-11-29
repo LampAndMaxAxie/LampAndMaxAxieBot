@@ -1,3 +1,4 @@
+kaleido
 plotly>=4.14.1
 numpy>=1.19.5
 urllib3>=1.22
