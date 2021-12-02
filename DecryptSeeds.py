@@ -6,45 +6,44 @@ from SeedStorage import *
 import binascii
 import getpass
 
-# AES supports multiple key sizes: 16 (AES128), 24 (AES192), or 32 (AES256).
+# Encryption methodology adopted from https://stackoverflow.com/a/44662262
+
+# 32 bit keys => AES256 encryption
 key_bytes = 32
 
-# Takes as input a 32-byte key and an arbitrary-length plaintext and returns a
-# pair (iv, ciphtertext). "iv" stands for initialization vector.
+# 32 bit key, binary plaintext string to encrypt, and IV binary string
 def encrypt(key, plaintext, iv=None):
     assert len(key) == key_bytes
 
-    # Choose a random, 16-byte IV.
+    # create random IV if one not provided
     if iv is None:
         iv = Random.new().read(AES.block_size)
 
-    # Convert the IV to a Python integer.
+    # convert IV to integer
     iv_int = int(binascii.hexlify(iv), 16)
 
-    # Create a new Counter object with IV = iv_int.
+    # create counter using the IV
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
 
-    # Create AES-CTR cipher.
+    # create cipher object
     aes = AES.new(key, AES.MODE_CTR, counter=ctr)
 
-    # Encrypt and return IV and ciphertext.
+    # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
     return (iv, ciphertext)
 
-# Takes as input a 32-byte key, a 16-byte IV, and a ciphertext, and outputs the
-# corresponding plaintext.
+# 32 bit key, IV binary string, and ciphertext to decrypt
 def decrypt(key, iv, ciphertext):
     assert len(key) == key_bytes
 
-    # Initialize counter for decryption. iv should be the same as the output of
-    # encrypt().
+    # convert IV to integer and create counter using the IV
     iv_int = int(binascii.hexlify(iv), 16)
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
 
-    # Create AES-CTR cipher.
+    # create cipher object
     aes = AES.new(key, AES.MODE_CTR, counter=ctr)
 
-    # Decrypt and return the plaintext.
+    # decrypt ciphertext and return the decrypted binary string
     plaintext = aes.decrypt(ciphertext)
     return plaintext
 
