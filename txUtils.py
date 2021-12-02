@@ -80,12 +80,12 @@ async def checkTx(txHash):
             web3.eth.get_transaction_receipt(txHash)
         except:
             return False
-        # logger.info("waiting")
+        #logger.info("waiting")
         await asyncio.sleep(3)
     return True
 
 
-async def sendTx(signed_txn, timeout=0.1):
+async def sendTx(signed_txn, timeout=0.025):
     tx = signed_txn.hash
     try:
         web3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -99,13 +99,15 @@ async def sendTx(signed_txn, timeout=0.1):
             if receipt["status"] == 1:
                 success = True
             break
-        except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
-            await asyncio.sleep(4.9)
+        except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
+            await asyncio.sleep(5 - 0.025)
             tries += 1
-            logger.info("Not found yet, waiting...")
+            #logger.info("Not found yet, waiting...")
     if success:
         if await checkTx(tx):
+            #logger.info(f"Found tx hash on chain: {tx}")
             return True
+    #logger.warning(f"Failed to find tx on chain: {tx}")
     return False
 
 
@@ -121,7 +123,6 @@ def getNonce(address):
 
 def sendTxThreads(txs, CONNECTIONS=100, TIMEOUT=10):
     claimTxs = []
-
     def sendTxn(signed_txn, timeout):
         print(signed_txn)
         attempts = 0
