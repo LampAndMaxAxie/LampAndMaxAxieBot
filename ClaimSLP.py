@@ -94,7 +94,7 @@ async def sendTx(key, address, amount, destination, attempt=0):
         return None
     else:
         logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
         return await sendTx(key, address, amount, destination, attempt + 1)
 
 
@@ -126,13 +126,13 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
         dev_slp = floor(devPercent * amount)
         owner_slp = amount - (scholar_slp + dev_slp)
         devTx = await sendTx(key, address, dev_slp, dev_address)
-        await asyncio.sleep(4)
+        await asyncio.sleep(3)
     else:
         devTx = None
         dev_slp = 0
         owner_slp = amount - scholar_slp
     ownerTx = await sendTx(key, address, owner_slp, owner_address)
-    await asyncio.sleep(4)
+    await asyncio.sleep(3)
     scholarTx = await sendTx(key, address, scholar_slp, scholar_address)
     logger.success("Scholar " + address + " payout successful")
     return {
