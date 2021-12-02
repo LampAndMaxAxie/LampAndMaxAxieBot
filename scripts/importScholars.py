@@ -36,10 +36,9 @@ def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
         return None
 """
 
-
 @client.event
 async def on_ready():
-    await importScholars(fName)
+    await importScholars(fName) 
 
 
 async def importScholars(fName):
@@ -62,7 +61,7 @@ async def importScholars(fName):
             accountNum = args[1]
             roninAddr = args[2].replace("ronin:", "0x")
             discordID = args[3]
-            scholarShare = round(float(args[4]), 3)
+            scholarShare = round(float(args[4]),3)
 
             if len(args) > 5:
                 payoutAddr = args[5].replace("ronin:", "0x")
@@ -74,7 +73,7 @@ async def importScholars(fName):
             res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
 
             if payoutAddr is not None and payoutAddr != "":
-                await DB.updateScholarAddress(discordID, payoutAddr)
+                await DB.updateScholarAddress(discordID, payoutAddr)                
 
             if not res["success"]:
                 logger.error(f"failed to import scholar {discordID}")
@@ -93,5 +92,5 @@ async def importScholars(fName):
 
     exit()
 
-
 client.run(DiscordBotToken)
+

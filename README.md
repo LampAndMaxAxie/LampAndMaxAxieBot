@@ -8,9 +8,9 @@
 4. Move the install script from the scripts folder to main folder. `cp scripts/install-ubuntu.sh install.sh` 
 5. Run the installation script `./install.sh` to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`. Can then remove the script `rm install.sh`.
 6. Fill out/replace the values in `config.cfg`. Everything is required.
-7. Fill out the `SeedStorage.py` file with your seed phrases, this is used to pull private keys for your configured scholars to gain access to authenticated/private game-api data such as QR/daily progress/earnings. Make sure to put them in the right order related to how you mark seed index on your scholar data. (See import section below.)
+7. Run `python3 EncryptSeeds.py`. Read the information printed, choose your encryption password, and input your seeds in the order you reference them for your scholars.
 8. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
-9. Add the bot's "client token" to the `SeedStorage.py` file.
+9. Add the bot's "client token" to the bottom of the `SeedStorage.py` file.
 
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:

@@ -11,11 +11,19 @@ from dislash.interactions import *
 from SeedStorage import *
 from eth_account import Account
 
+from Crypto.Cipher import AES
+from Crypto.Util import Counter
+from Crypto import Random
+from Crypto.Protocol.KDF import PBKDF2
+import binascii
+import getpass
+
 # Setup Discord Bot
 intents = discord.Intents.default()
 intents.members = True
 client = commands.Bot("", intents=intents)
 slash = slash_commands.SlashClient(client)
+key_bytes = 32
 
 # Setup Config Parser
 config = configparser.ConfigParser()
@@ -60,12 +68,76 @@ except:
     logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
     exit()
 
+
 # Globals
-mnemonicList = SeedList
+decryptionPass = ""
+decryptionKey = ""
+mnemonicList = SeedList 
 Account.enable_unaudited_hdwallet_features()
 
+if not os.path.exists("./iv.dat"):
+    print("IV data file not found. Please restore the file or re-run your seed encryption.")
+    exit()
+
+if os.path.exists("./.botpass"):
+    with open("./.botpass", "r") as f:
+        logger.info("Using password saved in .botpass file")
+        decryptionPass = f.read().strip()
+        decryptionKey = PBKDF2(decryptionPass, "axiesalt", key_bytes)
+else:
+    print("Note, the password field is hidden so it will not display what you type.")
+    decryptionPass = getpass.getpass().strip()
+    decryptionKey = PBKDF2(decryptionPass, "axiesalt", key_bytes)
+
+iv = None
+with open("iv.dat", "rb") as f:
+    try: 
+        iv = f.read()
+    except:
+        logger.error("There was an error reading your IV data file.")
+        exit()
 
 # Functions
+
+# Takes as input a 32-byte key and an arbitrary-length plaintext and returns a
+# pair (iv, ciphtertext). "iv" stands for initialization vector.
+def encrypt(key, plaintext, iv=None):
+    assert len(key) == key_bytes
+
+    # Choose a random, 16-byte IV.
+    if iv is None:
+        iv = Random.new().read(AES.block_size)
+
+    # Convert the IV to a Python integer.
+    iv_int = int(binascii.hexlify(iv), 16)
+
+    # Create a new Counter object with IV = iv_int.
+    ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+
+    # Create AES-CTR cipher.
+    aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+
+    # Encrypt and return IV and ciphertext.
+    ciphertext = aes.encrypt(plaintext)
+    return (iv, ciphertext)
+
+# Takes as input a 32-byte key, a 16-byte IV, and a ciphertext, and outputs the
+# corresponding plaintext.
+def decrypt(key, iv, ciphertext):
+    assert len(key) == key_bytes
+
+    # Initialize counter for decryption. iv should be the same as the output of
+    # encrypt().
+    iv_int = int(binascii.hexlify(iv), 16)
+    ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
+
+    # Create AES-CTR cipher.
+    aes = AES.new(key, AES.MODE_CTR, counter=ctr)
+
+    # Decrypt and return the plaintext.
+    plaintext = aes.decrypt(ciphertext)
+    return plaintext
+
 async def messageManagers(msg, managerIds):
     global client
     global dmErrorsToManagers
@@ -106,18 +178,16 @@ def isFloat(val):
         return False
     return True
 
-
 # Setup Filesystem
 if not os.path.exists("./qr/"):
     os.mkdir("qr")
 if not os.path.exists("./images/"):
     os.mkdir("images")
 
-
 async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
     try:
-        mnemonic = mnemonicList[int(seedNumber) - 1]
-        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber) - 1))
+        mnemonic = decrypt(decryptionKey, iv, mnemonicList[int(seedNumber)-1]).decode("utf8")
+        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber)-1))
         if scholarAddress.lower() == scholarAccount.address.lower():
             logger.info("Got the key for " + scholarAddress + " correctly")
             return {
@@ -128,7 +198,15 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             logger.error("Account Address did not match derived address")
             logger.error(f"{scholarAddress} != {scholarAccount.address}")
             return None
-    except Exception:
-        logger.error("Exception in getFromMnemonic, not logging trace because a seed typo could be involved")
-        # logger.error(traceback.format_exc())
+    except Exception as e:
+        logger.error("Exception in getFromMnemonic, not logging trace since key or passwords may be involved")
+        #logger.error(traceback.format_exc())
         return None
+
+# check password 
+try:
+    x = decrypt(decryptionKey, iv, mnemonicList[0]).decode("utf8")
+except:
+    print(f"Password failed.")
+    exit()
+
