@@ -348,6 +348,7 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     embed.add_field(name="Seed", value=f"{seedNum}")
     embed.add_field(name="Account", value=f"{accountNum}")
     embed.add_field(name="Address", value=f"{roninAddr}")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -388,6 +389,7 @@ async def removeScholar(message, args, isManager, discordId, guildId, isSlash=Fa
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Scholar Name", value=f"{name}")
     embed.add_field(name=":id: Scholar Discord ID", value=f"{discordUID}")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -457,6 +459,7 @@ async def updateScholarShare(message, args, isManager, discordId, guildId, isSla
         embed.add_field(name="Change Type", value="Demotion")
     embed.add_field(name="Old Share", value=f"{round(oldShare*100,2)}%")
     embed.add_field(name="New Share", value=f"{round(scholarShare*100,2)}%")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
     
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -513,6 +516,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
     
     embed.add_field(name="Old Address", value=f"{oldAddr}")
     embed.add_field(name="New Address", value=f"{payoutAddr}")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
     
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -553,6 +557,7 @@ async def addManager(message, args, isManager, discordId, guildId, isSlash=False
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Manager Name", value=f"{name}")
     embed.add_field(name=":id: Manager Discord ID", value=f"{discordUID}")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -597,6 +602,7 @@ async def removeManager(message, args, isManager, discordId, guildId, isSlash=Fa
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Manager Name", value=f"{name}")
     embed.add_field(name=":id: Manager Discord ID", value=f"{discordUID}")
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -872,6 +878,8 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     embed.add_field(name="Payout Address", value=f"{payoutAddr}")
     embed.add_field(name="Note", value="Please carefully check the payout address! Misplaced SLP cannot be recovered!")
 
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
+
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
     if conf is None:
@@ -1035,6 +1043,8 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     if mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) == 0):
         embed.add_field(name="Note", value=f"Running a mass payment will disable individual payments. You will have to re-enable them later with '{prefix}ssetProperty massPay 0'")
+    
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
