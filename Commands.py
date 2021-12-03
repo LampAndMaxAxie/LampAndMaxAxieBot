@@ -78,7 +78,7 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
         
         accountPrivateKey, accountAddress = await getKeyForUser(scholar) 
         if accountPrivateKey is None or accountAddress is None:
-            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.",isSlash)
             return
 
         logger.info(f"Scholar {discordId} account addr confirmed as {accountAddress} via mnemonic")
@@ -125,7 +125,7 @@ async def setPropertyCommand(message, args, isManager, discordId, guildId, isSla
         return            
 
     if len(args) < 3:
-        await handleResponse(message,"Please enter: &setProperty property value",isSlash)
+        await handleResponse(message,f"Please enter: {prefix}setProperty property value",isSlash)
         return
 
     prop = args[1]
@@ -139,7 +139,7 @@ async def getPropertyCommand(message, args, isManager, discordId, guildId, isSla
     authorID = message.author.id
 
     if len(args) < 2:
-        await handleResponse(message,"Please enter: &getProperty property",isSlash)
+        await handleResponse(message,f"Please enter: {prefix}getProperty property",isSlash)
         return
 
     prop = args[1]
@@ -336,7 +336,7 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     user = {"seed_num": seedNum, "account_num": accountNum, "scholar_addr": roninAddr}
     key, address = await getKeyForUser(user) 
     if key is None or address is None:
-        await handleResponse(message,"Mismatch detected between given wallet address and seed/account indices. Please try again with the correct wallet information.",isSlash)
+        await handleResponse(message,"Mismatch detected between given wallet address and seed/account indices, or scholar not found. Please try again with the correct wallet information.",isSlash)
         return
 
     # confirm with react
@@ -483,7 +483,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
     authorID = message.author.id
     
     if len(args) < 2:
-        await handleResponse(message,"Please specify: payoutAddress",isSlash)
+        await handleResponse(message,f"Please specify: {prefix}payoutAddress",isSlash)
         return
 
     if len(args) > 2 and args[2].isnumeric() and isManager:
@@ -842,12 +842,12 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     share = float(user['share'])
 
     if payoutAddr is None or payoutAddr == "":
-        await handleResponse(message,"Please set your payout address with '&setPayoutAddress ronin:...' first",isSlash)
+        await handleResponse(message,f"Please set your payout address with '{prefix}setPayoutAddress ronin:...' first",isSlash)
         return
 
     key, address = await getKeyForUser(user) 
     if key is None or address is None:
-        await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices.",isSlash)
+        await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.",isSlash)
         return
 
     #logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
@@ -1034,7 +1034,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
         embed.add_field(name="Filtered for Index Range", value=f"{minIndex}-{maxIndex}")
 
     if mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) == 0):
-        embed.add_field(name="Note", value="Running a mass payment will disable individual payments. You will have to re-enable them later with '&setProperty massPay 0'")
+        embed.add_field(name="Note", value=f"Running a mass payment will disable individual payments. You will have to re-enable them later with '{prefix}ssetProperty massPay 0'")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
 
@@ -1182,7 +1182,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
 
         roninKey, roninAddr = await getKeyForUser(targ) 
         if roninKey is None or roninAddr is None:
-            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.",isSlash)
             return
 
         logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
@@ -1263,7 +1263,7 @@ async def battlesCommand(message, args, isManager, discordId, guildId, isSlash=F
 
             roninKey, roninAddr = await getKeyForUser(targ) 
             if roninKey is None or roninAddr is None:
-                await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+                await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.",isSlash)
                 return
 
             logger.info(f"Scholar {discordId} account addr confirmed as {scholarAddr} via mnemonic")
@@ -1352,7 +1352,7 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
 
         roninKey, roninAddr = await getKeyForUser(targ) 
         if roninKey is None or roninAddr is None:
-            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices",isSlash)
+            await handleResponse(message,"Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.",isSlash)
             return
 
         logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
