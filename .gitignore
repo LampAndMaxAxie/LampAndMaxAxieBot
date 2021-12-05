@@ -1,6 +1,6 @@
 .idea/
 .env
-jftTokens.json
+jwtTokens.json
 qr
 qr/*
 images
@@ -12,3 +12,6 @@ __pycache__
 SecretStorage.py
 node_modules/
 package-lock.json
+.botpass
+iv.dat
+SeedStorage.py

@@ -5,10 +5,9 @@ import concurrent.futures
 from loguru import logger
 import asyncio
 
-
 with open("abis.json") as file:
-    web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
-    w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers":{"content-type":"application/json","user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
+    web3 = Web3(Web3.HTTPProvider('https://proxy.roninchain.com/free-gas-rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
+    w3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
     abis = json.load(file)
     nonces = {}
 
@@ -63,7 +62,7 @@ def checkTxs(txs):
         except Exception as e:
             if attempts <= 3:
                 print(e)
-                txs.append([tx, signed_txn, attempts+1])
+                txs.append([tx, signed_txn, attempts + 1])
                 success = sendTx(signed_txn)
                 time.sleep(5)
                 if success:
@@ -80,7 +79,7 @@ async def checkTx(txHash):
             web3.eth.get_transaction_receipt(txHash)
         except:
             return False
-        #logger.info("waiting")
+        # logger.info("waiting")
         await asyncio.sleep(3)
     return True
 
@@ -102,12 +101,12 @@ async def sendTx(signed_txn, timeout=0.025):
         except (exceptions.TransactionNotFound, exceptions.TimeExhausted) as e:
             await asyncio.sleep(5 - 0.025)
             tries += 1
-            #logger.info("Not found yet, waiting...")
+            # logger.info("Not found yet, waiting...")
     if success:
         if await checkTx(tx):
-            #logger.info(f"Found tx hash on chain: {tx}")
+            # logger.info(f"Found tx hash on chain: {tx}")
             return True
-    #logger.warning(f"Failed to find tx on chain: {tx}")
+    # logger.warning(f"Failed to find tx on chain: {tx}")
     return False
 
 
@@ -123,6 +122,7 @@ def getNonce(address):
 
 def sendTxThreads(txs, CONNECTIONS=100, TIMEOUT=10):
     claimTxs = []
+
     def sendTxn(signed_txn, timeout):
         print(signed_txn)
         attempts = 0

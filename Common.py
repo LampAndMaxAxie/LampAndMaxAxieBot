@@ -67,11 +67,10 @@ except:
     logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
     exit()
 
-
 # Globals
 decryptionPass = ""
 decryptionKey = ""
-mnemonicList = SeedList 
+mnemonicList = SeedList
 Account.enable_unaudited_hdwallet_features()
 
 # 32 bit keys => AES256 encryption
@@ -93,11 +92,12 @@ else:
 
 iv = None
 with open("iv.dat", "rb") as f:
-    try: 
+    try:
         iv = f.read()
     except:
         logger.error("There was an error reading your IV data file.")
         exit()
+
 
 ### Functions
 
@@ -123,6 +123,7 @@ def encrypt(key, plaintext, iv=None):
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
     return (iv, ciphertext)
+
 
 # 32 bit key, IV binary string, and ciphertext to decrypt
 def decrypt(key, iv, ciphertext):
@@ -180,16 +181,18 @@ def isFloat(val):
         return False
     return True
 
+
 # Setup Filesystem
 if not os.path.exists("./qr/"):
     os.mkdir("qr")
 if not os.path.exists("./images/"):
     os.mkdir("images")
 
+
 async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
     try:
-        mnemonic = decrypt(decryptionKey, iv, mnemonicList[int(seedNumber)-1]).decode("utf8")
-        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber)-1))
+        mnemonic = decrypt(decryptionKey, iv, mnemonicList[int(seedNumber) - 1]).decode("utf8")
+        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber) - 1))
         if scholarAddress.lower() == scholarAccount.address.lower():
             logger.info("Got the key for " + scholarAddress + " correctly")
             return {
@@ -202,13 +205,13 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             return None
     except Exception as e:
         logger.error("Exception in getFromMnemonic, not logging trace since key or passwords may be involved")
-        #logger.error(traceback.format_exc())
+        # logger.error(traceback.format_exc())
         return None
 
-# check password 
+
+# check password
 try:
     x = decrypt(decryptionKey, iv, mnemonicList[0]).decode("utf8")
 except:
     print(f"Password failed.")
     exit()
-

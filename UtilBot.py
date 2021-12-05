@@ -49,6 +49,7 @@ slpEmojiID = {}
 graphQL = "https://graphql-gateway.axieinfinity.com/graphql"
 gameAPI = "https://game-api.skymavis.com/game-api"
 
+
 def getQRCode(accessToken, discordID):
     # Function to create a QRCode from the accessToken
 
@@ -66,6 +67,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 retries = Retry(connect=retryAmount, read=retryAmount, redirect=2, status=retryAmount, status_forcelist=[502, 503])
 http = urllib3.PoolManager(retries=retries)
 
+
 async def getMarketplaceProfile(address):
     try:
         url = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + address + "\"){accountId,name}}"
@@ -79,11 +81,12 @@ async def getMarketplaceProfile(address):
     except Exception as e:
         logger.error("Error in getMarketplaceProfile")
         logger.error(e)
-        await sendErrorToManagers(e, "")     
-        
+        await sendErrorToManagers(e, "")
+
         return None
 
     return jsonDat
+
 
 async def getInGameName(address):
     dat = await getMarketplaceProfile(address)
@@ -91,6 +94,7 @@ async def getInGameName(address):
         return None
 
     return dat['data']['publicProfileWithRoninAddress']['name']
+
 
 async def sendErrorToManagers(e, flag):
     tb = traceback.format_exc()
@@ -108,6 +112,7 @@ async def sendErrorToManagers(e, flag):
 
     await messageManagers(msg, mgrIds)
 
+
 def getEmojiFromReact(reaction):
     emoji = None
     if type(reaction.emoji) is str:
@@ -115,6 +120,7 @@ def getEmojiFromReact(reaction):
     else:
         emoji = reaction.emoji.name
     return emoji
+
 
 async def getKeyForUser(user):
     seedNum = user["seed_num"]
@@ -127,12 +133,14 @@ async def getKeyForUser(user):
 
     return ret["key"], ret["address"]
 
+
 def is_int(val):
     try:
         num = int(val)
     except ValueError:
         return False
     return True
+
 
 # fetch a remote image
 def saveUrlImage(url, name):
@@ -174,13 +182,13 @@ def getPlayerToken(roninKey, roninAddr):
         changed = False
 
         # make the caching file if it doesn't exist
-        if not os.path.exists("jftTokens.json"):
-            f = open("jftTokens.json", 'w')
+        if not os.path.exists("jwtTokens.json"):
+            f = open("jwtTokens.json", 'w')
             f.write("{}")
             f.close()
             changed = True
 
-        with open("jftTokens.json") as f:
+        with open("jwtTokens.json") as f:
             tokenBook = json.load(f)
 
             # check if cached token is available and not-expired for player
@@ -195,7 +203,7 @@ def getPlayerToken(roninKey, roninAddr):
 
         if changed:
             # save the tokens
-            with open("jftTokens.json", 'w') as f:
+            with open("jwtTokens.json", 'w') as f:
                 json.dump(tokenBook, f)
     except:
         logger.error("Failed to get token for: " + roninAddr)
@@ -239,10 +247,10 @@ async def makeJsonRequestWeb(url):
     except Exception as e:
         logger.error("Exception in makeJsonRequest for: " + url)
         logger.error(response.data.decode('utf8'))
-        #traceback.print_exc()
-        
-        await sendErrorToManagers(e, url)    
-        
+        # traceback.print_exc()
+
+        await sendErrorToManagers(e, url)
+
         return None
 
     return jsonDat
@@ -282,21 +290,21 @@ async def makeJsonRequest(url, token, attempt=0):
                     logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
             else:
                 logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
-            
+
             if attempt < 3:
-                return await makeJsonRequest(url, token, attempt+1)
+                return await makeJsonRequest(url, token, attempt + 1)
             else:
                 return None
 
     except Exception as e:
         logger.error(f"Exception in makeJsonRequest for: {url}, attempt {attempt}")
         logger.error(response.data.decode('utf8'))
-        #traceback.print_exc()
-        
+        # traceback.print_exc()
+
         if attempt < 3:
-            return await makeJsonRequest(url, token, attempt+1)
+            return await makeJsonRequest(url, token, attempt + 1)
         else:
-            await sendErrorToManagers(e, url) 
+            await sendErrorToManagers(e, url)
             return None
 
     return jsonDat
@@ -307,8 +315,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
     global scholarCache
 
     # check caching
-    #print(scholarCache)
-    #print(targetId)
+    # print(scholarCache)
+    # print(targetId)
     if targetId in scholarCache and int(scholarCache[targetId]["cache"]) - int(time.time()) > 0:
         if scholarCache[targetId]["data"] is not None:
             return scholarCache[targetId]["data"]
@@ -343,7 +351,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         jsonDat = jsonDat['player_stat']
 
         utc_time = int(datetime.datetime.now(tzutc).timestamp())
-        cacheExp = utc_time + CACHE_TIME*60
+        cacheExp = utc_time + CACHE_TIME * 60
 
         ### process data
 
@@ -502,17 +510,18 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
             "claimDate": claimDate
         }
     except Exception as e:
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
         logger.error(traceback.format_exc())
-        await sendErrorToManagers(e, discordName)    
-        
+        await sendErrorToManagers(e, discordName)
+
         return None
 
     # save to the cache
     scholarCache[targetId] = {"data": res, "cache": cacheExp}
 
     return res
+
 
 # returns data on scholar's battles
 async def getRoninBattles(roninAddr):
@@ -549,7 +558,7 @@ async def getRoninBattles(roninAddr):
         rank = int(player["rank"])
 
         utc_time = int(datetime.datetime.now(tzutc).timestamp())
-        cacheExp = utc_time + CACHE_TIME*60
+        cacheExp = utc_time + CACHE_TIME * 60
 
         streakType = None
         streakBroken = False
@@ -694,7 +703,7 @@ async def getRoninBattles(roninAddr):
         embed.add_field(name="Last 5 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
         embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
-        #embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
+        # embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
         if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
@@ -719,16 +728,17 @@ async def getRoninBattles(roninAddr):
             res['image'] = combinedImg
 
     except Exception as e:
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, name)    
-        
+        await sendErrorToManagers(e, name)
+
         return None
 
     # save to the cache
     battlesCache[roninAddr] = {"data": res, "cache": cacheExp}
 
     return res
+
 
 # returns data on scholar's battles
 async def getScholarBattles(discordId, targetId, discordName, roninAddr):
@@ -761,7 +771,7 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         rank = int(player["rank"])
 
         utc_time = int(datetime.datetime.now(tzutc).timestamp())
-        cacheExp = utc_time + CACHE_TIME*60
+        cacheExp = utc_time + CACHE_TIME * 60
 
         streakType = None
         streakBroken = False
@@ -906,7 +916,7 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         embed.add_field(name="Last 5 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
         embed.add_field(name=":floppy_disk: Cached Until", value=f"<t:{cacheExp}:R>")
-        #embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
+        # embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
 
         if not imgErr:
             embed.set_image(url=f"attachment://{combinedIds}")
@@ -930,10 +940,10 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
             res['image'] = combinedImg
 
     except Exception as e:
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, str(targetId))    
-        
+        await sendErrorToManagers(e, str(targetId))
+
         return None
 
     # save to the cache
@@ -941,23 +951,25 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
 
     return res
 
+
 async def getScholarExport():
-    df = pd.DataFrame(columns=['ScholarID','ScholarName', 'Seed','Account','ScholarAddr','PayoutAddr','Share'])
-    
+    df = pd.DataFrame(columns=['ScholarID', 'ScholarName', 'Seed', 'Account', 'ScholarAddr', 'PayoutAddr', 'Share'])
+
     scholarsDict = await DB.getAllScholars()
     if scholarsDict["success"] is None:
         return None, None
 
     for scholar in scholarsDict["rows"]:
-        df.loc[len(df.index)] = [scholar["discord_id"],scholar["name"],scholar["seed_num"],scholar["account_num"],scholar["scholar_addr"],scholar["payout_addr"],scholar["share"]]
+        df.loc[len(df.index)] = [scholar["discord_id"], scholar["name"], scholar["seed_num"], scholar["account_num"], scholar["scholar_addr"], scholar["payout_addr"], scholar["share"]]
     return df
+
 
 # builds a summary table of all scholars
 async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
     global summaryCache
 
     utc_time = int(datetime.datetime.now(tzutc).timestamp())
-    cacheExp = utc_time + CACHE_TIME*60
+    cacheExp = utc_time + CACHE_TIME * 60
     cacheEast = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz1)
 
     try:
@@ -1018,10 +1030,10 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
         return df, cacheEast
     except Exception as e:
         logger.error("Failed to get scholar summary")
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, "summary")    
-        
+        await sendErrorToManagers(e, "summary")
+
         return None, None
 
 
@@ -1030,7 +1042,7 @@ async def getScholarTop10(sort="slp"):
     ascending = False
 
     utc_time = int(datetime.datetime.now(tzutc).timestamp())
-    cacheExp = utc_time + CACHE_TIME*60
+    cacheExp = utc_time + CACHE_TIME * 60
     cacheEast = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz1)
 
     try:
@@ -1040,13 +1052,13 @@ async def getScholarTop10(sort="slp"):
 
             # sort as desired
             if sort in ["avgslp", "slp"]:
-                #df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
+                # df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['SLP/Day'], ascending=ascending)
             elif sort in ["adventure", "adv"]:
-                #df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
+                # df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
                 df = df.sort_values(by=['SLP/Day'], ascending=ascending)
             elif sort in ["mmr", "rank", "battle", "arena"]:
-                #df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+                # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['MMR'], ascending=ascending)
 
             df['Pos'] = np.arange(len(df))
@@ -1086,13 +1098,13 @@ async def getScholarTop10(sort="slp"):
 
         # sort as desired
         if sort in ["avgslp", "slp"]:
-            #df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
+            # df = df.drop(columns=['MMR', 'ArenaRank', 'Energy', 'PvPWins', 'PvEWins', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['SLP/Day'], ascending=ascending)
         elif sort in ["adventure", "adv"]:
-            #df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
+            # df = df.drop(columns=['MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'PvPWins', 'NextClaim'])
             df = df.sort_values(by=['SLP/Day'], ascending=ascending)
         elif sort in ["mmr", "rank", "battle", "arena"]:
-            #df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['MMR'], ascending=ascending)
 
         df['Pos'] = np.arange(len(df))
@@ -1100,10 +1112,10 @@ async def getScholarTop10(sort="slp"):
         return df.head(10), cacheEast
     except Exception as e:
         logger.error("Failed to get scholar top 10")
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, "top10")    
-        
+        await sendErrorToManagers(e, "top10")
+
         return None, None
 
 
@@ -1180,7 +1192,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         for i in axieIds:
             stats = axieParts[i]["stats"]
             axieStats = "%d HP / %d Morale / %d Speed / %d Skill\n" % (
-            stats["hp"], stats["morale"], stats["speed"], stats["skill"])
+                stats["hp"], stats["morale"], stats["speed"], stats["skill"])
 
             axieTitle = axieParts[i]["class"].capitalize() + " Axie " + str(j) + ": " + axieParts[i][
                 "name"] + ", Level " + str(axieParts[i]["level"])
@@ -1194,7 +1206,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
 
                     piece = "%s, %s (%s)\n" % (part["class"], part["name"], ability["name"])
                     piece += "`%d atk` / `%d def` / `%d energy`: %s\n" % (
-                    ability["attack"], ability["defense"], ability["energy"], ability["description"])
+                        ability["attack"], ability["defense"], ability["energy"], ability["description"])
                     pType = part["type"]
                     axie[pType] = piece
 
@@ -1250,10 +1262,10 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         return teamCache[discordId]
     except Exception as e:
         logger.error("Failed in getPlayerAxies")
-        #traceback.print_exc()
+        # traceback.print_exc()
         logger.error(e)
-        await sendErrorToManagers(e, discordId)    
-        
+        await sendErrorToManagers(e, discordId)
+
         return None
 
 
@@ -1328,4 +1340,3 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
         logger.error("Failed to process near reset alerts")
         logger.error(e)
         logger.error(traceback.format_exc())
-

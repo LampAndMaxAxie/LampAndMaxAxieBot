@@ -10,6 +10,7 @@ import getpass
 # 32 bit keys => AES256 encryption
 key_bytes = 32
 
+
 # 32 bit key, binary plaintext string to encrypt, and IV binary string
 def encrypt(key, plaintext, iv=None):
     assert len(key) == key_bytes
@@ -19,7 +20,7 @@ def encrypt(key, plaintext, iv=None):
         iv = Random.new().read(AES.block_size)
 
     # convert IV to integer
-    iv_int = int(binascii.hexlify(iv), 16) 
+    iv_int = int(binascii.hexlify(iv), 16)
 
     # create counter using the IV
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
@@ -31,12 +32,13 @@ def encrypt(key, plaintext, iv=None):
     ciphertext = aes.encrypt(plaintext)
     return (iv, ciphertext)
 
+
 # 32 bit key, IV binary string, and ciphertext to decrypt
 def decrypt(key, iv, ciphertext):
     assert len(key) == key_bytes
 
     # convert IV to integer and create counter using the IV
-    iv_int = int(binascii.hexlify(iv), 16) 
+    iv_int = int(binascii.hexlify(iv), 16)
     ctr = Counter.new(AES.block_size * 8, initial_value=iv_int)
 
     # create cipher object
@@ -46,6 +48,7 @@ def decrypt(key, iv, ciphertext):
     plaintext = aes.decrypt(ciphertext)
     return plaintext
 
+
 print("This script will ask you for a password followed by your seeds. Enter the seeds in the order you reference them for scholars. Press enter with no text to indicate there are no more seeds.")
 print("Your seeds will be in memory for the brief duration of encryption and verification after you enter them, and then they will only be stored encrypted on disk.")
 print("Make sure to run this script on a secure computer, possibly even with the internet disabled if you're worried about it.")
@@ -53,7 +56,7 @@ print("This process will overwrite your existing iv.dat and SeedStorage.py files
 print("")
 
 print("Note, the password field is hidden so it will not display what you type.")
-password  = getpass.getpass("Password to encrypt your seeds: ").strip()
+password = getpass.getpass("Password to encrypt your seeds: ").strip()
 password2 = getpass.getpass("Confirm password: ").strip()
 
 # check that password entry matches
@@ -78,14 +81,14 @@ while True:
         break
     seeds.append(seedIn)
     count += 1
-    last 
+    last
 
 # generate IV data
 iv = Random.new().read(AES.block_size)
 encSeeds = []
 
 # encrypt the seeds one by one
-for i in range(0,len(seeds)):
+for i in range(0, len(seeds)):
     (iv, ciphertext) = encrypt(key, seeds[i].encode("utf8"), iv)
     encSeeds.append(ciphertext)
 
@@ -99,20 +102,20 @@ print("Testing decryption on each seed to insure proper encryption.")
 with open("iv.dat", "rb") as f:
     iv = f.read()
 
-    for i in range(0,len(encSeeds)):
+    for i in range(0, len(encSeeds)):
         out = decrypt(key, iv, encSeeds[i]).decode("utf8")
         if out == seeds[i]:
-            print(f"Verified encryption of seed {i+1}.")
+            print(f"Verified encryption of seed {i + 1}.")
         else:
-            print(f"Failed to verify encryption of seed {i+1}. Something is wrong with the password or IV data.")
+            print(f"Failed to verify encryption of seed {i + 1}. Something is wrong with the password or IV data.")
             exit()
 
 # save encrypted seeds to disk
 print("Writing encrypted seeds to SeedStorage.py file.")
 with open("SeedStorage.py", "w") as f:
     f.write("SeedList = [\n")
-    for i in range(0,len(encSeeds)):
-        if i < len(encSeeds)-1:
+    for i in range(0, len(encSeeds)):
+        if i < len(encSeeds) - 1:
             f.write(f"    {encSeeds[i]},\n")
         else:
             f.write(f"    {encSeeds[i]}\n")
@@ -122,4 +125,3 @@ with open("SeedStorage.py", "w") as f:
 
 print("Encrypted seeds successfully written to disk. Please enter your discord bot token at the bottom of the SeedStorage.py file.")
 print("Encryption process complete!")
-

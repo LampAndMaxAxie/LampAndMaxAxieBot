@@ -7,6 +7,7 @@ from Common import *
 
 MAIN_DB = "axieBot.db"
 
+
 ### Common
 
 @logger.catch
@@ -39,15 +40,16 @@ async def createMainTables():
             devDonation = await getProperty("devDonation", db)
             if devDonation["success"] and devDonation["rows"] is None:
                 await setProperty("devDonation", 0.025)
-            
+
             # set initial payout style
             massPay = await getProperty("massPay", db)
             if massPay["success"] and massPay["rows"] is None:
                 await setProperty("massPay", 1)
-            
-            name = await getNameFromDiscordID(ownerID)                                    
-            await setOwner(ownerID,name)
+
+            name = await getNameFromDiscordID(ownerID)
+            await setOwner(ownerID, name)
     pass
+
 
 ### Insert/Delete/Update
 
@@ -61,13 +63,13 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
                 rows = rowsR["rows"]
             else:
                 return rowsR
-            
+
             userR = await getDiscordID(discordID, db)
             if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
+                # return userR
 
             for row in rows:
                 if int(row['discord_id']) == int(discordID):
@@ -76,7 +78,7 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
                     return {"success": False, "msg": "A scholar already exists with that seed/account"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_scholar"] is None or int(user["is_scholar"]) == 0):
                     await c.execute('''UPDATE users SET is_scholar=1,seed_num=?,account_num=?,scholar_addr=?,share=?
                                 where discord_id=?''', (seedNum, accountNum, roninAddr, share, discordID))
@@ -96,15 +98,16 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
 
     return {"success": True, "msg": f"Scholar {name}/{discordID} saved with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share={share}"}
 
+
 @logger.catch
 async def removeScholar(discordID):
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
         async with db.cursor() as c:
             await c.execute("BEGIN")
-            try: 
+            try:
                 await c.execute('''UPDATE users SET is_scholar=0,seed_num=?,account_num=?,scholar_addr=?,share=?
-                        WHERE discord_id=?''', (None,None,None,None,discordID)) 
+                        WHERE discord_id=?''', (None, None, None, None, discordID))
                 await c.execute("COMMIT")
 
                 logger.info(f"Deleted scholar {discordID}")
@@ -116,31 +119,32 @@ async def removeScholar(discordID):
 
     return {"success": True, "msg": f"Scholar {discordID} deleted"}
 
+
 @logger.catch
 async def updateScholarShare(discordID, share):
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
         async with db.cursor() as c:
             userR = await getDiscordID(discordID, db)
-            
+
             if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
-           
+                # return userR
+
             if user is None:
                 logger.error(f"Failed to update {discordID} because they are not in the database")
                 return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
-            
+
             if int(user["is_scholar"]) == 0:
                 logger.error(f"Failed to update {discordID}'s scholar share because they are not a scholar")
                 return {"success": False, "msg": f"Failed to update {discordID}'s scholar share because they are not a scholar"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 await c.execute('''UPDATE users SET share=?
-                        WHERE discord_id=?''', (share,discordID)) 
+                        WHERE discord_id=?''', (share, discordID))
                 await c.execute("COMMIT")
 
                 logger.info(f"Updated {discordID}'s share to {share}")
@@ -150,7 +154,8 @@ async def updateScholarShare(discordID, share):
                 logger.error(f"Failed to update scholar {discordID}")
                 return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
 
-    return {"success": True, "msg": f"Scholar {discordID}'s share updated to {share*100}%"}
+    return {"success": True, "msg": f"Scholar {discordID}'s share updated to {share * 100}%"}
+
 
 @logger.catch
 async def updateScholarAddress(discordID, addr):
@@ -163,20 +168,20 @@ async def updateScholarAddress(discordID, addr):
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
-           
+                # return userR
+
             if user is None:
                 logger.error(f"Failed to update {discordID} because they are not in the database")
                 return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
-            
+
             if user["is_scholar"] is None or int(user["is_scholar"]) == 0:
                 logger.error(f"Failed to update {discordID}'s payout address because they are not a scholar")
                 return {"success": False, "msg": f"Failed to update {discordID}'s payout address because they are not a scholar"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 await c.execute('''UPDATE users SET payout_addr=?
-                        WHERE discord_id=?''', (addr.replace('ronin:','0x'),discordID)) 
+                        WHERE discord_id=?''', (addr.replace('ronin:', '0x'), discordID))
                 await c.execute("COMMIT")
 
                 logger.info(f"Updated {discordID}'s payout address to {addr}")
@@ -187,6 +192,7 @@ async def updateScholarAddress(discordID, addr):
                 return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
 
     return {"success": True, "msg": f"Scholar {discordID}'s payout address updated to {addr}"}
+
 
 @logger.catch
 async def updateScholarMainAddress(discordID, addr):
@@ -199,27 +205,27 @@ async def updateScholarMainAddress(discordID, addr):
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
- 
+                # return userR
+
             logger.info(user)
             out = "["
             for col in user:
                 out += str(col) + ","
             out += "]"
             logger.info(out)
- 
+
             if user is None:
                 logger.error(f"Failed to update {discordID} because they are not in the database")
                 return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
-            
+
             if user["is_scholar"] is None or int(user["is_scholar"]) == 0:
                 logger.error(f"Failed to update {discordID}'s address because they are not a scholar")
                 return {"success": False, "msg": f"Failed to update {discordID}'s scholar address because they are not a scholar"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 await c.execute('''UPDATE users SET scholar_addr=?
-                        WHERE discord_id=?''', (addr.replace('ronin:','0x'),discordID)) 
+                        WHERE discord_id=?''', (addr.replace('ronin:', '0x'), discordID))
                 await c.execute("COMMIT")
 
                 logger.info(f"Updated {discordID}'s scholar address to {addr}")
@@ -231,6 +237,7 @@ async def updateScholarMainAddress(discordID, addr):
 
     return {"success": True, "msg": f"Scholar {discordID}'s scholar address updated to {addr}"}
 
+
 @logger.catch
 async def addManager(discordID, name):
     async with sql.connect(MAIN_DB) as db:
@@ -241,13 +248,13 @@ async def addManager(discordID, name):
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
-            
+                # return userR
+
             if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_manager"] is not None and int(user["is_manager"]) == 1):
                 return {"success": False, "msg": "A manager already exists with that discord ID"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_manager"] is None or int(user["is_manager"]) == 0):
                     await c.execute('''UPDATE users SET is_manager=1
                                 WHERE discord_id=?''', (discordID,))
@@ -266,15 +273,16 @@ async def addManager(discordID, name):
 
     return {"success": True, "msg": f"Manager {name}/{discordID} saved"}
 
+
 @logger.catch
 async def removeManager(discordID):
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
         async with db.cursor() as c:
             await c.execute("BEGIN")
-            try: 
+            try:
                 await c.execute('''UPDATE users SET is_manager=0
-                        WHERE discord_id=?''', (discordID,)) 
+                        WHERE discord_id=?''', (discordID,))
                 await c.execute("COMMIT")
 
                 logger.success(f"Deleted manager {discordID}")
@@ -285,6 +293,7 @@ async def removeManager(discordID):
                 return {"success": False, "msg": f"Error in processing manager deletion for {discordID}"}
 
     return {"success": True, "msg": f"Manager {discordID} deleted"}
+
 
 @logger.catch
 async def setOwner(discordID, name):
@@ -299,23 +308,23 @@ async def setOwner(discordID, name):
                 owner = rowsR["rows"]
             else:
                 owner = None
-                #return rowsR
+                # return rowsR
 
-            userR = await getDiscordID(discordID,db)
+            userR = await getDiscordID(discordID, db)
             if userR is not None and "success" in userR and userR["success"]:
                 user = userR["rows"]
             else:
                 user = None
-                #return userR
+                # return userR
 
             if owner is not None:
                 return {"success": False, "msg": "An owner already exists"}
 
             await c.execute("BEGIN")
-            try: 
+            try:
                 if user is not None and int(user["discord_id"]) == int(discordID):
                     await c.execute('''UPDATE users SET name=?,is_manager=1,is_owner=1
-                                WHERE discord_id=?''', (name,discordID))
+                                WHERE discord_id=?''', (name, discordID))
                 else:
                     await c.execute('''INSERT INTO users 
                         (discord_id, name, is_manager, is_owner) 
@@ -331,13 +340,14 @@ async def setOwner(discordID, name):
 
     return {"success": True, "msg": f"Owner {name}/{discordID} saved"}
 
+
 @logger.catch
 async def setProperty(prop, val):
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
         async with db.cursor() as c:
-    
-            isNum = False 
+
+            isNum = False
             if isFloat(val):
                 isNum = True
 
@@ -348,10 +358,10 @@ async def setProperty(prop, val):
                     # update
                     if isNum:
                         await c.execute('''UPDATE properties SET realVal=?,textVal=?
-                                WHERE property=?''', (val,None,prop))
+                                WHERE property=?''', (val, None, prop))
                     else:
                         await c.execute('''UPDATE properties SET textVal=?,realVal=?
-                                WHERE property=?''', (val,None,prop))
+                                WHERE property=?''', (val, None, prop))
 
                 elif res["success"] and res["rows"] is None:
                     # insert
@@ -367,13 +377,14 @@ async def setProperty(prop, val):
                     # error
                     await c.execute("ROLLBACK")
                     return res
-            except:           
+            except:
                 await c.execute("ROLLBACK")
                 logger.error(f"Failed to save property {prop}")
                 return {"success": False, "msg": f"Error in processing property set for {prop}"}
- 
+
             await c.execute("COMMIT")
             return {"success": True, "msg": f"Successfully set {prop} to {val}"}
+
 
 ### Select
 
@@ -387,8 +398,8 @@ async def getProperty(prop, db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
-        await c.execute("SELECT * FROM properties WHERE property=?", (prop,)) 
+    try:
+        await c.execute("SELECT * FROM properties WHERE property=?", (prop,))
         rows = await c.fetchone()
         logger.info(f"Fetched property: {prop}")
 
@@ -407,6 +418,7 @@ async def getProperty(prop, db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllScholars(db=None):
     created = False
@@ -417,8 +429,8 @@ async def getAllScholars(db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
-        await c.execute("SELECT * FROM users WHERE is_scholar=1") 
+    try:
+        await c.execute("SELECT * FROM users WHERE is_scholar=1")
         rows = await c.fetchall()
         logger.info(f"Fetched all scholars")
 
@@ -437,6 +449,7 @@ async def getAllScholars(db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, db=None):
     created = False
@@ -451,9 +464,9 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, db=None):
         minIndex = 0
 
     rows = None
-    try: 
+    try:
         if minIndex == 0 or maxIndex == 0:
-            await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ?", (int(seed),)) 
+            await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ?", (int(seed),))
         else:
             await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ? AND account_num >= ? AND account_num <= ?", (int(seed), int(minIndex), int(maxIndex)))
         rows = await c.fetchall()
@@ -475,6 +488,7 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllManagers(db=None):
     created = False
@@ -485,7 +499,7 @@ async def getAllManagers(db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
+    try:
         await c.execute("SELECT * FROM users WHERE is_manager=1")
         rows = await c.fetchall()
         logger.info(f"Fetched all managers")
@@ -505,6 +519,7 @@ async def getAllManagers(db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllNoRole(db=None):
     created = False
@@ -515,7 +530,7 @@ async def getAllNoRole(db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
+    try:
         await c.execute("SELECT * FROM users WHERE (is_manager=0 OR is_manager IS NULL) AND (is_scholar=0 OR is_scholar IS NULL) AND (is_owner=0 OR is_owner IS NULL)")
         rows = await c.fetchall()
         logger.info(f"Fetched all users with no role")
@@ -535,6 +550,7 @@ async def getAllNoRole(db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllUsers(db=None):
     created = False
@@ -545,7 +561,7 @@ async def getAllUsers(db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
+    try:
         await c.execute("SELECT * FROM users")
         rows = await c.fetchall()
         logger.info(f"Fetched all users")
@@ -565,6 +581,7 @@ async def getAllUsers(db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getAllManagerIDs(db=None):
     created = False
@@ -575,7 +592,7 @@ async def getAllManagerIDs(db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
+    try:
         await c.execute("SELECT * FROM users WHERE is_manager=1 or is_owner=1")
         rows = await c.fetchall()
         logger.info(f"Fetched all managers")
@@ -599,6 +616,7 @@ async def getAllManagerIDs(db=None):
 
     return ids
 
+
 @logger.catch
 async def getDiscordID(discordID, db=None):
     created = False
@@ -609,19 +627,19 @@ async def getDiscordID(discordID, db=None):
     c = await db.cursor()
 
     rows = None
-    try: 
+    try:
         await c.execute("SELECT * FROM users WHERE discord_id=? LIMIT 1", (int(discordID),))
         rows = await c.fetchone()
         logger.info(f"Fetched discord ID {discordID}")
         out = "["
         for col in rows:
-            out += str(col) + ","        
+            out += str(col) + ","
         out += "]"
         logger.info(out)
 
     except Exception as e:
         logger.warning(f"Failed to get discord ID {discordID}, not in database")
-        #logger.error(e)
+        # logger.error(e)
 
         if created:
             await c.close()
@@ -635,6 +653,7 @@ async def getDiscordID(discordID, db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def getOwner(db=None):
     created = False
@@ -647,7 +666,7 @@ async def getOwner(db=None):
     logger.info("before async in getOwner")
     rows = None
     try:
-        logger.info("exec owner query") 
+        logger.info("exec owner query")
         await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
         rows = await c.fetchone()
         logger.info("fetched owner")
@@ -669,15 +688,17 @@ async def getOwner(db=None):
 
     return {"success": True, "rows": rows}
 
+
 @logger.catch
 async def isManager(discordID):
     mgrs = await getAllManagers()
 
     for row in mgrs["rows"]:
         if int(row['discord_id']) == int(discordID):
-            return True 
+            return True
 
     return await isOwner(discordID)
+
 
 @logger.catch
 async def isOwner(discordID):
@@ -687,6 +708,7 @@ async def isOwner(discordID):
         return True
 
     return False
+
 
 @logger.catch
 async def getMembershipReport():
@@ -711,4 +733,3 @@ async def getMembershipReport():
         return {"success": False, "msg": "Error processing membership report"}
 
     return {"success": True, "managers": mgrs, "scholars": sclr, "noRole": norl, "owner": ownr, "total": totl}
-

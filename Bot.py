@@ -24,6 +24,7 @@ import Commands
 from Slash import *
 import DB
 
+
 # Event Listeners
 
 @client.event
@@ -80,9 +81,9 @@ async def on_message(message):
     # If the user requests a QR code
     if message.content == prefix + "qr":
         await Commands.qrCommand(message, isManager, discordId, guildId)
-        return   
-    
-    # user requests daily progress
+        return
+
+        # user requests daily progress
     elif args[0] == prefix + "daily":
         await Commands.dailyCommand(message, args, isManager, discordId, guildId)
         return
@@ -90,7 +91,7 @@ async def on_message(message):
     # user requests recent battles
     elif args[0] == prefix + "battles":
         await message.reply("Sorry, following the latest Axie Infinity update battle logs are no longer available. :(")
-        #await Commands.battlesCommand(message, args, isManager, discordId, guildId)
+        # await Commands.battlesCommand(message, args, isManager, discordId, guildId)
         return
 
     # user requests axie data
@@ -113,7 +114,7 @@ async def on_message(message):
     elif args[0] == prefix + "alert" and isManager:
         await Commands.alertsCommand(message, args)
         return
-    
+
     # get export csv of scholars
     elif args[0] == prefix + "export" and isManager:
         await Commands.exportCommand(message, isManager)
@@ -160,18 +161,18 @@ async def on_message(message):
     elif args[0] == prefix + "removeManager" and isManager:
         await Commands.removeManager(message, args, isManager, discordId, guildId)
         return
-    
+
     elif args[0] == prefix + "membership":
         await Commands.membershipCommand(message, args, isManager, discordId, guildId)
         return
-     
+
     elif args[0] == prefix + "payout":
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
             return
         await Commands.payoutCommand(message, args, isManager, discordId, guildId)
         return
-    
+
     elif args[0] == prefix + "massPayout" and isManager:
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
@@ -248,7 +249,7 @@ async def checkEnergyQuest():
             logger.info("Processing scheduled leaderboard posting")
 
             channel = client.get_channel(leaderboardChannelId);
-            
+
             # fetch the data
             sort = "mmr"
             ascText = "desc"
@@ -257,30 +258,30 @@ async def checkEnergyQuest():
             # error
             if table is None or cacheExp is None:
                 logger.error("Failed to build scheduled leaderboard post")
-            
+
             else:
                 # send results
                 msg = 'Hello ' + programName + ', here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
                 fig = go.Figure(data=[go.Table(
-                    columnwidth = [75,400,100,200,150,200,150,150,150,150,100,200],
+                    columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
                     header=dict(values=list(table.columns),
-                        fill_color="paleturquoise",
-                        align='center'),
+                                fill_color="paleturquoise",
+                                align='center'),
                     cells=dict(values=table.T.values,
-                        fill_color='lavender',
-                        align='center'))
+                               fill_color='lavender',
+                               align='center'))
                 ])
                 fig.update_layout(margin=dict(
-                    l=0, #left margin
-                    r=0, #right margin
-                    b=0, #bottom margin
-                    t=0  #top margin
+                    l=0,  # left margin
+                    r=0,  # right margin
+                    b=0,  # bottom margin
+                    t=0  # top margin
                 ))
                 fName = 'images/summary' + str(int(time.time())) + '.png'
-                fig.write_image(fName, width=1200, height=20*len(table)+30)
+                fig.write_image(fName, width=1200, height=20 * len(table) + 30)
 
-                await channel.send(content=msg,file=discord.File(fName))
+                await channel.send(content=msg, file=discord.File(fName))
 
                 os.remove(fName)
             pass
@@ -288,10 +289,10 @@ async def checkEnergyQuest():
     except Exception as e:
         logger.error("Error in checkEnergyQuest")
         logger.error(e)
-        #traceback.print_exc()
+        # traceback.print_exc()
 
         await sendErrorToManagers(e, "cron job")
-    
+
     pass
 
 
@@ -300,4 +301,3 @@ checkEnergyQuest.start()
 
 # Run the client
 client.run(DiscordBotToken)
-
