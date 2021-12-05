@@ -1,10 +1,12 @@
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto import Random
-from Crypto.Protocol.KDF import PBKDF2
-from SeedStorage import *
 import binascii
 import getpass
+
+from Crypto import Random
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Util import Counter
+
+import SeedStorage
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
@@ -63,7 +65,7 @@ with open("iv.dat", "rb") as f:
     iv = f.read()
 
     count = 1
-    for seed in SeedList:
+    for seed in SeedStorage.SeedList:
         # print(f"Encrypted seed {count}: {seed}")
 
         try:

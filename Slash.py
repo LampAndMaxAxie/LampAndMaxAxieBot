@@ -1,18 +1,8 @@
 # Author: Michael Conard
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 
-import discord
-import os
-import traceback
-import math
-import configparser
-import json
-from discord.ext import tasks, commands
-from dislash import slash_commands
 from dislash.interactions import *
-from datetime import datetime, timezone
-import Common
-import UtilBot
+
 from Commands import *
 
 

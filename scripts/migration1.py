@@ -1,11 +1,12 @@
-import asyncio
+import os
+import sys
+
 import aiosqlite as sql
 from loguru import logger
-from SeedStorage import *
-from Common import *
+
 import DB
-import sys
-import os
+import SeedStorage
+from Common import client
 
 fName = "migrate_addr.txt"
 
@@ -84,4 +85,4 @@ async def migration(fName):
     exit()
 
 
-client.run(DiscordBotToken)
+client.run(SeedStorage.DiscordBotToken)

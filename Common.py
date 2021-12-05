@@ -1,19 +1,22 @@
-import discord
+import binascii
 import configparser
-import os
+import getpass
 import json
-from web3 import Web3
-from loguru import logger
+import os
+
+import discord
+from Crypto import Random
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Util import Counter
 from discord.ext import commands
 from dislash import slash_commands
 from eth_account import Account
+from loguru import logger
+from web3 import Web3
+
 import SeedStorage
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto import Random
-from Crypto.Protocol.KDF import PBKDF2
-import binascii
-import getpass
+
 # Setup Discord Bot
 intents = discord.Intents.default()
 intents.members = True

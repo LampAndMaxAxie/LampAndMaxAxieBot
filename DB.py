@@ -1,6 +1,8 @@
-import aiosqlite as sql
 import traceback
+
+import aiosqlite as sql
 from loguru import logger
+
 import Common
 
 MAIN_DB = "axieBot.db"

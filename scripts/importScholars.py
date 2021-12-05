@@ -1,11 +1,11 @@
-import asyncio
-import aiosqlite as sql
-from loguru import logger
-from SeedStorage import *
-from Common import *
-import DB
-import sys
 import os
+import sys
+
+from loguru import logger
+
+import DB
+import SeedStorage
+from Common import client, getNameFromDiscordID
 
 fName = "import.txt"
 
@@ -94,4 +94,4 @@ async def importScholars(fName):
     exit()
 
 
-client.run(DiscordBotToken)
+client.run(SeedStorage.DiscordBotToken)

@@ -1,10 +1,12 @@
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto import Random
-from Crypto.Protocol.KDF import PBKDF2
-from SeedStorage import *
 import binascii
 import getpass
+
+from Crypto import Random
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Util import Counter
+
+from SeedStorage import SeedList
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
@@ -31,7 +33,7 @@ def encrypt(key, plaintext, iv=None):
 
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
-    return (iv, ciphertext)
+    return iv, ciphertext
 
 
 # 32 bit key, IV binary string, and ciphertext to decrypt
