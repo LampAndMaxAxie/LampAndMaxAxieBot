@@ -7,14 +7,12 @@ import traceback
 import math
 import configparser
 import json
-
 from discord.ext import tasks, commands
 from dislash import slash_commands
 from dislash.interactions import *
 from datetime import datetime, timezone
-
-from Common import *
-from UtilBot import *
+import Common
+import UtilBot
 from Commands import *
 
 

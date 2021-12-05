@@ -1,27 +1,18 @@
 # Author: Michael Conard
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
-
+import time
 import discord
 import os
-import traceback
-import math
-import configparser
-import json
 import datetime
 import pandas as pd
-from pandas.plotting import table as tableTool
 import plotly.graph_objects as go
-
-from discord.ext import tasks, commands
-from dislash import slash_commands
-from dislash.interactions import *
+from discord.ext import tasks
 from loguru import logger
-
+from Common import prefix, client
 from SeedStorage import DiscordBotToken
-from Common import *
-from UtilBot import *
+import Common
+import UtilBot
 import Commands
-from Slash import *
 import DB
 
 
@@ -39,9 +30,9 @@ async def on_ready():
         for emoji in guild.emojis:
             if emoji.name == "slp":
                 found = True
-                slpEmojiID[guild.id] = emoji.id
-        if found == False:
-            slpEmojiID[guild.id] = None
+                UtilBot.slpEmojiID[guild.id] = emoji.id
+        if not found:
+            UtilBot.slpEmojiID[guild.id] = None
 
 
 @client.event
@@ -58,7 +49,7 @@ async def on_message(message):
     discordId = message.author.id
     channelId = message.channel.id
     guildId = None
-    if message.guild == None:
+    if message.guild is None:
         # command was DMed to the bot
         guildId = None
     else:
@@ -222,7 +213,7 @@ async def on_message(message):
 
     # user asked for command help
     elif message.content == prefix + "help":
-        await helpCommand(message, discordId)
+        await Commands.helpCommand(message, discordId)
         return
 
     logger.warning('Unknown command entered: {}'.format(message.content))
@@ -243,17 +234,17 @@ async def checkEnergyQuest():
         if rn.hour == 23 and rn.minute == 0:  # allow 7pm EST / 11pm UTC
             # energy / quest alerts
             logger.info("Processing 1 hour before reset alerts")
-            await nearResetAlerts(rn)
+            await UtilBot.nearResetAlerts(rn)
 
-        if leaderboardPeriod < 25 and rn.hour % leaderboardPeriod == 0 and rn.minute == 0:  # allow periodically
+        if Common.leaderboardPeriod < 25 and rn.hour % Common.leaderboardPeriod == 0 and rn.minute == 0:  # allow periodically
             logger.info("Processing scheduled leaderboard posting")
 
-            channel = client.get_channel(leaderboardChannelId);
+            channel = client.get_channel(Common.leaderboardChannelId)
 
             # fetch the data
             sort = "mmr"
             ascText = "desc"
-            table, cacheExp = await getScholarSummary(sort, False)
+            table, cacheExp = await UtilBot.getScholarSummary(sort, False)
 
             # error
             if table is None or cacheExp is None:
@@ -261,7 +252,7 @@ async def checkEnergyQuest():
 
             else:
                 # send results
-                msg = 'Hello ' + programName + ', here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
+                msg = 'Hello ' + Common.programName + ', here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
                 fig = go.Figure(data=[go.Table(
                     columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
@@ -291,7 +282,7 @@ async def checkEnergyQuest():
         logger.error(e)
         # traceback.print_exc()
 
-        await sendErrorToManagers(e, "cron job")
+        await UtilBot.sendErrorToManagers(e, "cron job")
 
     pass
 

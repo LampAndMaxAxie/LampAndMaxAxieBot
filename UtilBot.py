@@ -18,20 +18,16 @@ import urllib
 import math
 import discord
 import AccessToken
-import bs4
-import random
-import configparser
 from loguru import logger
-
 from PIL import Image
 from urllib3 import Retry
-from Common import *
+import Common
 import DB
 
 try:
-    CACHE_TIME = int(config.get('Bot', 'cacheTimeMinutes'))
-    tz1String = config.get('Bot', 'timezone1')
-    tz2String = config.get('Bot', 'timezone2')
+    CACHE_TIME = int(Common.config.get('Bot', 'cacheTimeMinutes'))
+    tz1String = Common.config.get('Bot', 'timezone1')
+    tz2String = Common.config.get('Bot', 'timezone2')
     tz1 = pytz.timezone(tz1String)
     tz2 = pytz.timezone(tz2String)
     tzutc = pytz.timezone('UTC')
@@ -110,7 +106,7 @@ async def sendErrorToManagers(e, flag):
 
     mgrIds = await DB.getAllManagerIDs()
 
-    await messageManagers(msg, mgrIds)
+    await Common.messageManagers(msg, mgrIds)
 
 
 def getEmojiFromReact(reaction):
@@ -126,7 +122,7 @@ async def getKeyForUser(user):
     seedNum = user["seed_num"]
     accountNum = user["account_num"]
     scholarAddr = user["scholar_addr"]
-    ret = await getFromMnemonic(seedNum, accountNum, scholarAddr)
+    ret = await Common.getFromMnemonic(seedNum, accountNum, scholarAddr)
 
     if ret is None:
         return None, None
@@ -353,7 +349,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         utc_time = int(datetime.datetime.now(tzutc).timestamp())
         cacheExp = utc_time + CACHE_TIME * 60
 
-        ### process data
+        # process data
 
         maxEnergy = meta['max_energy']
         maxSlp = meta['max_slp_by_day']
@@ -469,7 +465,7 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         if slpIcon is None:
             slpIcon = ""
 
-        if hideScholarRonins:
+        if Common.hideScholarRonins:
             roninAddr = "<hidden>"
 
         embed = discord.Embed(title="Scholar Daily Stats", description="Daily stats for scholar " + discordName,
@@ -615,9 +611,9 @@ async def getRoninBattles(roninAddr):
             elif streakType is None:
                 streakType = result
                 streakAmount = 1
-            elif streakBroken == False and streakType == result:
+            elif not streakBroken and streakType == result:
                 streakAmount += 1
-            elif streakBroken == False and streakType != result:
+            elif not streakBroken and streakType != result:
                 streakBroken = True
 
             # opponent ronin
@@ -828,9 +824,9 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
             elif streakType is None:
                 streakType = result
                 streakAmount = 1
-            elif streakBroken == False and streakType == result:
+            elif not streakBroken and streakType == result:
                 streakAmount += 1
-            elif streakBroken == False and streakType != result:
+            elif not streakBroken and streakType != result:
                 streakBroken = True
 
             # opponent ronin
@@ -1233,8 +1229,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
             if os.path.exists(imgPath):
                 axieImages.append(imgPath)
             else:
-                axieUrl = 'https://storage.googleapis.com/assets.axieinfinity.com/axies/{}/axie/axie-full-transparent.png'.format(
-                    axieId)
+                axieUrl = 'https://storage.googleapis.com/assets.axieinfinity.com/axies/{}/axie/axie-full-transparent.png'.format(axieId)
                 res = saveUrlImage(axieUrl, imgPath)
                 if res is None:
                     imgErr = True
@@ -1273,13 +1268,13 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
     try:
         logger.info("Processing near-reset alerts")
 
-        channel = client.get_channel(alertChannelId);
+        channel = Common.client.get_channel(Common.alertChannelId)
         msg = ""
 
         if not forceAlert:
-            msg = "Hello %s! The %s daily reset is in 1 hour.\n\n" % (programName, str(rn.date()))
+            msg = "Hello %s! The %s daily reset is in 1 hour.\n\n" % (Common.programName, str(rn.date()))
         else:
-            msg = "Hello %s!\n\n" % (programName)
+            msg = "Hello %s!\n\n" % Common.programName
 
         count = 0
 
@@ -1318,7 +1313,7 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
                         msg += name.replace('`', '') + ":\n"
 
                     if res["questSlp"] != 25:
-                        msg += '%s You have not completed/claimed the daily quest yet\n' % (redX)
+                        msg += '%s You have not completed/claimed the daily quest yet\n' % redX
                     if res["energy"] > 0:
                         msg += '%s You have %d energy remaining\n' % (redX, res["energy"])
                     if res["pveSlp"] < 50:

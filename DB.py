@@ -1,15 +1,12 @@
 import aiosqlite as sql
-import json
 import traceback
-
 from loguru import logger
-from Common import *
+import Common
 
 MAIN_DB = "axieBot.db"
 
 
-### Common
-
+# Common
 @logger.catch
 async def createMainTables():
     logger.info("in createMainTables")
@@ -46,13 +43,12 @@ async def createMainTables():
             if massPay["success"] and massPay["rows"] is None:
                 await setProperty("massPay", 1)
 
-            name = await getNameFromDiscordID(ownerID)
-            await setOwner(ownerID, name)
+            name = await Common.getNameFromDiscordID(Common.ownerID)
+            await setOwner(Common.ownerID, name)
     pass
 
 
-### Insert/Delete/Update
-
+# Insert/Delete/Update
 @logger.catch
 async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
     async with sql.connect(MAIN_DB) as db:
@@ -90,7 +86,7 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
 
                 logger.info(f"Saved scholar {name}/{discordID} with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share {share}")
 
-            except Exception as e:
+            except Exception:
                 await c.execute("ROLLBACK")
                 logger.error(traceback.format_exc())
                 logger.error(f"Failed to save scholar {name}/{discordID}")
@@ -348,7 +344,7 @@ async def setProperty(prop, val):
         async with db.cursor() as c:
 
             isNum = False
-            if isFloat(val):
+            if Common.isFloat(val):
                 isNum = True
 
             await c.execute("BEGIN")
@@ -386,8 +382,7 @@ async def setProperty(prop, val):
             return {"success": True, "msg": f"Successfully set {prop} to {val}"}
 
 
-### Select
-
+# Select
 @logger.catch
 async def getProperty(prop, db=None):
     created = False
@@ -459,7 +454,7 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, db=None):
         created = True
     c = await db.cursor()
 
-    if minIndex == None or maxIndex == None:
+    if minIndex is None or maxIndex is None:
         maxIndex = 0
         minIndex = 0
 
@@ -637,7 +632,7 @@ async def getDiscordID(discordID, db=None):
         out += "]"
         logger.info(out)
 
-    except Exception as e:
+    except Exception:
         logger.warning(f"Failed to get discord ID {discordID}, not in database")
         # logger.error(e)
 

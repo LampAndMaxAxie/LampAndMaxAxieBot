@@ -2,22 +2,18 @@ import discord
 import configparser
 import os
 import json
-import traceback
-from web3 import Account, Web3
+from web3 import Web3
 from loguru import logger
-from discord.ext import tasks, commands
+from discord.ext import commands
 from dislash import slash_commands
-from dislash.interactions import *
-from SeedStorage import *
 from eth_account import Account
-
+import SeedStorage
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from Crypto import Random
 from Crypto.Protocol.KDF import PBKDF2
 import binascii
 import getpass
-
 # Setup Discord Bot
 intents = discord.Intents.default()
 intents.members = True
@@ -70,7 +66,7 @@ except:
 # Globals
 decryptionPass = ""
 decryptionKey = ""
-mnemonicList = SeedList
+mnemonicList = SeedStorage.SeedList
 Account.enable_unaudited_hdwallet_features()
 
 # 32 bit keys => AES256 encryption
@@ -99,10 +95,8 @@ with open("iv.dat", "rb") as f:
         exit()
 
 
-### Functions
-
+# Functions
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
-
 # 32 bit key, binary plaintext string to encrypt, and IV binary string
 def encrypt(key, plaintext, iv=None):
     assert len(key) == key_bytes
@@ -122,7 +116,7 @@ def encrypt(key, plaintext, iv=None):
 
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
-    return (iv, ciphertext)
+    return iv, ciphertext
 
 
 # 32 bit key, IV binary string, and ciphertext to decrypt
@@ -203,7 +197,7 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
             logger.error("Account Address did not match derived address")
             logger.error(f"{scholarAddress} != {scholarAccount.address}")
             return None
-    except Exception as e:
+    except Exception:
         logger.error("Exception in getFromMnemonic, not logging trace since key or passwords may be involved")
         # logger.error(traceback.format_exc())
         return None

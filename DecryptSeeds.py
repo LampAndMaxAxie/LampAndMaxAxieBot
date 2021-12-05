@@ -31,7 +31,7 @@ def encrypt(key, plaintext, iv=None):
 
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
-    return (iv, ciphertext)
+    return iv, ciphertext
 
 
 # 32 bit key, IV binary string, and ciphertext to decrypt

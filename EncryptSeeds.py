@@ -30,7 +30,7 @@ def encrypt(key, plaintext, iv=None):
 
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
-    return (iv, ciphertext)
+    return iv, ciphertext
 
 
 # 32 bit key, IV binary string, and ciphertext to decrypt
@@ -56,10 +56,9 @@ print("This process will overwrite your existing iv.dat and SeedStorage.py files
 print("")
 
 print("Note, the password field is hidden so it will not display what you type.")
-# password = getpass.getpass("Password to encrypt your seeds: ").strip()
-# password2 = getpass.getpass("Confirm password: ").strip()
-password = "1157"
-password2 = "1157"
+password = getpass.getpass("Password to encrypt your seeds: ").strip()
+password2 = getpass.getpass("Confirm password: ").strip()
+
 # check that password entry matches
 if password != password2:
     print("Passwords do not match.")

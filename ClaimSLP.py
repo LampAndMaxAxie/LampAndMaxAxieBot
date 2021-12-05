@@ -3,8 +3,7 @@ from loguru import logger
 from math import floor
 import requests
 import json
-from web3 import Web3, exceptions  # , AsyncHTTPProvider
-# from web3.eth import AsyncEth
+from web3 import Web3
 import AccessToken
 import asyncio
 
