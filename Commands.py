@@ -22,9 +22,10 @@ async def helpCommand(message, discordId, isSlash=False):
     if not isSlash:
         await message.channel.trigger_typing()
 
-    msg = 'Hello <@' + str(discordId) + '>! Here are the available commands:\n'
+    msg = 'Hello <@' + str(discordId) + '>! Here are the available commands, all available with / as well:\n'
     msg += ' - `' + prefix + 'help`: returns this help message\n'
     msg += ' - `' + prefix + 'qr`: DMs you your QR code to login\n'
+    msg += ' - `' + prefix + 'login`: DMs you your login info if your manager set it up\n'
     msg += ' - `' + prefix + 'daily [name/ping/discordID]`: returns the player\'s match/SLP/quest data for today\n'
     msg += ' - `' + prefix + 'axies [name/ping/discordID] [index] [m]`: returns the player\'s Axies, [index] is to select a team (default 0), set [m] for mobile friendly\n'
     msg += ' - `' + prefix + 'battles [name/ping/discordID]`: returns the scholar\'s recent battle records\n'
@@ -37,6 +38,7 @@ async def helpCommand(message, discordId, isSlash=False):
     msg += ' - `' + prefix + 'removeManager discordID`: removes the user\'s status as a manager\n'
     msg += ' - `' + prefix + 'updateScholarShare discordID scholarShare`: sets the user\'s share to the new value, 0.01 to 1.00\n'
     msg += ' - `' + prefix + 'setPayoutAddress roninAddress [discordID]`: sets the caller\'s payout address, can be ronin: or 0x form, manager can use discordID\n'
+    msg += ' - `' + prefix + 'setAccountLogin discordID roninAddress email pass`: records the account\'s login info, only usable by managers\n'
     msg += ' - `' + prefix + 'membership`: returns information about the status of the user database\n'
     msg += ' - `' + prefix + 'setProperty property value`: sets a property to a value\n'
     msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "devDonation")\n'
