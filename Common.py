@@ -29,7 +29,7 @@ except:
 try:
     programName = config.get('Manager', 'programName')
     ownerID = config.get('Manager', 'ownerDiscordID')
-    ownerRonin = config.get('Manager', 'ownerRoninAddr')
+    ownerRonin = config.get('Manager', 'ownerRoninAddr').replace("ronin:","0x")
 except:
     logger.error("Please fill out a [Manager] section for programName and ownerId.")
     exit()
