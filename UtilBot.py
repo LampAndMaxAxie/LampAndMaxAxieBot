@@ -28,6 +28,11 @@ import DB
 
 try:
     CACHE_TIME = int(Common.config.get('Bot', 'cacheTimeMinutes'))
+
+    if int(CACHE_TIME) < 30:
+        logger.warning("Configured cache time invalid, setting to 30 minutes")
+        CACHE_TIME = 30
+
     tz1String = Common.config.get('Bot', 'timezone1')
     tz2String = Common.config.get('Bot', 'timezone2')
     tz1 = pytz.timezone(tz1String)

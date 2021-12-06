@@ -20,7 +20,7 @@ async def createMainTables():
             await c.execute('''CREATE TABLE IF NOT EXISTS users 
                 (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, 
                  is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, 
-                 account_num INTEGER, scholar_addr TEXT, payout_addr TEXT, share REAL, 
+                 account_num INTEGER, scholar_addr TEXT, payout_addr TEXT, share REAL, account_email TEXT, account_pass TEXT, 
                  created_at TIMESTAMP DEFAULT (strftime('%s', 'now')), updated_at TIMESTAMP DEFAULT (strftime('%s','now'))
                 )''')
             await c.execute('''CREATE TABLE IF NOT EXISTS properties 
@@ -234,6 +234,50 @@ async def updateScholarMainAddress(discordID, addr):
                 return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
 
     return {"success": True, "msg": f"Scholar {discordID}'s scholar address updated to {addr}"}
+
+
+@logger.catch
+async def updateScholarLogin(discordID, addr, email, password):
+    async with sql.connect(MAIN_DB) as db:
+        db.row_factory = sql.Row
+        async with db.cursor() as c:
+            userR = await getDiscordID(discordID, db)
+
+            if userR is not None and "success" in userR and userR["success"]:
+                user = userR["rows"]
+            else:
+                user = None
+                # return userR
+
+            #logger.info(user)
+            #out = "["
+            #for col in user:
+            #    out += str(col) + ","
+            #out += "]"
+            #logger.info(out)
+
+            if user is None:
+                logger.error(f"Failed to update {discordID} because they are not in the database")
+                return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
+
+            if user["is_scholar"] is None or int(user["is_scholar"]) == 0:
+                logger.error(f"Failed to update {discordID} because they are not a scholar")
+                return {"success": False, "msg": f"Failed to update {discordID} because they are not a scholar"}
+
+            await c.execute("BEGIN")
+            try:
+                await c.execute('''UPDATE users SET account_email = ?, account_pass = ?
+                        WHERE discord_id = ? AND scholar_addr = ?''', (email, password, discordID, addr.replace('ronin:', '0x')))
+                await c.execute("COMMIT")
+
+                logger.info(f"Updated {discordID}'s scholar account login info updated")
+
+            except:
+                await c.execute("ROLLBACK")
+                logger.error(f"Failed to update scholar {discordID}")
+                return {"success": False, "msg": f"Error in processing scholar update for {discordID}"}
+
+    return {"success": True, "msg": f"Scholar {discordID}'s scholar account login info updated"}
 
 
 @logger.catch

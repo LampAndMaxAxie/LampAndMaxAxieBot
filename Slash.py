@@ -1,10 +1,19 @@
 # Author: Michael Conard
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 
+import discord
+import os
+import traceback
+import json
+
+from discord.ext import commands
+from dislash import slash_commands
 from dislash.interactions import *
+from datetime import datetime, timezone
 
 from Commands import *
-
+from Common import slash, client, serverIds
+import DB
 
 # Slash Commands
 
@@ -13,12 +22,457 @@ from Commands import *
     description="Returns information on the available commands",
     guild_ids=serverIds
 )
-async def helpsSlash(ctx):
+async def helpSlash(ctx):
     await ctx.create_response(type=5)
 
     discordId = ctx.author.id
     await helpCommand(ctx, discordId, True)
 
+
+@slash.command(
+    name="payout",
+    description="Process a payout for yourself (or discord ID if you're a manager)",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="The user to payout (only if you're a manager)",
+            required=False,
+            type=Type.STRING
+        )
+    ]
+)
+async def payoutSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["payout"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+
+    await payoutCommand(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="mass_payout",
+    description="Trigger a mass payout of all or a range of scholar accounts",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="seednum",
+            description="The seed index to payout (NOT YOUR ACTUAL SEED PHRASE)",
+            required=False,
+            type=Type.INTEGER
+        ),
+        Option(
+            name="minaccount",
+            description="The minimum account index on the specified seed",
+            required=False,
+            type=Type.INTEGER
+        ),
+        Option(
+            name="maxaccount",
+            description="The maximum account index on the specified seed",
+            required=False,
+            type=Type.INTEGER
+        ),
+    ]
+)
+async def massPayoutSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["massPayout"]
+    if ctx.data.get_option('seednum') is not None:
+        args.append(ctx.data.get_option('seednum').value)
+    if ctx.data.get_option('minaccount') is not None:
+        args.append(ctx.data.get_option('minaccount').value)
+    if ctx.data.get_option('maxaccount') is not None:
+        args.append(ctx.data.get_option('maxaccount').value)
+
+    await payoutAllScholars(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="set_property",
+    description="Sets a property like devDonation or massPay",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="property",
+            description="The property to change",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="value",
+            description="The value to set",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def setProp(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["setProperty"]
+    if ctx.data.get_option('property') is not None:
+        args.append(ctx.data.get_option('property').value)
+    if ctx.data.get_option('value') is not None:
+        args.append(ctx.data.get_option('value').value)
+
+    await setPropertyCommand(ctx, args, isManager, discordId, guildId, True)
+
+@slash.command(
+    name="get_property",
+    description="Gets a property like devDonation or massPay",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="property",
+            description="The property to change",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def getProp(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["getProperty"]
+    if ctx.data.get_option('property') is not None:
+        args.append(ctx.data.get_option('property').value)
+
+    await getPropertyCommand(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="add_scholar",
+    description="Adds a scholar to the database",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="seednum",
+            description="Which seed the scholar account is on",
+            required=True,
+            type=Type.INTEGER
+        ),
+        Option(
+            name="accountnum",
+            description="Which account on the seed",
+            required=True,
+            type=Type.INTEGER
+        ),
+        Option(
+            name="accountaddr",
+            description="Ronin address for the account",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="discordid",
+            description="Discord ID for the scholar (not name, that can be changed)",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="scholarshare",
+            description="Scholar payout share between 0.50 and 1.00",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def addScholarSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["addScholar"]
+    if ctx.data.get_option('seednum') is not None:
+        args.append(str(ctx.data.get_option('seednum').value))
+    if ctx.data.get_option('accountnum') is not None:
+        args.append(str(ctx.data.get_option('accountnum').value))
+    if ctx.data.get_option('accountaddr') is not None:
+        args.append(ctx.data.get_option('accountaddr').value)
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+    if ctx.data.get_option('scholarshare') is not None:
+        args.append(ctx.data.get_option('scholarshare').value)
+
+    await addScholar(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="remove_scholar",
+    description="Removes a user's scholar status from the database",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="Discord ID for the scholar (not name, that can be changed)",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def removeScholarSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["removeScholar"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+
+    await removeScholar(ctx, args, isManager, discordId, guildId, True)
+
+@slash.command(
+    name="update_scholar_share",
+    description="Promotes/demotes a scholars payout share",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="Discord ID for the scholar (not name, that can be changed)",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="scholarshare",
+            description="Scholar payout share from 0.50 to 1.00",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def updateShareSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["updateScholarShare"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+    if ctx.data.get_option('scholarshare') is not None:
+        args.append(ctx.data.get_option('scholarshare').value)
+
+    await updateScholarShare(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="update_scholar_login",
+    description="Stores the scholar's email/pass long",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="Discord ID for the scholar (not name, that can be changed)",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="accountaddr",
+            description="The account's ronin address",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="accountemail",
+            description="The account's email",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="accountpass",
+            description="The account's password",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def updateLoginSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["updateScholarLogin"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+    if ctx.data.get_option('accountaddr') is not None:
+        args.append(ctx.data.get_option('accountaddr').value)
+    if ctx.data.get_option('accountemail') is not None:
+        args.append(ctx.data.get_option('accountemail').value)
+    if ctx.data.get_option('accountpass') is not None:
+        args.append(ctx.data.get_option('accountpass').value)
+
+    await updateScholarLogin(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="update_scholar_payout",
+    description="Updates the scholar's payout address",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="payoutaddr",
+            description="The new payout address",
+            required=True,
+            type=Type.STRING
+        ),
+        Option(
+            name="discordid",
+            description="Discord ID for the scholar (not name, that can be changed)",
+            required=False,
+            type=Type.STRING
+        )
+    ]
+)
+async def updatePayoutSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["updateScholarAddress"]
+    if ctx.data.get_option('payoutaddr') is not None:
+        args.append(ctx.data.get_option('payoutaddr').value)
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+
+    await updateScholarAddress(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="add_manager",
+    description="Gives a user manager powers",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="The user to make a manager",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def addManagerSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["addManager"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+
+    await addManager(ctx, args, isManager, discordId, guildId, True)
+
+
+@slash.command(
+    name="remove_manager",
+    description="Removes a user's manager powers",
+    guild_ids=serverIds,
+    options=[
+        Option(
+            name="discordid",
+            description="The user to remove as a manager",
+            required=True,
+            type=Type.STRING
+        )
+    ]
+)
+async def removeManagerSlash(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+    
+    args = ["removeManager"]
+    if ctx.data.get_option('discordid') is not None:
+        args.append(ctx.data.get_option('discordid').value)
+
+    await removeManager(ctx, args, isManager, discordId, guildId, True)
 
 @slash.command(
     name="export",
@@ -30,7 +484,7 @@ async def export(ctx):
 
     discordId = ctx.author.id
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
     await exportCommand(ctx, isManager, True)
 
@@ -50,12 +504,33 @@ async def qr(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     await qrCommand(ctx, isManager, discordId, guildId, True)
 
 
+@slash.command(
+    name="login",
+    description="Fetch account login info (email/pass)",
+    guild_ids=serverIds
+)
+async def login(ctx):
+    await ctx.create_response(type=5)
+
+    discordId = ctx.author.id
+    guild = ctx.guild
+    guildId = None
+    if guild is not None:
+        guildId = guild.id
+
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+
+    await loginInfoCommand(ctx, isManager, discordId, guildId, True)
+
+"""
 @slash.command(
     name="battles",
     description="Generate a summary of a player's recent battle information",
@@ -79,7 +554,7 @@ async def battles(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     args = ["battles"]
@@ -87,7 +562,7 @@ async def battles(ctx):
         args.append(ctx.data.get_option('name').value)
 
     await battlesCommand(ctx, args, isManager, discordId, guildId, True)
-
+"""
 
 @slash.command(
     name="daily",
@@ -112,7 +587,7 @@ async def daily(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     args = ["daily"]
@@ -148,7 +623,7 @@ async def alert(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     if not isManager:
@@ -199,7 +674,7 @@ async def axies(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     args = ["axies"]
@@ -274,7 +749,7 @@ async def summary(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     # argument processing    
@@ -333,7 +808,7 @@ async def top(ctx):
         guildId = guild.id
 
     isManager = False
-    if discordId in managerIds:
+    if await DB.isManager(discordId):
         isManager = True
 
     # argument processing    
@@ -344,3 +819,4 @@ async def top(ctx):
         args.append("arena")
 
     await topCommand(ctx, args, isManager, discordId, guildId, True)
+

@@ -1,11 +1,11 @@
-import os
-import sys
-
+import asyncio
+import aiosqlite as sql
 from loguru import logger
-
+from SeedStorage import *
+from Common import *
 import DB
-import SeedStorage
-from Common import client, getNameFromDiscordID
+import sys
+import os
 
 fName = "import.txt"
 
@@ -16,30 +16,9 @@ if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the import file")
     exit()
 
-"""
-def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
-    try:
-        mnemonic = mnemonicList[int(seedNumber)-1]
-        scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber)-1))
-        if scholarAddress.lower() == scholarAccount.address.lower():
-            logger.info("Got the key for " + scholarAddress + " correctly")
-            return {
-                "key": Web3.toHex(scholarAccount.key),
-                "address": scholarAccount.address.lower()
-            }
-        else:
-            logger.error("Account Address did not match derived address")
-            logger.error(f"{scholarAddress} != {scholarAccount.address}")
-            return None
-    except:
-        logger.error("Exception in getFromMnemonic")
-        return None
-"""
-
-
 @client.event
 async def on_ready():
-    await importScholars(fName)
+    await importScholars(fName) 
 
 
 async def importScholars(fName):
@@ -62,7 +41,7 @@ async def importScholars(fName):
             accountNum = args[1]
             roninAddr = args[2].replace("ronin:", "0x")
             discordID = args[3]
-            scholarShare = round(float(args[4]), 3)
+            scholarShare = round(float(args[4]),3)
 
             if len(args) > 5:
                 payoutAddr = args[5].replace("ronin:", "0x")
@@ -74,7 +53,7 @@ async def importScholars(fName):
             res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
 
             if payoutAddr is not None and payoutAddr != "":
-                await DB.updateScholarAddress(discordID, payoutAddr)
+                await DB.updateScholarAddress(discordID, payoutAddr)                
 
             if not res["success"]:
                 logger.error(f"failed to import scholar {discordID}")
@@ -93,5 +72,5 @@ async def importScholars(fName):
 
     exit()
 
+client.run(DiscordBotToken)
 
-client.run(SeedStorage.DiscordBotToken)

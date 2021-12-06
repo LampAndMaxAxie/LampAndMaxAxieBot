@@ -1,18 +1,15 @@
+from Crypto.Cipher import AES
+from Crypto.Util import Counter
+from Crypto import Random
+from Crypto.Protocol.KDF import PBKDF2
+from SeedStorage import *
 import binascii
 import getpass
-
-from Crypto import Random
-from Crypto.Cipher import AES
-from Crypto.Protocol.KDF import PBKDF2
-from Crypto.Util import Counter
-
-from SeedStorage import SeedList
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
 # 32 bit keys => AES256 encryption
 key_bytes = 32
-
 
 # 32 bit key, binary plaintext string to encrypt, and IV binary string
 def encrypt(key, plaintext, iv=None):
@@ -33,8 +30,7 @@ def encrypt(key, plaintext, iv=None):
 
     # encrypt the string and return the IV/ciphertext
     ciphertext = aes.encrypt(plaintext)
-    return iv, ciphertext
-
+    return (iv, ciphertext)
 
 # 32 bit key, IV binary string, and ciphertext to decrypt
 def decrypt(key, iv, ciphertext):
@@ -51,7 +47,6 @@ def decrypt(key, iv, ciphertext):
     plaintext = aes.decrypt(ciphertext)
     return plaintext
 
-
 print("You should only use this script if you are trying to decrypt your encrypted seeds to recover them from the SeedStorage. This will require your password and the original IV data file.")
 print("If successful, it will print your seed phrases in plaintext to the screen for your recovery. Make sure your computer is secure, possible disconnected from the internet, before doing this.\n")
 
@@ -66,7 +61,7 @@ with open("iv.dat", "rb") as f:
 
     count = 1
     for seed in SeedList:
-        # print(f"Encrypted seed {count}: {seed}")
+        #print(f"Encrypted seed {count}: {seed}")
 
         try:
             res = decrypt(key, iv, seed).decode("utf8")
@@ -79,3 +74,4 @@ with open("iv.dat", "rb") as f:
         count += 1
 
 print("\nDone.")
+

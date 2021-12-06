@@ -16,7 +16,7 @@ import DB
 import UtilBot
 from Common import prefix, client
 from SeedStorage import DiscordBotToken
-
+from Slash import *
 
 # Event Listeners
 
@@ -76,7 +76,12 @@ async def on_message(message):
         await Commands.qrCommand(message, isManager, discordId, guildId)
         return
 
-        # user requests daily progress
+    # If the user requests login info
+    if message.content == prefix + "login":
+        await Commands.loginInfoCommand(message, isManager, discordId, guildId)
+        return
+
+    # user requests daily progress
     elif args[0] == prefix + "daily":
         await Commands.dailyCommand(message, args, isManager, discordId, guildId)
         return
@@ -145,6 +150,10 @@ async def on_message(message):
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
             return
         await Commands.updateScholarAddress(message, args, isManager, discordId, guildId)
+        return
+    
+    elif args[0] == prefix + "setAccountLogin":
+        await Commands.updateScholarLogin(message, args, isManager, discordId, guildId)
         return
 
     elif args[0] == prefix + "addManager" and isManager:

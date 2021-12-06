@@ -1,12 +1,11 @@
-import os
-import sys
-
+import asyncio
 import aiosqlite as sql
 from loguru import logger
-
+from SeedStorage import *
+from Common import *
 import DB
-import SeedStorage
-from Common import client
+import sys
+import os
 
 fName = "migrate_addr.txt"
 
@@ -17,10 +16,9 @@ if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the migration file")
     exit()
 
-
 @client.event
 async def on_ready():
-    await migration(fName)
+    await migration(fName) 
 
 
 async def migration(fName):
@@ -29,7 +27,7 @@ async def migration(fName):
     except:
         logger.error("Failed to create tables")
         exit()
-
+    
     async with sql.connect(DB.MAIN_DB) as db:
 
         db.row_factory = sql.Row
@@ -84,5 +82,5 @@ async def migration(fName):
 
     exit()
 
+client.run(DiscordBotToken)
 
-client.run(SeedStorage.DiscordBotToken)

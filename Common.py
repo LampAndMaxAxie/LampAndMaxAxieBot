@@ -11,17 +11,12 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util import Counter
 from discord.ext import commands
 from dislash import slash_commands
+from dislash.interactions import *
 from eth_account import Account
 from loguru import logger
 from web3 import Web3
 
 import SeedStorage
-
-# Setup Discord Bot
-intents = discord.Intents.default()
-intents.members = True
-client = commands.Bot("", intents=intents)
-slash = slash_commands.SlashClient(client)
 
 # Setup Config Parser
 config = configparser.ConfigParser()
@@ -52,19 +47,33 @@ try:
     qrBlacklist = json.loads(config.get('Bot', 'qrBlacklistIds'))
     payBlacklist = json.loads(config.get('Bot', 'payBlacklistIds'))
     prefix = config.get('Bot', 'prefix')
+
+    dmPayoutsToScholars = config.get('Bot', 'dmPayoutsToScholars')
+    if dmPayoutsToScholars == "True":
+        dmPayoutsToScholars = True
+    else:
+        dmPayoutsToScholars = False
+    
     hideScholarRonins = config.get('Bot', 'hideScholarRonins')
     if hideScholarRonins == "True":
         hideScholarRonins = True
     else:
         hideScholarRonins = False
+
     dmErrorsToManagers = config.get('Bot', 'dmErrorsToManagers')
     if dmErrorsToManagers == "False":
         dmErrorsToManagers = False
     else:
         dmErrorsToManagers = True
 except:
-    logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, and hideScholarRonins.")
+    logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, dmPayoutsToScholars, and hideScholarRonins.")
     exit()
+
+# Setup Discord Bot
+intents = discord.Intents.default()
+intents.members = True
+client = commands.Bot(command_prefix=prefix, intents=intents)
+slash = slash_commands.SlashClient(client)
 
 # Globals
 decryptionPass = ""
