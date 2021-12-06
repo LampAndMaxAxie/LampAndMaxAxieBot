@@ -200,7 +200,7 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
         mnemonic = decrypt(decryptionKey, iv, mnemonicList[int(seedNumber) - 1]).decode("utf8")
         scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber) - 1))
         if scholarAddress.lower() == scholarAccount.address.lower():
-            logger.info("Got the key for " + scholarAddress + " correctly")
+            #logger.info("Got the key for " + scholarAddress + " correctly")
             return {
                 "key": Web3.toHex(scholarAccount.key),
                 "address": scholarAccount.address.lower()

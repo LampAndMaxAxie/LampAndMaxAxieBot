@@ -1006,7 +1006,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
                 continue
             discordId = str(scholar["discord_id"])
             res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr, guildId)
-            time.sleep(0.05)  # brief delay
+            await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
                 quest = False
@@ -1083,7 +1083,7 @@ async def getScholarTop10(sort="slp"):
                 continue
             discordId = str(scholar["discord_id"])
             res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr)
-            time.sleep(0.05)  # brief delay
+            await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
                 quest = False
