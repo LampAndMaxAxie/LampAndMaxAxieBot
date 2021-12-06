@@ -11,6 +11,7 @@ import time
 import traceback
 import urllib
 
+import asyncio
 import discord
 import numpy as np
 import pandas as pd
