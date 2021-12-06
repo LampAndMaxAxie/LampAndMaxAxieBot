@@ -54,7 +54,7 @@ async def ClaimSLP(key, address, data, attempt=0):
         signature
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 500000,
+        'gas': 491337,
         'gasPrice': Web3.toWei('0', 'gwei'),
         'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
@@ -79,7 +79,7 @@ async def sendTx(key, address, amount, destination, attempt=0):
         amount
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 500000,
+        'gas': 491337,
         'gasPrice': Web3.toWei('0', 'gwei'),
         'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
@@ -125,15 +125,19 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
     if devPercent and 1 - scholar_percent > devPercent:
         dev_slp = floor(devPercent * amount)
         owner_slp = amount - (scholar_slp + dev_slp)
-        devTx = await sendTx(key, address, dev_slp, dev_address)
-        await asyncio.sleep(3)
     else:
-        devTx = None
         dev_slp = 0
         owner_slp = amount - scholar_slp
+
+    scholarTx = await sendTx(key, address, scholar_slp, scholar_address)
+    await asyncio.sleep(3)
     ownerTx = await sendTx(key, address, owner_slp, owner_address)
     await asyncio.sleep(3)
-    scholarTx = await sendTx(key, address, scholar_slp, scholar_address)
+    if devPercent:
+        devTx = await sendTx(key, address, dev_slp, dev_address)
+    else:
+        devTx = None
+
     logger.success("Scholar " + address + " payout successful")
     return {
         "totalAmount": amount,
