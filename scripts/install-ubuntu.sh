@@ -7,7 +7,7 @@ sudo apt update && sudo apt upgrade -y
 
 # python
 echo "Installing python "
-sudo apt install -y python3 python3-pip
+sudo apt install -y python3 python3-pip tmux
 
 # python libs
 echo "Installing python libs"

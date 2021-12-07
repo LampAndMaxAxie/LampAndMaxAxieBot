@@ -7,7 +7,7 @@ brew update && brew upgrade
 
 # python
 echo "Installing python "
-brew install python3
+brew install python3 tmux
 
 # python libs
 echo "Installing python libs"
