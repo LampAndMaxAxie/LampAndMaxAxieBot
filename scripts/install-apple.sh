@@ -1,13 +1,13 @@
 #!/bin/bash
-homedir=/home/ubuntu
 
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # registry update
 echo "Updating source lists"
-sudo apt update && sudo apt upgrade -y
+brew update && brew upgrade
 
 # python
 echo "Installing python "
-sudo apt install -y python3 python3-pip
+brew install python3
 
 # python libs
 echo "Installing python libs"
