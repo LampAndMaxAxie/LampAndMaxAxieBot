@@ -44,6 +44,14 @@ async def getSLP(token, address, requestType, attempts=0):
 
 
 async def ClaimSLP(key, address, data, attempt=0):
+    try:
+        amount = contractCall.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+    except Exception as e:
+        logger.error(e)
+        return False
+    if amount != 0:
+        logger.warning("Already had an SLP balance. Not claiming.")
+        return False
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
@@ -170,9 +178,12 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
             elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
                 return None  # none indicates "error"
-        sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
-        sendTxs["claimTx"] = claimTx
-        return sendTxs
+        if not claimTx:
+            return None
+        else:
+            sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
+            sendTxs["claimTx"] = claimTx
+            return sendTxs
     except Exception as e:
         logger.error(e)
         logger.error("Could not claim SLP")
