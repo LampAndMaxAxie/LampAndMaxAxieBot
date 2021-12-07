@@ -38,7 +38,7 @@ async def createMainTables():
             # set initial dev donation if it doesn't exist
             devDonation = await getProperty("devDonation", db)
             if devDonation["success"] and devDonation["rows"] is None:
-                await setProperty("devDonation", 0.025)
+                await setProperty("devDonation", 0.01)
 
             # set initial payout style
             massPay = await getProperty("massPay", db)

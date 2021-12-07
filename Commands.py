@@ -40,8 +40,8 @@ async def helpCommand(message, discordId, isSlash=False):
     msg += ' - `' + prefix + 'setPayoutAddress roninAddress [discordID]`: sets the caller\'s payout address, can be ronin: or 0x form, manager can use discordID\n'
     msg += ' - `' + prefix + 'setAccountLogin discordID roninAddress email pass`: records the account\'s login info, only usable by managers\n'
     msg += ' - `' + prefix + 'membership`: returns information about the status of the user database\n'
-    msg += ' - `' + prefix + 'setProperty property value`: sets a property to a value\n'
-    msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "devDonation")\n'
+    msg += ' - `' + prefix + 'setProperty property value`: sets a property to a value (like "massPay 0" to enable individual payouts)\n'
+    msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "massPay")\n'
     msg += ' - `' + prefix + 'massPayout [seedFilter] [minIndex] [maxIndex]`: triggers a scholar payout for all scholars, optional filters\n'
     msg += ' - `' + prefix + 'payout [discordID]`: triggers a payout for the caller, manager can use discordID\n'
 
@@ -101,8 +101,11 @@ async def qrCommand(message, isManager, discordId, guildId, isSlash=False):
         # Send the QrCode the the user who asked for
         if isSlash:
             # respond with hidden message QR
-            msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}qr"
-            await Common.handleResponse(message, msg, isSlash)
+            await message.edit(content="QR code sent!")
+            await message.channel.send(content="Here is your new QR Code to login, remember to always keep it safe and not to let anyone else see it:", file=discord.File(qrFileName), flags=(1<<6))
+
+            #msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}qr"
+            #await Common.handleResponse(message, msg, isSlash)
 
         else:
             # respond with DM
@@ -159,9 +162,11 @@ async def loginInfoCommand(message, isManager, discordId, guildId, isSlash=False
 
         # Send the info to the user who asked for it
         if isSlash:
-            # respond with hidden message QR
-            msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}login"
-            await Common.handleResponse(message, msg, isSlash)
+            # respond with hidden message with info
+            await message.edit(content=f"Here is your login info, remember to always keep it safe and not to let anyone else see it:\nEmail: ||{email}||\nPassword: ||{password}||", flags=(1<<6))
+
+            #msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}login"
+            #await Common.handleResponse(message, msg, isSlash)
 
         else:
             # respond with DM
@@ -184,7 +189,7 @@ async def loginInfoCommand(message, isManager, discordId, guildId, isSlash=False
         return
 
 
-# Set a database property, such as devDonation
+# Set a database property, such as massPay
 async def setPropertyCommand(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -202,7 +207,7 @@ async def setPropertyCommand(message, args, isManager, discordId, guildId, isSla
     await Common.handleResponse(message, res["msg"], isSlash)
 
 
-# Get a database property, such as devDonation
+# Get a database property, such as massPay
 async def getPropertyCommand(message, args, isManager, discordId, guildId, isSlash=False):
     authorID = message.author.id
 
@@ -1558,7 +1563,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
     if not isSlash:
         await message.channel.trigger_typing()
 
-        # check for sorting instructions
+    # check for sorting instructions
     sort = "avgSlp"
     asc = False
     ascText = "desc"
