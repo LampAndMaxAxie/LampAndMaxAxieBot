@@ -371,8 +371,8 @@ async def setOwner(discordID, name):
         db.row_factory = sql.Row
         async with db.cursor() as c:
             rowsR = await getOwner(db)
-            logger.info("rowsR:")
-            logger.info(rowsR)
+            #logger.info("rowsR:")
+            #logger.info(rowsR)
 
             if rowsR["success"]:
                 owner = rowsR["rows"]
