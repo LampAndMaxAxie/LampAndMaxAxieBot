@@ -111,7 +111,7 @@ async def massPayoutSlash(ctx):
 
 @slash.command(
     name="set_property",
-    description="Sets a property like devDonation or massPay",
+    description="Sets a property like massPay",
     guild_ids=serverIds,
     options=[
         Option(
@@ -150,7 +150,7 @@ async def setProp(ctx):
 
 @slash.command(
     name="get_property",
-    description="Gets a property like devDonation or massPay",
+    description="Gets a property like massPay",
     guild_ids=serverIds,
     options=[
         Option(
