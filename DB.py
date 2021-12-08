@@ -73,7 +73,7 @@ async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
 
             except Exception:
                 await c.execute("ROLLBACK")
-                logger.error(traceback.format_exc())
+                #logger.error(traceback.format_exc())
                 logger.error(f"Failed to log claim for {roninAddr}")
                 return {"success": False, "msg": f"Error in logging claim for {roninAddr}"}
 

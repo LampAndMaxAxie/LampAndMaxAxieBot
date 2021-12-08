@@ -1003,7 +1003,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         return
 
     dbClaim = await DB.getLastClaim(address)
-    print(dbClaim)
+    #print(dbClaim)
     if dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
         nextT = int(dbClaim["rows"]["claim_time"]) + 1209600
         await Common.handleResponse(message, f"Sorry, your next claim isn't available yet! Please try again at <t:{nextT}:f> (<t:{nextT}:R>)", isSlash)
