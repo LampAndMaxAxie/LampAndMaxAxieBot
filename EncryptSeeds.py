@@ -6,6 +6,14 @@ from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util import Counter
 
+# check for existing discord bot token
+try:
+    import SeedStorage
+    discordToken = SeedStorage.DiscordBotToken
+except ImportError:
+    discordToken = None
+    pass
+
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
 # 32 bit keys => AES256 encryption
@@ -122,7 +130,11 @@ with open("SeedStorage.py", "w") as f:
             f.write(f"    {encSeeds[i]}\n")
     f.write("]\n\n")
     f.write("# Put Your Discord Bot Token Here\n")
-    f.write("DiscordBotToken = ''\n")
+    
+    if discordToken is None:
+        f.write("DiscordBotToken = ''\n")
+    else:
+        f.write(f"DiscordBotToken = '{discordToken}'\n")
 
 print("Encrypted seeds successfully written to disk. Please enter your discord bot token at the bottom of the SeedStorage.py file.")
 print("Encryption process complete!")
