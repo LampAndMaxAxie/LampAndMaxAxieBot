@@ -816,7 +816,7 @@ async def asyncLoadingUpdate(message):
     global massPayoutGlobal
 
     total = massPayoutGlobal["total"]
-    lastCount = massPayoutGlobal["counter"]
+    lastCount = 0
     while massPayoutGlobal["counter"] <= massPayoutGlobal["total"]:
         try:
             if massPayoutGlobal["counter"] == lastCount:
@@ -1000,6 +1000,13 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
     key, address = await UtilBot.getKeyForUser(user)
     if key is None or address is None:
         await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
+        return
+
+    dbClaim = await DB.getLastClaim(address)
+    print(dbClaim)
+    if dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
+        nextT = int(dbClaim["rows"]["claim_time"]) + 1209600
+        await Common.handleResponse(message, f"Sorry, your next claim isn't available yet! Please try again at <t:{nextT}:f> (<t:{nextT}:R>)", isSlash)
         return
 
     # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
@@ -1226,6 +1233,11 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
             key, address = await UtilBot.getKeyForUser(row)
             if key is None or address is None:
+                skipped += 1
+                continue
+
+            dbClaim = await DB.getLastClaim(address)
+            if dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
                 skipped += 1
                 continue
 

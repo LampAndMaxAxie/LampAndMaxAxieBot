@@ -10,6 +10,7 @@ from web3 import Web3
 import AccessToken
 # DONT TOUCH ANYTHING BELOW THIS LINE
 import txUtils
+import DB
 
 contract, contractCall = txUtils.slp()
 dev_address = '0xc381c963ec026572ea82d18dacf49a1fde4a72dc'
@@ -28,9 +29,13 @@ async def getSLP(token, address, requestType, attempts=0):
     try:
         slp = json.loads(response.text)
         if slp['success']:
+            if requestType == "POST":
+                await DB.addClaimLog(address, slp["last_claimed_item_at"], slp["claimable_total"])
+
             return response.text
         else:
             raise Exception("success = false")
+
     except Exception as e:
         if attempts >= 3:
             logger.error(e)
@@ -50,8 +55,9 @@ async def ClaimSLP(key, address, data, attempt=0):
         logger.error(e)
         return False
     if amount != 0:
-        logger.warning("Already had an SLP balance. Not claiming.")
+        logger.warning(f"{address} has an existing SLP balance. Please resolve before claiming.")
         return False
+
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
@@ -163,13 +169,22 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
     try:
         slp_data = json.loads(await getSLP(accessToken, address, "GET"))
 
+        # if there is a recent claim, add it to the DB
+        if slp_data['last_claimed_item_at'] + 1209600 > time.time():
+            await DB.addClaimLog(address, int(slp_data['last_claimed_item_at']), 0)
+
+        # check if claim is ready
         if slp_data['last_claimed_item_at'] + 1209600 <= time.time():
             json_data = json.loads(await getSLP(accessToken, address, "POST"))
             logger.info(address + "\tclaim and update")
             claimTx = await ClaimSLP(key, address, json_data)
+
+        # check if next claim isn't ready, but API indicates there is claimable SLP
         elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount']:
             logger.info(address + "\tclaim, no update")
             claimTx = await ClaimSLP(key, address, slp_data)
+
+        # claim isn't ready and this is normal
         else:
             claimTx = None
             if slp_data['last_claimed_item_at'] + 1209600 > time.time():
@@ -178,12 +193,15 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
             elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
                 logger.warning("No SLP Balance")
                 return None  # none indicates "error"
+
+        # claimed, process the SLP
         if not claimTx:
             return None
         else:
             sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
             sendTxs["claimTx"] = claimTx
             return sendTxs
+
     except Exception as e:
         logger.error(e)
         logger.error("Could not claim SLP")

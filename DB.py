@@ -33,6 +33,10 @@ async def createMainTables():
                  total_slp INTEGER NOT NULL, adventure_slp INTEGER, arena_slp INTEGER, quest_slp INTEGER,
                  created_at TIMESTAMP DEFAULT (strftime('%s', 'now'))
                 )''')
+            await c.execute('''CREATE TABLE IF NOT EXISTS claims 
+                (id INTEGER PRIMARY KEY AUTOINCREMENT, claim_time TIMESTAMP NOT NULL,
+                 total_slp INTEGER NOT NULL, ronin_addr TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime('%s', 'now'))
+                )''')
             logger.info("created tables")
 
             # set initial dev donation if it doesn't exist
@@ -51,6 +55,30 @@ async def createMainTables():
 
 
 # Insert/Delete/Update
+
+@logger.catch
+async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
+    async with sql.connect(MAIN_DB) as db:
+        db.row_factory = sql.Row
+        async with db.cursor() as c:
+
+            await c.execute("BEGIN")
+            try:
+                await c.execute('''INSERT INTO claims
+                    (ronin_addr, total_slp, claim_time) 
+                    VALUES (?, ?, ?)''', (roninAddr, totalSLP, claimTimeStamp))
+                await c.execute("COMMIT")
+
+                logger.info(f"Logged claim history for {roninAddr}")
+
+            except Exception:
+                await c.execute("ROLLBACK")
+                logger.error(traceback.format_exc())
+                logger.error(f"Failed to log claim for {roninAddr}")
+                return {"success": False, "msg": f"Error in logging claim for {roninAddr}"}
+
+    return {"success": True, "msg": f"Scholar logged claim {roninAddr}"}
+
 @logger.catch
 async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
     async with sql.connect(MAIN_DB) as db:
@@ -459,6 +487,27 @@ async def getProperty(prop, db=None):
 
     return {"success": True, "rows": rows}
 
+@logger.catch
+async def getLastClaim(roninAddr, db=None):
+    created = False
+    if db is None:
+        db = await sql.connect(MAIN_DB)
+        db.row_factory = sql.Row
+        created = True
+    c = await db.cursor()
+
+    rows = None
+    try:
+        await c.execute("SELECT * FROM claims WHERE ronin_addr = ? ORDER BY claim_time DESC", (roninAddr,))
+        rows = await c.fetchone()
+        #logger.info(f"Got last claim data for {roninAddr}")
+
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        logger.error(f"Failed to get last claim for {roninAddr}")
+        return {"success": False, "msg": f"Error in getting claim for {roninAddr}"}
+
+    return {"success": True, "rows": rows}
 
 @logger.catch
 async def getAllScholars(db=None):
