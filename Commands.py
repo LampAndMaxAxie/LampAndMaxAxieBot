@@ -1633,7 +1633,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
 
 async def exportCommand(message, isManager, isSlash=False):
     if not isManager:
-        message.reply("Sorry, this command is only for managers!")
+        await message.reply("Sorry, this command is only for managers!")
         return
 
     df = await UtilBot.getScholarExport()
