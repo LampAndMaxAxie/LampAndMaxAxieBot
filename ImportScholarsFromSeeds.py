@@ -84,7 +84,7 @@ async def importScholars(fName):
             seedNum, accountNum, currentCount = await getAccountNum(currentCount, roninAddr)
 
             name = await getNameFromDiscordID(discordID)
-            res = await DB.addScholar(discordID, name, seedNum, accountNum, roninAddr, scholarShare)
+            res = await DB.addScholar(discordID, name, seedNum+1, accountNum+1, roninAddr, scholarShare)
 
             if payoutAddr is not None and payoutAddr != "":
                 await DB.updateScholarAddress(discordID, payoutAddr)
