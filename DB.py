@@ -590,7 +590,7 @@ async def getAllManagers(db=None):
 
     rows = None
     try:
-        await c.execute("SELECT * FROM users WHERE is_manager=1")
+        await c.execute("SELECT * FROM users WHERE is_manager=1 OR is_owner=1")
         rows = await c.fetchall()
         logger.info(f"Fetched all managers")
 
