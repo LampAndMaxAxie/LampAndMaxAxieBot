@@ -30,7 +30,10 @@ async def getSLP(token, address, requestType, attempts=0):
         slp = json.loads(response.text)
         if slp['success']:
             if requestType == "POST":
-                await DB.addClaimLog(address, slp["last_claimed_item_at"], slp["claimable_total"])
+                try:
+                    await DB.addClaimLog(address, slp["last_claimed_item_at"], slp["claimable_total"])
+                except:
+                    pass
 
             return response.text
         else:
@@ -171,7 +174,10 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
 
         # if there is a recent claim, add it to the DB
         if slp_data['last_claimed_item_at'] + 1209600 > time.time():
-            await DB.addClaimLog(address, int(slp_data['last_claimed_item_at']), 0)
+            try:
+                await DB.addClaimLog(address, int(slp_data['last_claimed_item_at']), 0)
+            except:
+                pass
 
         # check if claim is ready
         if slp_data['last_claimed_item_at'] + 1209600 <= time.time():
