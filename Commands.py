@@ -1602,6 +1602,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
     # send results
     msg = 'Hello <@' + str(discordId) + '>, here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
+    logger.info("Preparing summary image")
     fig = go.Figure(data=[go.Table(
         columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
         header=dict(values=list(table.columns),
@@ -1626,6 +1627,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
     else:
         await message.reply(content=msg, file=discord.File(fName))
 
+    logger.info("Sent summary")
     os.remove(fName)
 
 
