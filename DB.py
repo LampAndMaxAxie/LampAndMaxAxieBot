@@ -11,12 +11,12 @@ MAIN_DB = "axieBot.db"
 # Common
 @logger.catch
 async def createMainTables():
-    logger.info("in createMainTables")
+    #logger.info("in createMainTables")
     async with sql.connect(MAIN_DB) as db:
         db.row_factory = sql.Row
-        logger.info("got connection")
+        #logger.info("got connection")
         async with db.cursor() as c:
-            logger.info("got cursor")
+            #logger.info("got cursor")
             await c.execute('''CREATE TABLE IF NOT EXISTS users 
                 (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, 
                  is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, 
@@ -37,7 +37,7 @@ async def createMainTables():
                 (id INTEGER PRIMARY KEY AUTOINCREMENT, claim_time TIMESTAMP NOT NULL,
                  total_slp INTEGER NOT NULL, ronin_addr TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime('%s', 'now'))
                 )''')
-            logger.info("created tables")
+            logger.info("initialized database tables")
 
             # set initial dev donation if it doesn't exist
             devDonation = await getProperty("devDonation", db)
@@ -470,7 +470,7 @@ async def getProperty(prop, db=None):
     try:
         await c.execute("SELECT * FROM properties WHERE property=?", (prop,))
         rows = await c.fetchone()
-        logger.info(f"Fetched property: {prop}")
+        #logger.info(f"Fetched property: {prop}")
 
     except:
         logger.error(f"Failed to get property: {prop}")
@@ -753,14 +753,13 @@ async def getOwner(db=None):
         created = True
     c = await db.cursor()
 
-    logger.info("before async in getOwner")
+    #logger.info("before async in getOwner")
     rows = None
     try:
-        logger.info("exec owner query")
+        #logger.info("exec owner query")
         await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
         rows = await c.fetchone()
-        logger.info("fetched owner")
-        logger.info(f"Fetched owner")
+        #logger.info("fetched owner")
 
     except Exception as e:
         logger.error(f"Failed to get owner")
