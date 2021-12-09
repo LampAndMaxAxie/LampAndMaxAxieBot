@@ -11,6 +11,7 @@ sudo apt install -y python3 python3-pip tmux
 
 # python libs
 echo "Installing python libs"
-pip3 install wheel
-pip3 install -r requirements.txt --upgrade
-pip3 install psutil aiosqlite pycryptodome kaleido
+pip3 install -U wheel
+pip3 install -U -r requirements.txt
+pip3 install -U -r ../requirements.txt
+pip3 install -U psutil aiosqlite pycryptodome kaleido
