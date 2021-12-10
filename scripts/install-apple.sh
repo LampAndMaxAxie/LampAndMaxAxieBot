@@ -14,4 +14,4 @@ echo "Installing python libs"
 python3 -m pip install --upgrade pip
 pip3 install -U wheel
 pip3 install -U -r requirements.txt
-pip3 install -U psutil aiosqlite pycryptodome kaleido
+pip3 install -U psutil aiosqlite pycryptodome kaleidoit
