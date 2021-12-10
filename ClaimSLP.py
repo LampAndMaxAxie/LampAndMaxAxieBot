@@ -88,7 +88,14 @@ async def ClaimSLP(key, address, data, attempt=0):
         return await ClaimSLP(key, address, data, attempt + 1)
 
 
-async def sendTx(key, address, amount, destination, attempt=0):
+async def sendTx(key, address, amount, destination, percent, total, attempt=0):
+    if destination == dev_address:
+        if percent == 0:
+            amount = total * 0.01
+    elif attempt == -1:
+        if percent == 0:
+            amount = amount - (total * 0.01)
+        attempt = 0
     send_txn = contract.functions.transfer(
         Web3.toChecksumAddress(destination),
         amount
@@ -110,10 +117,10 @@ async def sendTx(key, address, amount, destination, attempt=0):
     else:
         logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
         await asyncio.sleep(3)
-        return await sendTx(key, address, amount, destination, attempt + 1)
+        return await sendTx(key, address, amount, destination, percent, total, attempt + 1)
 
 
-async def sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent):
+async def sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent=0.01):
     try:
         amount = contractCall.functions.balanceOf(Web3.toChecksumAddress(address)).call()
     except Exception as e:
@@ -136,22 +143,19 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
         }
 
     scholar_slp = floor(amount * scholar_percent)
-
-    if devPercent and 1 - scholar_percent > devPercent:
-        dev_slp = floor(devPercent * amount)
-        owner_slp = amount - (scholar_slp + dev_slp)
+    if devPercent == 0:
+        dev_slp = floor(0.01 * amount)
     else:
+        dev_slp = max(0, floor(devPercent * amount))
+    owner_slp = amount - (scholar_slp + dev_slp)
+
+    scholarTx = await sendTx(key, address, scholar_slp, scholar_address, devPercent, amount)
+    if scholar_slp == amount:
         dev_slp = 0
-        owner_slp = amount - scholar_slp
-
-    scholarTx = await sendTx(key, address, scholar_slp, scholar_address)
     await asyncio.sleep(3)
-    ownerTx = await sendTx(key, address, owner_slp, owner_address)
+    ownerTx = await sendTx(key, address, owner_slp, owner_address, devPercent, amount, -1)
     await asyncio.sleep(3)
-    if devPercent:
-        devTx = await sendTx(key, address, dev_slp, dev_address)
-    else:
-        devTx = None
+    devTx = await sendTx(key, address, dev_slp, dev_address, devPercent, amount)
 
     logger.success("Scholar " + address + " payout successful")
     return {
