@@ -1744,3 +1744,19 @@ async def alertsCommand(message, args, isSlash=False):
         await message.reply("Processing!")
 
     await UtilBot.nearResetAlerts(rn, True, ping)
+
+async def wipeClaims(message, isManager, discordId, isSlash=False):
+    if not isSlash:
+        await message.channel.trigger_typing()
+
+    if not isManager:
+        await message.reply("Sorry, managers only.")
+        return       
+
+    res = await DB.wipeClaimLogs()
+
+    if res["success"]:
+        await message.reply("Wiped the claim logs!")
+    else:
+        await message.reply("Failed to wipe the claim logs.")
+

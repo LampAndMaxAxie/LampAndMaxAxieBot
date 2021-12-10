@@ -61,6 +61,20 @@ async def createMainTables():
 # Insert/Delete/Update
 
 @logger.catch
+async def wipeClaimLogs():
+    async with client.db.cursor() as c:
+        try:
+            await c.execute("DELETE FROM claims")
+            logger.info(f"Wiped claim logs")
+
+        except Exception:
+            #logger.error(traceback.format_exc())
+            logger.error(f"Failed to wipe claim logs")
+            return {"success": False, "msg": f"Error in wiping claim logs"}
+
+    return {"success": True, "msg": f"Wiped claim logs"}
+
+@logger.catch
 async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
     async with client.db.cursor() as c:
         try:

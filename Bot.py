@@ -222,6 +222,10 @@ async def on_message(message):
 
         return
 
+    elif message.content == prefix + "wipeClaims":
+        await Commands.wipeClaims(message, isManager, discordId)
+        return
+
     # user asked for command help
     elif message.content == prefix + "help":
         await Commands.helpCommand(message, isManager, discordId)

@@ -29,12 +29,6 @@ async def getSLP(token, address, requestType, attempts=0):
     try:
         slp = json.loads(response.text)
         if slp['success']:
-            if requestType == "POST":
-                try:
-                    await DB.addClaimLog(address, slp["last_claimed_item_at"], slp["claimable_total"])
-                except:
-                    pass
-
             return response.text
         else:
             raise Exception("success = false")
@@ -80,6 +74,10 @@ async def ClaimSLP(key, address, data, attempt=0):
     slpClaimed = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
     if success:
         logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
+        try:
+            await DB.addClaimLog(address, data["last_claimed_item_at"], data["claimable_total"])
+        except:
+            pass
         return slpClaimed
     elif attempt > 5:
         logger.error("Failed to claim scholar " + address + " retried " + str(attempt) + " times.")
