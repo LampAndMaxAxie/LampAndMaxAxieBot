@@ -998,7 +998,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         return
 
     name = user['name']
-    payoutAddr = user['payout_addr']
+    payoutAddr = user['payout_addr'].strip()
     share = float(user['share'])
 
     if payoutAddr is None or payoutAddr == "":
@@ -1252,7 +1252,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
             # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
             name = await Common.getNameFromDiscordID(scholarID)
-            scholarAddress = row['payout_addr']
+            scholarAddress = row['payout_addr'].strip()
             scholarShare = round(float(row['share']), 3)
 
             if scholarAddress is None or scholarAddress == "":

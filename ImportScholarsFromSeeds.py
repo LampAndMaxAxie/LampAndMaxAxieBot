@@ -72,12 +72,12 @@ async def importScholars(fName):
             if len(args) > 4:
                 logger.error("Too many args, are you trying to run the normal import scholars file?")
                 exit()
-            roninAddr = args[0].replace("ronin:", "0x")
+            roninAddr = args[0].replace("ronin:", "0x").strip()
             discordID = args[1]
             scholarShare = round(float(args[2]), 3)
 
             if len(args) > 3:
-                payoutAddr = args[3].replace("ronin:", "0x")
+                payoutAddr = args[3].replace("ronin:", "0x").strip()
             else:
                 payoutAddr = None
 

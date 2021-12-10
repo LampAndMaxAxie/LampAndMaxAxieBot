@@ -28,7 +28,7 @@ async def getSLP(token, address, requestType, attempts=0):
     response = requests.request(requestType, url, headers=headers)
     try:
         slp = json.loads(response.text)
-        if slp['success']:
+        if "success" in slp and slp['success']:
             return response.text
         else:
             raise Exception("success = false")
