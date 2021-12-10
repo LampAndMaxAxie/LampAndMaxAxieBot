@@ -478,7 +478,7 @@ async def getLastClaim(roninAddr, x=None):
     except Exception as e:
         #logger.error(traceback.format_exc())
         logger.error(f"Failed to get last claim for {roninAddr}")
-        return {"success": False, "msg": f"Error in getting claim for {roninAddr}"}
+        return {"success": False, "msg": f"Error in getting claim for {roninAddr}", "rows": None}
 
     return {"success": True, "rows": rows}
 

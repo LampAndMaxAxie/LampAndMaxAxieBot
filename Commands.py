@@ -9,6 +9,7 @@ import discord
 import pandas as pd
 import plotly.graph_objects as go
 from loguru import logger
+from web3 import Web3
 
 import ClaimSLP
 import Common
@@ -372,7 +373,7 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
         return
 
     if len(args) < 5:
-        await Common.handleResponse(message, "Please specify: seedNum accountNum roninAddr discordUID [scholarShare]", isSlash)
+        await Common.handleResponse(message, "Please specify: seedNum accountNum roninAddr discordUID scholarShare [payoutAddress]", isSlash)
         return
 
     seedNum = args[1]
@@ -390,7 +391,7 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
         await Common.handleResponse(message, "Please ensure your ronin address begins with '0x' or 'ronin:'", isSlash)
         return
 
-    roninAddr = roninAddr.replace("ronin:", "0x")
+    roninAddr = roninAddr.replace("ronin:", "0x").strip()
 
     name = await Common.getNameFromDiscordID(discordUID)
     if name is None:
@@ -403,6 +404,12 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     if scholarShare < 0.50 or scholarShare > 1.0:
         await Common.handleResponse(message, "Please ensure your scholar share is between 0.50 and 1.00", isSlash)
         return
+
+    if len(args) >= 7 and args[6]:
+        payoutAddress = args[6].replace("ronin:","0x").strip()
+        if not Web3.isAddress(payoutAddress):
+            await Common.handleResponse(message, "Payout address does not appear to be a valid address. Please check it.", isSlash)
+            return
 
     scholarsDB = await DB.getAllScholars()
     if not scholarsDB["success"]:
@@ -432,6 +439,10 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
     embed.add_field(name="Seed", value=f"{seedNum}")
     embed.add_field(name="Account", value=f"{accountNum}")
     embed.add_field(name="Address", value=f"{roninAddr}")
+
+    if payoutAddress != "":
+        embed.add_field(name="Payout Address", value=f"{payoutAddress}") 
+
     embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
@@ -449,10 +460,16 @@ async def addScholar(message, args, isManager, discordId, guildId, isSlash=False
         return
 
     # add scholar to DB
+    msg = f"<@{discordId}>: \n"
 
     res = await DB.addScholar(discordUID, name, seedNum, accountNum, roninAddr, scholarShare)
+    msg += res['msg'] + "\n"
 
-    await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
+    if payoutAddress != "":
+        res2 = await DB.updateScholarAddress(discordUID, payoutAddress)
+        msg += res2['msg']
+
+    await confMsg.reply(content=msg)
 
 
 # Revoke a scholar's scholar status
@@ -633,11 +650,15 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
     if len(args) > 2 and args[2].isnumeric() and isManager:
         discordId = int(args[2])
 
-    payoutAddr = args[1].strip()
+    payoutAddr = args[1].replace("ronin:","0x").strip()
     name = await Common.getNameFromDiscordID(discordId)
 
     if not payoutAddr.startswith("ronin:") and not payoutAddr.startswith("0x"):
         await Common.handleResponse(message, "Please ensure the payout address starts with ronin: or 0x", isSlash)
+        return
+ 
+    if not Web3.isAddress(payoutAddr):
+        await Common.handleResponse(message, "That does not seem to be a valid Ronin address. Please double check it and try again.", isSlash)
         return
 
     res = await DB.getDiscordID(discordId)
@@ -646,7 +667,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
-    oldAddr = user["payout_addr"].strip()
+    oldAddr = user["payout_addr"].replace("ronin:","0x").strip()
 
     # confirm with react
     embed = discord.Embed(title="Update Scholar Payout Confirmation", description=f"Confirming update for scholar {discordId}",
@@ -1012,7 +1033,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
 
     dbClaim = await DB.getLastClaim(address)
     #print(dbClaim)
-    if dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
+    if "success" in dbClaim and dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
         nextT = int(dbClaim["rows"]["claim_time"]) + 1209600
         await Common.handleResponse(message, f"Sorry, your next claim isn't available yet! Please try again at <t:{nextT}:f> (<t:{nextT}:R>)", isSlash)
         return
@@ -1245,17 +1266,18 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
                 continue
 
             dbClaim = await DB.getLastClaim(address)
-            if dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
+            if "success" in dbClaim and dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
                 skipped += 1
                 continue
 
             # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
-            name = await Common.getNameFromDiscordID(scholarID)
-            scholarAddress = row['payout_addr'].strip()
+            name = row["name"].strip()
+            #name = await Common.getNameFromDiscordID(scholarID)
+            scholarAddress = row['payout_addr'].replace("ronin:","0x").strip()
             scholarShare = round(float(row['share']), 3)
 
-            if scholarAddress is None or scholarAddress == "":
+            if scholarAddress is None or scholarAddress == "" or not Web3.isAddress(scholarAddress):
                 skipped += 1
                 continue
 

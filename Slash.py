@@ -217,6 +217,12 @@ async def getProp(ctx):
             description="Scholar payout share between 0.50 and 1.00",
             required=True,
             type=Type.STRING
+        ),
+        Option(
+            name="payoutaddr",
+            description="Scholar's payout address (optional, they can add it later)",
+            required=False,
+            type=Type.STRING
         )
     ]
 )
@@ -243,7 +249,11 @@ async def addScholarSlash(ctx):
         args.append(ctx.data.get_option('discordid').value)
     if ctx.data.get_option('scholarshare') is not None:
         args.append(ctx.data.get_option('scholarshare').value)
+    if ctx.data.get_option('payoutaddr') is not None:
+        if ctx.data.get_option('payoutaddr').value != "":
+            args.append(ctx.data.get_option('payoutaddr').value)
 
+    logger.info(args)
     await addScholar(ctx, args, isManager, discordId, guildId, True)
 
 
