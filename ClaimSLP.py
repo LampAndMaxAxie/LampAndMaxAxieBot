@@ -90,10 +90,10 @@ async def ClaimSLP(key, address, data, attempt=0):
 
 async def sendTx(key, address, amount, destination, percent, total, attempt=0):
     if destination == dev_address:
-        if percent == 0 or amount == 0:
+        if percent == 0:
             amount = floor(total * 0.01)
     elif attempt == -1:
-        if percent == 0 or amount == 0:
+        if percent == 0:
             amount = int(amount - floor((total * 0.01)))
         attempt = 0
     send_txn = contract.functions.transfer(
