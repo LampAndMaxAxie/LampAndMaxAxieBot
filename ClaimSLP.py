@@ -188,7 +188,7 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
             claimTx = await ClaimSLP(key, address, json_data)
 
         # check if next claim isn't ready, but API indicates there is claimable SLP
-        elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount']:
+        elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount'] and slp_data['blockchain_related']['signature']['amount'] != 0 and slp_data['blockchain_related']['checkpoint'] is not None:
             logger.info(address + "\tclaim, no update")
             claimTx = await ClaimSLP(key, address, slp_data)
 
