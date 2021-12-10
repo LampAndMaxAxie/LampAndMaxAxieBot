@@ -18,32 +18,40 @@ from Common import prefix, dmPayoutsToScholars
 
 
 # Returns information on available commands
-async def helpCommand(message, discordId, isSlash=False):
+async def helpCommand(message, isManager, discordId, isSlash=False):
     if not isSlash:
         await message.channel.trigger_typing()
 
-    msg = 'Hello <@' + str(discordId) + '>! Here are the available commands, all available with / as well:\n'
+    msg = 'Hello <@' + str(discordId) + '>! Here are the text command options:\n'
     msg += ' - `' + prefix + 'help`: returns this help message\n'
-    msg += ' - `' + prefix + 'qr`: DMs you your QR code to login\n'
-    msg += ' - `' + prefix + 'login`: DMs you your login info if your manager set it up\n'
     msg += ' - `' + prefix + 'daily [name/ping/discordID]`: returns the player\'s match/SLP/quest data for today\n'
     msg += ' - `' + prefix + 'axies [name/ping/discordID] [index] [m]`: returns the player\'s Axies, [index] is to select a team (default 0), set [m] for mobile friendly\n'
-    msg += ' - `' + prefix + 'battles [name/ping/discordID]`: returns the scholar\'s recent battle records\n'
-    msg += ' - `' + prefix + 'summary [sort] [ascending]`: returns a scholar summary, [avgslp/slp, mmr/rank, claim], [asc, desc]\n'
-    msg += ' - `' + prefix + 'export`: returns a listing of scholar information\n'
-    msg += ' - `' + prefix + 'getScholar [discordID]`: returns information on the caller, or the specified discord ID\n'
-    msg += ' - `' + prefix + 'addScholar seedNum accountNum accountAddr discordID [scholarShare]`: add a scholar to the database; scholar share is 0.50 to 1.00\n'
-    msg += ' - `' + prefix + 'removeScholar discordID`: removes the user\'s status as a scholar\n'
-    msg += ' - `' + prefix + 'addManager discordID`: add a manager to the database\n'
-    msg += ' - `' + prefix + 'removeManager discordID`: removes the user\'s status as a manager\n'
-    msg += ' - `' + prefix + 'updateScholarShare discordID scholarShare`: sets the user\'s share to the new value, 0.01 to 1.00\n'
-    msg += ' - `' + prefix + 'setPayoutAddress roninAddress [discordID]`: sets the caller\'s payout address, can be ronin: or 0x form, manager can use discordID\n'
-    msg += ' - `' + prefix + 'setAccountLogin discordID roninAddress email pass`: records the account\'s login info, only usable by managers\n'
+    #msg += ' - `' + prefix + 'battles [name/ping/discordID]`: returns the scholar\'s recent battle records\n'
+    msg += ' - `' + prefix + 'summary [sort] [ascending] [csv]`: returns a scholar summary, [avgslp/slp, mmr/rank, claim], [asc, desc], [csv]\n'
+    msg += ' - `' + prefix + 'top [sort] [csv]`: returns the scholar top 10 rankings, [avgslp/slp, mmr/rank, claim], [csv]\n'
     msg += ' - `' + prefix + 'membership`: returns information about the status of the user database\n'
-    msg += ' - `' + prefix + 'setProperty property value`: sets a property to a value (like "massPay 0" to enable individual payouts)\n'
-    msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "massPay")\n'
-    msg += ' - `' + prefix + 'massPayout [seedFilter] [minIndex] [maxIndex]`: triggers a scholar payout for all scholars, optional filters\n'
-    msg += ' - `' + prefix + 'payout [discordID]`: triggers a payout for the caller, manager can use discordID\n'
+
+    if not isManager: # scholar
+        msg += ' - `' + prefix + 'qr`: DMs you your QR code to login to the mobile app\n'
+        msg += ' - `' + prefix + 'login`: DMs you your login info if your manager set it up\n'
+        msg += ' - `' + prefix + 'setPayoutAddress roninAddress`: sets the user\'s payout address, can be ronin: or 0x form\n'
+        msg += ' - `' + prefix + 'payout discordID`: triggers a payout for the user\n'
+
+    else: # manager
+        msg += ' - `' + prefix + 'export`: returns a listing of scholar information from the database\n'
+        msg += ' - `' + prefix + 'exportRole role`: returns a spreadsheet of users with a role; finds the closest match ("Scho" would likely find "Scholar")\n'
+        msg += ' - `' + prefix + 'getScholar [discordID]`: returns information on the caller, or the specified discord ID\n'
+        msg += ' - `' + prefix + 'addScholar seedNum accountNum accountAddr discordID [scholarShare]`: add a scholar to the database; scholar share is 0.50 to 1.00\n'
+        msg += ' - `' + prefix + 'removeScholar discordID`: removes the user\'s status as a scholar\n'
+        msg += ' - `' + prefix + 'addManager discordID`: add a manager to the database\n'
+        msg += ' - `' + prefix + 'removeManager discordID`: removes the user\'s status as a manager\n'
+        msg += ' - `' + prefix + 'updateScholarShare discordID scholarShare`: sets the user\'s share to the new value, 0.50 to 1.00\n'
+        msg += ' - `' + prefix + 'setPayoutAddress roninAddress discordID`: sets the specified user\'s payout address, can be ronin: or 0x form\n'
+        msg += ' - `' + prefix + 'setAccountLogin discordID roninAddress email pass`: records the account\'s login info, only usable by managers\n'
+        msg += ' - `' + prefix + 'setProperty property value`: sets a property to a value (like "massPay 0" to enable individual payouts)\n'
+        msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "massPay")\n'
+        msg += ' - `' + prefix + 'massPayout [seedFilter] [minIndex] [maxIndex]`: triggers a scholar payout for all scholars, optional filters\n'
+        msg += ' - `' + prefix + 'payout discordID`: triggers a payout for the specified user\n'
 
     await Common.handleResponse(message, msg, isSlash)
     return
@@ -1579,13 +1587,17 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
     sort = "avgSlp"
     asc = False
     ascText = "desc"
-    if len(args) > 1 and args[1].lower() in ["claim", "avgslp", "slp", "mmr", "adventure", "adv", "arena", "rank",
-                                             "battle"]:
+    if len(args) > 1 and args[1].lower() in ["claim", "avgslp", "slp", "mmr", "adventure", "adv", "arena", "rank", "battle"]:
         sort = args[1].lower()
+
     if len(args) > 2 and args[2].lower() in ["asc", "desc"]:
         if args[2].lower() == "asc":
             asc = True
             ascText = "asc"
+
+    csv = False
+    if len(args) > 3 and str(args[3]).lower() in ["1","true","yes","csv"]:
+        csv = True
 
     # fetch the data
     table, cacheExp = await UtilBot.getScholarSummary(sort.lower(), asc, guildId)
@@ -1602,24 +1614,29 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
     # send results
     msg = 'Hello <@' + str(discordId) + '>, here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
-    logger.info("Preparing summary image")
-    fig = go.Figure(data=[go.Table(
-        columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
-        header=dict(values=list(table.columns),
-                    fill_color="paleturquoise",
-                    align='center'),
-        cells=dict(values=table.T.values,
-                   fill_color='lavender',
-                   align='center'))
-    ])
-    fig.update_layout(margin=dict(
-        l=0,  # left margin
-        r=0,  # right margin
-        b=0,  # bottom margin
-        t=0  # top margin
-    ))
-    fName = 'images/summary' + str(int(time.time())) + '.png'
-    fig.write_image(fName, width=1200, height=20 * len(table) + 30)
+    if not csv:
+        logger.info("Preparing summary image")
+        fig = go.Figure(data=[go.Table(
+            columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            header=dict(values=list(table.columns),
+                        fill_color="paleturquoise",
+                        align='center'),
+            cells=dict(values=table.T.values,
+                       fill_color='lavender',
+                       align='center'))
+        ])
+        fig.update_layout(margin=dict(
+            l=0,  # left margin
+            r=0,  # right margin
+            b=0,  # bottom margin
+            t=0  # top margin
+        ))
+        fName = 'images/summary' + str(int(time.time())) + '.png'
+        fig.write_image(fName, width=1200, height=20 * len(table) + 30)
+    else:
+        logger.info("Preparing summary spreadsheet")
+        fName = 'images/summary' + str(int(time.time())) + '.csv'
+        table.to_csv(fName, index=False)
 
     if isSlash:
         await message.edit(content=msg)
@@ -1658,6 +1675,10 @@ async def topCommand(message, args, isManager, discordId, guildId, isSlash=False
     if len(args) > 1 and args[1].lower() in ["avgslp", "slp", "mmr", "adventure", "adv", "arena", "rank", "battle"]:
         sort = args[1].lower()
 
+    csv = False
+    if len(args) > 2 and str(args[2]).lower() in ["1","true","yes","csv"]:
+        csv = True
+
     # fetch the data
     table, cacheExp = await UtilBot.getScholarTop10(sort.lower())
 
@@ -1673,23 +1694,29 @@ async def topCommand(message, args, isManager, discordId, guildId, isSlash=False
     # send results
     msg = 'Hello <@' + str(discordId) + '>, here is the scholar top 10 sorted by `' + sort + " " + ascText + "`:"
 
-    fig = go.Figure(data=[go.Table(
-        columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
-        header=dict(values=list(table.columns),
-                    fill_color="paleturquoise",
-                    align='center'),
-        cells=dict(values=table.T.values,
-                   fill_color='lavender',
-                   align='center'))
-    ])
-    fig.update_layout(margin=dict(
-        l=0,  # left margin
-        r=0,  # right margin
-        b=0,  # bottom margin
-        t=0  # top margin
-    ))
-    fName = 'images/top' + str(int(time.time())) + '.png'
-    fig.write_image(fName, width=1200, height=20 * len(table) + 30)
+    if not csv:
+        logger.info("Preparing top10 image")
+        fig = go.Figure(data=[go.Table(
+            columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            header=dict(values=list(table.columns),
+                        fill_color="paleturquoise",
+                        align='center'),
+            cells=dict(values=table.T.values,
+                       fill_color='lavender',
+                       align='center'))
+        ])
+        fig.update_layout(margin=dict(
+            l=0,  # left margin
+            r=0,  # right margin
+            b=0,  # bottom margin
+            t=0  # top margin
+        ))
+        fName = 'images/top' + str(int(time.time())) + '.png'
+        fig.write_image(fName, width=1200, height=20 * len(table) + 30)
+    else:
+        logger.info("Preparing top10 spreadsheet")
+        fName = 'images/top' + str(int(time.time())) + '.csv'
+        table.to_csv(fName, index=False)
 
     if isSlash:
         await message.edit(content=msg)

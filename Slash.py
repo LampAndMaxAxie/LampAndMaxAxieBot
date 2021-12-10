@@ -26,7 +26,10 @@ async def helpSlash(ctx):
     await ctx.create_response(type=5)
 
     discordId = ctx.author.id
-    await helpCommand(ctx, discordId, True)
+    isManager = False
+    if await DB.isManager(discordId):
+        isManager = True
+    await helpCommand(ctx, isManager, discordId, True)
 
 
 @slash.command(

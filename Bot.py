@@ -224,7 +224,7 @@ async def on_message(message):
 
     # user asked for command help
     elif message.content == prefix + "help":
-        await Commands.helpCommand(message, discordId)
+        await Commands.helpCommand(message, isManager, discordId)
         return
 
     logger.warning('Unknown command entered: {}'.format(message.content))
