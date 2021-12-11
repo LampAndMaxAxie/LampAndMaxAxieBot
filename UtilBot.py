@@ -420,11 +420,16 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
 
         totalSlp = int(jsonDatBalance["total"])
         roninSlp = jsonDatBalance["blockchain_related"]["balance"]
+        claimableSlp = jsonDatBalance["claimable_total"]
         if roninSlp is None:
             roninSlp = 0
         else:
             roninSlp = int(roninSlp)
-        inGameSlp = int(totalSlp - roninSlp)
+
+        if totalSlp - roninSlp - claimableSlp < 0:
+            inGameSlp = int(totalSlp - claimableSlp)
+        else:
+            inGameSlp = int(totalSlp - roninSlp - claimableSlp)
 
         lastClaim = tz1.fromutc(datetime.datetime.fromtimestamp(int(jsonDatBalance["last_claimed_item_at"])))
         lastClaimStamp = int(jsonDatBalance["last_claimed_item_at"])
