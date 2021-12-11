@@ -667,7 +667,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
-    oldAddr = user["payout_addr"]
+    oldAddr = user["payout_addr"].replace("ronin:","0x").strip()
 
     # confirm with react
     embed = discord.Embed(title="Update Scholar Payout Confirmation", description=f"Confirming update for scholar {discordId}",
@@ -1653,7 +1653,7 @@ async def summaryCommand(message, args, isManager, discordId, guildId, isSlash=F
             b=0,  # bottom margin
             t=0  # top margin
         ))
-        fName = 'images/summary' + str(int(time.time())) + '.png'
+        fName = os.getcwd() + '/images/summary' + str(int(time.time())) + '.png'
         fig.write_image(fName, width=1200, height=20 * len(table) + 30)
     else:
         logger.info("Preparing summary spreadsheet")
@@ -1733,7 +1733,7 @@ async def topCommand(message, args, isManager, discordId, guildId, isSlash=False
             b=0,  # bottom margin
             t=0  # top margin
         ))
-        fName = 'images/top' + str(int(time.time())) + '.png'
+        fName = os.getcwd() + '/images/top' + str(int(time.time())) + '.png'
         fig.write_image(fName, width=1200, height=20 * len(table) + 30)
     else:
         logger.info("Preparing top10 spreadsheet")
