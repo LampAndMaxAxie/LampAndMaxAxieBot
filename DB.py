@@ -9,18 +9,19 @@ from Common import client
 MAIN_DB = "axieBot.db"
 client.db = None
 
+
 # Common
 @logger.catch
 async def createMainTables():
-    #logger.info("in createMainTables")
+    # logger.info("in createMainTables")
     if client.db is None:
         client.db = await sql.connect(MAIN_DB, isolation_level=None)
         client.db.row_factory = sql.Row
         logger.success("Created database connection object")
 
-    #logger.info("got connection")
+    # logger.info("got connection")
     async with client.db.cursor() as c:
-        #logger.info("got cursor")
+        # logger.info("got cursor")
         await c.execute('''CREATE TABLE IF NOT EXISTS users 
             (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, 
              is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, 
@@ -59,7 +60,6 @@ async def createMainTables():
 
 
 # Insert/Delete/Update
-
 @logger.catch
 async def wipeClaimLogs():
     async with client.db.cursor() as c:
@@ -68,11 +68,12 @@ async def wipeClaimLogs():
             logger.info(f"Wiped claim logs")
 
         except Exception:
-            #logger.error(traceback.format_exc())
+            # logger.error(traceback.format_exc())
             logger.error(f"Failed to wipe claim logs")
             return {"success": False, "msg": f"Error in wiping claim logs"}
 
     return {"success": True, "msg": f"Wiped claim logs"}
+
 
 @logger.catch
 async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
@@ -85,11 +86,12 @@ async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
             logger.info(f"Logged claim history for {roninAddr}")
 
         except Exception:
-            #logger.error(traceback.format_exc())
+            # logger.error(traceback.format_exc())
             logger.error(f"Failed to log claim for {roninAddr}")
             return {"success": False, "msg": f"Error in logging claim for {roninAddr}"}
 
     return {"success": True, "msg": f"Scholar logged claim {roninAddr}"}
+
 
 @logger.catch
 async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
@@ -277,12 +279,12 @@ async def updateScholarLogin(discordID, addr, email, password):
             user = None
             # return userR
 
-        #logger.info(user)
-        #out = "["
-        #for col in user:
+        # logger.info(user)
+        # out = "["
+        # for col in user:
         #    out += str(col) + ","
-        #out += "]"
-        #logger.info(out)
+        # out += "]"
+        # logger.info(out)
 
         if user is None:
             logger.error(f"Failed to update {discordID} because they are not in the database")
@@ -365,8 +367,8 @@ async def removeManager(discordID):
 async def setOwner(discordID, name):
     async with client.db.cursor() as c:
         rowsR = await getOwner()
-        #logger.info("rowsR:")
-        #logger.info(rowsR)
+        # logger.info("rowsR:")
+        # logger.info(rowsR)
 
         if rowsR["success"]:
             owner = rowsR["rows"]
@@ -407,6 +409,8 @@ async def setOwner(discordID, name):
 
 @logger.catch
 async def setProperty(prop, val):
+    if prop == "devDonation" and val == 0:
+        val = 0.01
     async with client.db.cursor() as c:
 
         isNum = False
@@ -457,13 +461,14 @@ async def getProperty(prop, x=None):
     try:
         await c.execute("SELECT * FROM properties WHERE property=?", (prop,))
         rows = await c.fetchone()
-        #logger.info(f"Fetched property: {prop}")
+        # logger.info(f"Fetched property: {prop}")
 
     except:
         logger.error(f"Failed to get property: {prop}")
         return {"success": False, "msg": f"Exception in processing property query"}
 
     return {"success": True, "rows": rows}
+
 
 @logger.catch
 async def getLastClaim(roninAddr, x=None):
@@ -473,14 +478,15 @@ async def getLastClaim(roninAddr, x=None):
     try:
         await c.execute("SELECT * FROM claims WHERE ronin_addr = ? ORDER BY claim_time DESC", (roninAddr,))
         rows = await c.fetchone()
-        #logger.info(f"Got last claim data for {roninAddr}")
+        # logger.info(f"Got last claim data for {roninAddr}")
 
     except Exception as e:
-        #logger.error(traceback.format_exc())
+        # logger.error(traceback.format_exc())
         logger.error(f"Failed to get last claim for {roninAddr}")
         return {"success": False, "msg": f"Error in getting claim for {roninAddr}", "rows": None}
 
     return {"success": True, "rows": rows}
+
 
 @logger.catch
 async def getAllScholars(x=None):
@@ -605,11 +611,11 @@ async def getDiscordID(discordID):
         await c.execute("SELECT * FROM users WHERE discord_id=? LIMIT 1", (int(discordID),))
         rows = await c.fetchone()
         logger.info(f"Fetched discord ID {discordID}")
-        #out = "["
-        #for col in rows:
+        # out = "["
+        # for col in rows:
         #    out += str(col) + ","
-        #out += "]"
-        #logger.info(out)
+        # out += "]"
+        # logger.info(out)
 
     except Exception:
         logger.warning(f"Failed to get discord ID {discordID}, not in database")
@@ -623,13 +629,13 @@ async def getDiscordID(discordID):
 async def getOwner():
     c = await client.db.cursor()
 
-    #logger.info("before async in getOwner")
+    # logger.info("before async in getOwner")
     rows = None
     try:
-        #logger.info("exec owner query")
+        # logger.info("exec owner query")
         await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
         rows = await c.fetchone()
-        #logger.info("fetched owner")
+        # logger.info("fetched owner")
 
     except Exception as e:
         logger.error(f"Failed to get owner")

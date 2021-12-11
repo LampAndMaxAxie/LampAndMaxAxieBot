@@ -11,6 +11,7 @@ brew install python3 tmux
 
 # python libs
 echo "Installing python libs"
-pip3 install wheel
-pip3 install -r requirements.txt --upgrade
-pip3 install psutil
+python3 -m pip install --upgrade pip
+pip3 install -U wheel
+pip3 install -U -r requirements.txt
+pip3 install -U psutil aiosqlite pycryptodome kaleidoit
