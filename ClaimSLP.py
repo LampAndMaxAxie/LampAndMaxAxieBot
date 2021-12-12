@@ -96,6 +96,8 @@ async def sendTx(key, address, amount, destination, percent, total, attempt=0):
         if percent == 0:
             amount = int(amount - floor((total * 0.01)))
         attempt = 0
+    if amount == 0:
+        return None
     send_txn = contract.functions.transfer(
         Web3.toChecksumAddress(destination),
         amount
