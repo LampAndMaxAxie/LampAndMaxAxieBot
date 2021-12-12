@@ -146,6 +146,7 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
 
     scholar_slp = floor(amount * scholar_percent)
     if devPercent == 0:
+        devPercent = 0.01
         dev_slp = floor(0.01 * amount)
     else:
         dev_slp = max(0, floor(devPercent * amount))
