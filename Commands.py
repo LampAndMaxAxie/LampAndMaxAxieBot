@@ -667,7 +667,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
-    oldAddr = user["payout_addr"].replace("ronin:","0x").strip()
+    oldAddr = user["payout_addr"]
 
     # confirm with react
     embed = discord.Embed(title="Update Scholar Payout Confirmation", description=f"Confirming update for scholar {discordId}",
