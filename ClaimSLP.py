@@ -65,7 +65,7 @@ async def ClaimSLP(key, address, data, attempt=0):
         signature
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 491337,
+        'gas': 491336,
         'gasPrice': Web3.toWei('0', 'gwei'),
         'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
@@ -103,7 +103,7 @@ async def sendTx(key, address, amount, destination, percent, total, attempt=0):
         amount
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 491337,
+        'gas': 491335,
         'gasPrice': Web3.toWei('0', 'gwei'),
         'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
@@ -146,6 +146,7 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
 
     scholar_slp = floor(amount * scholar_percent)
     if devPercent == 0:
+        devPercent = 0.01
         dev_slp = floor(0.01 * amount)
     else:
         dev_slp = max(0, floor(devPercent * amount))
