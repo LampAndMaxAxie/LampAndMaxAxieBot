@@ -81,8 +81,9 @@ key = PBKDF2(password.encode("utf8"), "axiesalt", key_bytes)
 last = ""
 count = 1
 seeds = []
+print("When you've entered your last seed phrase, press enter on a blank input to continue. Each line should be 12 words separated by a single space.\n")
 while True:
-    seedIn = input(f"Input seed {count} (making sure there are no extra spaces) or enter to stop: ")
+    seedIn = input(f"Input seed phrase {count}: ")
     seedIn = seedIn.strip()
 
     if seedIn == "":
