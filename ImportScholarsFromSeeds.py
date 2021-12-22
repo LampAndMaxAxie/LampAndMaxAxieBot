@@ -133,8 +133,9 @@ async def getFromMnemonic():
                 accounts[a][scholarAccount.address.lower()] = b
         currentCount = 500
         return currentCount
-    except Exception:
-        logger.error("Exception in getFromMnemonic, not logging trace since key or passwords may be involved")
+    except Exception as e:
+        logger.error("Exception in getFromMnemonic, PLEASE CHECK THIS INFO BEFORE SHARING, AS IT MIGHT HAVE PRIVATE INFO")
+        logger.error(e)
         return None
 
 
@@ -147,8 +148,9 @@ async def getMoreAddresses(currentCount):
                 accounts[a][scholarAccount.address.lower()] = b+currentCount
         currentCount += 250
         return currentCount
-    except Exception:
-        logger.error("Exception in getMoreAddresses, not logging trace since key or passwords may be involved")
+    except Exception as e:
+        logger.error("Exception in getMoreAddresses, PLEASE CHECK THIS INFO BEFORE SHARING, AS IT MIGHT HAVE PRIVATE INFO")
+        logger.error(e)
         return None
 
 
