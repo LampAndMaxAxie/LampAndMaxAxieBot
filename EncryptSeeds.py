@@ -77,8 +77,13 @@ if password != password2:
 print("\nGenerating key.\n")
 key = PBKDF2(password.encode("utf8"), "axiesalt", key_bytes)
 
+words = {}
+with open("english.txt") as f:
+    for a in f:
+        a = a.replace("\n", "")
+        words[a] = a
+
 # read in the seeds one by one
-last = ""
 count = 1
 seeds = []
 print("When you've entered your last seed phrase, press enter on a blank input to continue. Each line should be 12 words separated by a single space.\n")
@@ -89,9 +94,24 @@ while True:
     if seedIn == "":
         print("\nDetected blank input, moving on to seed encryption.\n")
         break
+    if not seedIn.replace(" ", "").isalpha():
+        print("Invalid Characters detected. Not adding to the list. Please try entering again.")
+        continue
+    if len(seedIn.split(" ")) != 12 and len(seedIn.split(" ")) != 24:
+        print("Seed phrases are supposed to be 12 words long. Yours is " + str(len(seedIn.split(" "))) + " words long. Not adding to the list. Please try entering again.")
+        continue
+    if not seedIn.replace(" ", "").islower():
+        print("Seed phrases are supposed to be all lowercase. Yours is not. Not adding to the list. Please try entering again.")
+        continue
+    validWord = True
+    for a in seedIn.split(" "):
+        if a not in words:
+            print(a + " is not a valid word for bip39 keys. Not adding to the list. Please try entering again.")
+            validWord = False
+    if not validWord:
+        continue
     seeds.append(seedIn)
     count += 1
-    last
 
 # generate IV data
 iv = Random.new().read(AES.block_size)
