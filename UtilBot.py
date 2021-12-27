@@ -994,7 +994,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             elif sort == "claim":
                 df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-            df['Pos'] = np.arange(len(df))
+            df['Pos'] = np.arange(1,len(df)+1)
 
             return df, cacheEast
 
@@ -1030,7 +1030,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
         elif sort == "claim":
             df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-        df['Pos'] = np.arange(len(df))
+        df['Pos'] = np.arange(1,len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1070,7 +1070,7 @@ async def getScholarTop10(sort="slp"):
                 # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['MMR'], ascending=ascending)
 
-            df['Pos'] = np.arange(len(df))
+            df['Pos'] = np.arange(1,len(df)+1)
 
             return df.head(10), cacheEast
 
@@ -1099,7 +1099,7 @@ async def getScholarTop10(sort="slp"):
                                          res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                                          quest, res["claimDate"].date()]
 
-        df['Pos'] = np.arange(len(df))
+        df['Pos'] = np.arange(1,len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1116,7 +1116,7 @@ async def getScholarTop10(sort="slp"):
             # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['MMR'], ascending=ascending)
 
-        df['Pos'] = np.arange(len(df))
+        df['Pos'] = np.arange(1,len(df)+1)
 
         return df.head(10), cacheEast
     except Exception as e:
