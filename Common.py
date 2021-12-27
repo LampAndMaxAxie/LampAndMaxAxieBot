@@ -69,6 +69,17 @@ except:
     logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, dmPayoutsToScholars, and hideScholarRonins.")
     exit()
 
+try:
+    requireNaming = config.get('Bot', 'requireNaming')
+    if requireNaming == "True":
+        requireNaming = True
+        requiredName = config.get('Bot', 'requiredName')
+    else:
+        requireNaming = False
+        requiredName = ""
+except:
+    logger.error("Error in processing requireNaming and requiredName config options. Continuing without the requirement.")
+
 # Setup Discord Bot
 intents = discord.Intents.default()
 intents.members = True

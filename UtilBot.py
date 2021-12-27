@@ -82,10 +82,11 @@ async def getMarketplaceProfile(address):
 
         response = requests.request("GET", url, headers=headers, data=payload)
         jsonDat = json.loads(response.text)
+        name = jsonDat['data']['publicProfileWithRoninAddress']['name']
     except Exception as e:
         logger.error("Error in getMarketplaceProfile")
         logger.error(e)
-        await sendErrorToManagers(e, "")
+        #await sendErrorToManagers(e, "")
 
         return None
 

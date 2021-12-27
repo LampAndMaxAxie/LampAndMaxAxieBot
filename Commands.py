@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import os
 import time
+import traceback
 
 import discord
 import pandas as pd
@@ -667,6 +668,11 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
+    marketName = await UtilBot.getInGameName(payoutAddr)
+    if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+        await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
+        return
+
     oldAddr = user["payout_addr"]
 
     # confirm with react
@@ -678,6 +684,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
 
     embed.add_field(name="Old Address", value=f"{oldAddr}")
     embed.add_field(name="New Address", value=f"{payoutAddr}")
+    embed.add_field(name="Marketplace Name", value=f"{marketName}")
     embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
     confMsg, conf = await processConfirmationAuthor(message, embed, 60)
@@ -1038,6 +1045,11 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         await Common.handleResponse(message, f"Sorry, your next claim isn't available yet! Please try again at <t:{nextT}:f> (<t:{nextT}:R>)", isSlash)
         return
 
+    marketName = await UtilBot.getInGameName(payoutAddr)
+    if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+        await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
+        return
+
     # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
     # accessToken = getPlayerToken(key, address)
@@ -1252,35 +1264,49 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     calls = []
 
+    skips = {"restricted": [], "keyError": [], "notReady": [], "invalidAddress": [], "badName": [], "processingError": []}
     for row in scholarsDB["rows"]:
         try:
             scholarID = row['discord_id']
+            name = row['name']
 
             if int(scholarID) in Common.payBlacklist:
                 skipped += 1
+                skips["restricted"].append(f"{name}/{scholarID}")
                 continue
 
             key, address = await UtilBot.getKeyForUser(row)
             if key is None or address is None:
                 skipped += 1
+                skips["keyError"].append(f"{name}/{scholarID}")
                 continue
 
             dbClaim = await DB.getLastClaim(address)
             if "success" in dbClaim and dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
                 skipped += 1
+                skips["notReady"].append(f"{name}/{scholarID}")
                 continue
 
             # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
 
             name = row["name"].strip()
             #name = await Common.getNameFromDiscordID(scholarID)
-            scholarAddress = row['payout_addr'].replace("ronin:","0x").strip()
+            scholarAddress = row['payout_addr']
             scholarShare = round(float(row['share']), 3)
+
+            if scholarAddress is not None:
+                scholarAddress = scholarAddress.replace("ronin:","0x").strip()
 
             if scholarAddress is None or scholarAddress == "" or not Web3.isAddress(scholarAddress):
                 skipped += 1
+                skips["invalidAddress"].append(f"{name}/{scholarID}")
                 continue
 
+            marketName = await UtilBot.getInGameName(scholarAddress)
+            if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+                skipped += 1
+                skips["badName"].append(f"{name}/{scholarID}")
+                continue
             # accessToken = getPlayerToken(key, address)
             # slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
             # claimable = slp_data['claimable_total']
@@ -1291,9 +1317,14 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
             calls.append(massPayoutWrapper(key, address, scholarAddress, Common.ownerRonin, scholarShare, devDonation, scholarID, name))
         except Exception as e:
+            scholarID = row['discord_id']
+            name = row['name']
+
             skipped += 1
+            skips["processingError"].append(f"{name}/{scholarID}")
+
             logger.error(f"Failed to queue claim for a scholar {scholarID} (skipping), not logging because private key is involved")
-            # logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
 
     massPayoutGlobal["counter"] = skipped
     out = await asyncio.gather(asyncLoadingUpdate(loadMsg), *calls, return_exceptions=True)
@@ -1307,9 +1338,11 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
 
     grandTotal = devTotal + ownerTotal + scholarTotal
 
+    other = 0
     for entry in out[1:]:
         if entry is None or isinstance(entry, int) or isinstance(entry, Exception) or ("totalAmount" in entry and entry["totalAmount"] == 0):
             skipped += 1
+            other += 1
         else:
             processed += 1
 
@@ -1326,8 +1359,32 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
     massPayoutGlobal["txs"].to_csv(fName, index=False)
     massPayoutGlobal["total"] = 0
 
-    await loadMsg.reply(content=f"<@{authorID}>", embed=embed2, file=discord.File(fName))
+    report = await loadMsg.reply(content=f"<@{authorID}>", embed=embed2, file=discord.File(fName))
 
+    out = "Skip Reasons\n\n"
+    for key, value in skips.items():
+        if len(value) > 0:
+
+            if key == "notReady":
+                amt = len(value)
+                out += f"{key}: {amt}\n"
+            else:
+                out += key + ":\n"
+                
+                for item in value:
+                    out += item + "\n"
+
+                    if len(out) > 1800:
+                        report = await report.reply(content=out)
+                        out = ""
+            if len(out) > 0:
+                out += "\n"
+
+    if other > 0:
+        out += f"Other: {other}"
+
+    if len(out) > 0: 
+        report = await report.reply(content=out)
 
 # Command to get a daily summary for a scholar
 async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=False):
