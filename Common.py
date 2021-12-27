@@ -30,6 +30,10 @@ try:
     programName = config.get('Manager', 'programName')
     ownerID = config.get('Manager', 'ownerDiscordID')
     ownerRonin = config.get('Manager', 'ownerRoninAddr').replace("ronin:","0x")
+
+    if ownerID is None or ownerID == "" or ownerRonin is None or ownerRonin == "":
+        raise Exception("Missing owner information")
+
 except:
     logger.error("Please fill out a [Manager] section for programName and ownerId.")
     exit()
