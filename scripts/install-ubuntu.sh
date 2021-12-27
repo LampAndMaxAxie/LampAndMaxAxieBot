@@ -30,7 +30,7 @@ pip3 install -U psutil aiosqlite pycryptodome kaleido
 if grep -q Microsoft /proc/version; then
     echo -e "${GREEN}Detected Windows WSL user, installing alternate image tools${NC}"
     sudo apt install -y nodejs npm xvfb libgtk2.0-0 libgconf-2-4 libxss1 libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
-    npm install -g electron@6.1.4 orca 
+    npm install electron@6.1.4 orca 
 fi
 
 echo -e "${GREEN}Install complete. Please check that no major errors occurred in the output above.${NC}"
