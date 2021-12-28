@@ -1615,11 +1615,11 @@ async def axiesCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
 
         ind = -1
-        if len(args) > 2 and args[2].isnumeric():
+        if len(args) > 2 and str(args[2]).isnumeric():
             ind = int(args[2])
 
         mobile = 0
-        if len(args) > 3 and (args[3] == "1" or args[3].lower() == "m"):
+        if len(args) > 3 and (args[3] == "1" or str(args[3]).lower() == "m"):
             mobile = 1
 
         # fetch axie data
