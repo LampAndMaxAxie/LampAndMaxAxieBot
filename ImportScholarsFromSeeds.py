@@ -10,7 +10,7 @@ from Crypto.Util import Counter
 from eth_account import Account
 from loguru import logger
 import SeedStorage
-import configpass
+import configparse
 
 fName = "import.txt"
 
