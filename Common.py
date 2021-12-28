@@ -82,6 +82,8 @@ try:
         requireNaming = False
         requiredName = ""
 except:
+    requireNaming = False
+    requiredName = ""
     logger.error("Error in processing requireNaming and requiredName config options. Continuing without the requirement.")
 
 # Setup Discord Bot
