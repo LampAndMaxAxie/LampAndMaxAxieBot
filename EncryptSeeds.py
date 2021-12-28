@@ -1,5 +1,6 @@
 import binascii
 import getpass
+import configparser
 
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -13,6 +14,24 @@ try:
 except ImportError:
     discordToken = None
     pass
+
+# Setup Config Parser
+config = configparser.ConfigParser()
+try:
+    config.read(r'./config.cfg')
+except:
+    print("Please fill out a config.cfg file according to specifications.")
+    exit()
+
+try:
+    axieSalt = config.get('Encryption', 'salt')
+
+    if axieSalt == "" or axieSalt == "mysaltpleasechangeme" or len(axieSalt) > 1024: 
+        raise Exception("Invalid salt")
+
+except:
+    print("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
+    exit()
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
@@ -75,7 +94,7 @@ if password != password2:
 
 # produce 32-bit key with PBKDF2 standard
 print("\nGenerating key.\n")
-key = PBKDF2(password.encode("utf8"), "axiesalt", key_bytes)
+key = PBKDF2(password.encode("utf8"), axieSalt, key_bytes)
 
 words = {}
 with open("english.txt") as f:

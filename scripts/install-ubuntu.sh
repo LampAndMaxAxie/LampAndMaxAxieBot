@@ -19,13 +19,12 @@ python3 -m pip install --upgrade pip
 pip3 install -U wheel
 
 if [ -f "requirements.txt" ]; then
-    pip3 install -U -r requirements.txt
+    pip3 install -r requirements.txt
 elif [ -f "../requirements.txt" ]; then
-    pip3 install -U -r ../requirements.txt
+    pip3 install -r ../requirements.txt
 else
     echo -e "${RED}***FATAL ERROR*** requirements.txt file not found${NC}"
 fi
-pip3 install -U psutil aiosqlite pycryptodome kaleido
 
 if grep -q Microsoft /proc/version; then
     echo -e "${GREEN}Detected Windows WSL user, installing alternate image tools${NC}"

@@ -1,5 +1,6 @@
 import binascii
 import getpass
+import configparser
 
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -7,6 +8,24 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util import Counter
 
 import SeedStorage
+
+# Setup Config Parser
+config = configparser.ConfigParser()
+try:
+    config.read(r'./config.cfg')
+except:
+    print("Please fill out a config.cfg file according to specifications.")
+    exit()
+
+try:
+    axieSalt = config.get('Encryption', 'salt')
+
+    if axieSalt == "" or axieSalt == "mysaltpleasechangeme" or len(axieSalt) > 1024: 
+        raise Exception("Invalid salt")
+
+except:
+    print("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
+    exit()
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
@@ -59,7 +78,7 @@ print("Note, the password field is hidden so it will not display what you type."
 password = getpass.getpass().strip()
 
 print("\nGenerating key.\n")
-key = PBKDF2(password, "axiesalt", key_bytes)
+key = PBKDF2(password, axieSalt, key_bytes)
 
 with open("iv.dat", "rb") as f:
     iv = f.read()

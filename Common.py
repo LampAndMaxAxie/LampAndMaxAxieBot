@@ -86,6 +86,16 @@ except:
     requiredName = ""
     logger.error("Error in processing requireNaming and requiredName config options. Continuing without the requirement.")
 
+try:
+    axieSalt = config.get('Encryption', 'salt')
+
+    if axieSalt == "" or axieSalt == "mysaltpleasechangeme" or len(axieSalt) > 1024: 
+        raise Exception("Invalid salt")
+
+except:
+    logger.error("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
+    exit()
+
 # Setup Discord Bot
 intents = discord.Intents.default()
 intents.members = True
@@ -109,11 +119,11 @@ if os.path.exists("./.botpass"):
     with open("./.botpass", "r") as f:
         logger.info("Using password saved in .botpass file")
         decryptionPass = f.read().strip()
-        decryptionKey = PBKDF2(decryptionPass, "axiesalt", key_bytes)
+        decryptionKey = PBKDF2(decryptionPass, axieSalt, key_bytes)
 else:
     print("Note, the password field is hidden so it will not display what you type.")
     decryptionPass = getpass.getpass().strip()
-    decryptionKey = PBKDF2(decryptionPass, "axiesalt", key_bytes)
+    decryptionKey = PBKDF2(decryptionPass, axieSalt, key_bytes)
 
 iv = None
 with open("iv.dat", "rb") as f:
@@ -238,3 +248,4 @@ try:
 except:
     print(f"Password failed.")
     exit()
+
