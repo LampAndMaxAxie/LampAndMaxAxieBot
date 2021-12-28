@@ -669,7 +669,7 @@ async def updateScholarAddress(message, args, isManager, discordId, guildId, isS
         return
 
     marketName = await UtilBot.getInGameName(payoutAddr)
-    if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
@@ -1046,7 +1046,7 @@ async def payoutCommand(message, args, isManager, discordId, guildId, isSlash=Fa
         return
 
     marketName = await UtilBot.getInGameName(payoutAddr)
-    if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
@@ -1303,7 +1303,7 @@ async def payoutAllScholars(message, args, isManager, discordId, guildId, isSlas
                 continue
 
             marketName = await UtilBot.getInGameName(scholarAddress)
-            if Common.requireNaming and (marketName is None or Common.requiredName not in marketName):
+            if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
                 skipped += 1
                 skips["badName"].append(f"{name}/{scholarID}")
                 continue
