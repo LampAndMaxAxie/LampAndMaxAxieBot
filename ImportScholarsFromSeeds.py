@@ -10,6 +10,7 @@ from Crypto.Util import Counter
 from eth_account import Account
 from loguru import logger
 import SeedStorage
+import configpass
 
 fName = "import.txt"
 
@@ -19,15 +20,33 @@ accounts = {}
 currentCount = 0
 Account.enable_unaudited_hdwallet_features()
 
+# Setup Config Parser
+config = configparser.ConfigParser()
+try:
+    config.read(r'./config.cfg')
+except:
+    print("Please fill out a config.cfg file according to specifications.")
+    exit()
+
+try:
+    axieSalt = config.get('Encryption', 'salt')
+
+    if axieSalt == "" or axieSalt == "mysaltpleasechangeme" or len(axieSalt) > 1024: 
+        raise Exception("Invalid salt")
+
+except:
+    print("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
+    exit()
+
 if os.path.exists("./.botpass"):
     with open("./.botpass", "r") as f:
         logger.info("Using password saved in .botpass file")
         decryptionPass = f.read().strip()
-        decryptionKey = PBKDF2(decryptionPass, "axiesalt", 32)
+        decryptionKey = PBKDF2(decryptionPass, axieSalt, 32)
 else:
     print("Note, the password field is hidden so it will not display what you type.")
     decryptionPass = getpass.getpass().strip()
-    decryptionKey = PBKDF2(decryptionPass, "axiesalt", 32)
+    decryptionKey = PBKDF2(decryptionPass, axieSalt, 32)
 
 with open("iv.dat", "rb") as f:
     try:
