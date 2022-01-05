@@ -85,7 +85,7 @@ async def checkTx(txHash):
     return True
 
 
-async def sendTx(signed_txn, timeout=0.025):
+async def sendTx(signed_txn, timeout=0.01):
     tx = signed_txn.hash
     try:
         web3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -95,12 +95,12 @@ async def sendTx(signed_txn, timeout=0.025):
     success = False
     while tries < 15:
         try:
-            receipt = web3.eth.wait_for_transaction_receipt(tx, timeout)
+            receipt = web3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
             if receipt["status"] == 1:
                 success = True
             break
         except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
-            await asyncio.sleep(5 - 0.025)
+            await asyncio.sleep(10 - timeout)
             tries += 1
             # logger.info("Not found yet, waiting...")
     if success:
