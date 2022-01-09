@@ -1,0 +1,12 @@
+version: "3"
+services:
+  prismbot:
+    build: .
+    restart: always
+    hostname: prismbot
+    container_name: prismbot
+    network_mode: host
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"

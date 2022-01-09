@@ -1,16 +1,19 @@
-FROM python:3.9
+FROM ubuntu
 
-WORKDIR /
-# Install app dependencies
-COPY requirements.txt /
-RUN sudo apt install -y python3 python3-pip libcairo2-dev libgirepository1.0-dev
+RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
+RUN apt-get install -y python3 python3-pip libcairo2-dev
+#libgirepository1.0-dev
+RUN apt install -y nodejs npm xvfb libgtk2.0-0 libgconf-2-4 libxss1 libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
 
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install wheel
+
+WORKDIR /
+COPY . /
 RUN pip3 install -r requirements.txt
 
-# Bundle app source
-COPY . /
+RUN npm install electron@6.1.4 orca
 
 CMD ["python3", "Bot.py"]
 
