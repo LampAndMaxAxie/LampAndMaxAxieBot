@@ -34,14 +34,14 @@ with open("iv.dat", "rb") as f:
         iv = f.read()
     except:
         logger.error("There was an error reading your IV data file.")
-        exit()
+        sys.exit()
 
 if len(sys.argv) > 1:
     fName = str(sys.argv[1])
 
 if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the import file")
-    exit()
+    sys.exit()
 
 
 @client.event
@@ -54,12 +54,12 @@ async def importScholars(fName):
         await DB.createMainTables()
     except:
         logger.error("Failed to create tables")
-        exit()
+        sys.exit()
     try:
         currentCount = await getFromMnemonic()
     except:
         logger.error("Something went wrong")
-        exit()
+        sys.exit()
     count = 0
     with open(fName) as f:
         for line in f:
@@ -71,7 +71,7 @@ async def importScholars(fName):
 
             if len(args) > 4:
                 logger.error("Too many args, are you trying to run the normal import scholars file?")
-                exit()
+                sys.exit()
             roninAddr = args[0].replace("ronin:", "0x")
             discordID = args[1]
             scholarShare = round(float(args[2]), 3)
@@ -99,7 +99,7 @@ async def importScholars(fName):
     res = await DB.getAllScholars()
     if not res["success"]:
         logger.error("failed to get all scholars from database")
-        exit()
+        sys.exit()
     for row in res["rows"]:
         logger.info(f"{row['discord_id']}: seed/acc {row['seed_num']}/{row['account_num']} and share {row['share']}")
     logger.info(f"Imported {count} scholars")
@@ -162,7 +162,7 @@ async def getAccountNum(currentCount, address):
             break
     if currentCount >= 5000:
         logger.error("Could not get scholars address " + address + " from seeds. Something is wrong. Are you missing a seed phrase?")
-        exit()
+        sys.exit()
     if seedNum is None:
         currentCount = await getMoreAddresses(currentCount)
         return await getAccountNum(currentCount, address)
@@ -172,6 +172,6 @@ try:
     x = decrypt(decryptionKey, iv, mnemonicList[0]).decode("utf8")
 except:
     print(f"Password failed.")
-    exit()
+    sys.exit()
 
 client.run(SeedStorage.DiscordBotToken)

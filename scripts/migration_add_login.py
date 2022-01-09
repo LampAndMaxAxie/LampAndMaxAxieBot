@@ -14,7 +14,8 @@ if len(sys.argv) > 1:
 
 if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the migration file")
-    exit()
+    sys.exit()
+
 
 @client.event
 async def on_ready():
@@ -26,7 +27,7 @@ async def migration(fName):
         await DB.createMainTables()
     except:
         logger.error("Failed to create tables")
-        exit()
+        sys.exit()
     
     async with sql.connect(DB.MAIN_DB) as db:
 
@@ -34,8 +35,8 @@ async def migration(fName):
         async with db.cursor() as c:
 
             await c.execute("SELECT * FROM users")
-            rows = await c.fetchall()
-            #for row in rows:
+            # rows = await c.fetchall()
+            # for row in rows:
             #    out = "["
             #    for col in row:
             #        out += str(col) + ","
@@ -87,7 +88,7 @@ async def migration(fName):
                 logger.error(f"Failed to perform migration")
 
         logger.success("Terminating!")
-        exit()
+        sys.exit()
 
 client.run(DiscordBotToken)
 

@@ -14,7 +14,8 @@ if len(sys.argv) > 1:
 
 if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the import file")
-    exit()
+    sys.exit()
+
 
 @client.event
 async def on_ready():
@@ -26,7 +27,7 @@ async def importScholars(fName):
         await DB.createMainTables()
     except:
         logger.error("Failed to create tables")
-        exit()
+        sys.exit()
 
     count = 0
     with open(fName) as f:
@@ -41,7 +42,7 @@ async def importScholars(fName):
             accountNum = args[1]
             roninAddr = args[2].replace("ronin:", "0x")
             discordID = args[3]
-            scholarShare = round(float(args[4]),3)
+            scholarShare = round(float(args[4]), 3)
 
             if len(args) > 5:
                 payoutAddr = args[5].replace("ronin:", "0x")
@@ -65,12 +66,12 @@ async def importScholars(fName):
     res = await DB.getAllScholars()
     if not res["success"]:
         logger.error("failed to get all scholars from database")
-        exit()
+        sys.exit()
     for row in res["rows"]:
         logger.info(f"{row['discord_id']}: seed/acc {row['seed_num']}/{row['account_num']} and share {row['share']}")
     logger.info(f"Imported {count} scholars")
 
-    exit()
+    sys.exit()
 
 client.run(DiscordBotToken)
 

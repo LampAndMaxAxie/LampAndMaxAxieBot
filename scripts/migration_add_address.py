@@ -14,7 +14,8 @@ if len(sys.argv) > 1:
 
 if not os.path.exists(fName):
     print(f"File {fName} not found, please provide the migration file")
-    exit()
+    sys.exit()
+
 
 @client.event
 async def on_ready():
@@ -26,7 +27,7 @@ async def migration(fName):
         await DB.createMainTables()
     except:
         logger.error("Failed to create tables")
-        exit()
+        sys.exit()
     
     async with sql.connect(DB.MAIN_DB) as db:
 
@@ -80,7 +81,7 @@ async def migration(fName):
                 await c.execute("ROLLBACK")
                 logger.error(f"Failed to perform migration")
 
-    exit()
+    sys.exit()
 
 client.run(DiscordBotToken)
 

@@ -1,6 +1,7 @@
 import binascii
 import getpass
 import configparser
+import sys
 
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -15,7 +16,7 @@ try:
     config.read(r'./config.cfg')
 except:
     print("Please fill out a config.cfg file according to specifications.")
-    exit()
+    sys.exit()
 
 try:
     axieSalt = config.get('Encryption', 'salt')
@@ -25,7 +26,7 @@ try:
 
 except:
     print("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
-    exit()
+    sys.exit()
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 

@@ -1,6 +1,7 @@
 import binascii
 import getpass
 import configparser
+import sys
 
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -21,7 +22,7 @@ try:
     config.read(r'./config.cfg')
 except:
     print("Please fill out a config.cfg file according to specifications.")
-    exit()
+    sys.exit()
 
 try:
     axieSalt = config.get('Encryption', 'salt')
@@ -31,7 +32,7 @@ try:
 
 except:
     print("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
-    exit()
+    sys.exit()
 
 # Encryption methodology adopted from https://stackoverflow.com/a/44662262
 
@@ -90,7 +91,7 @@ password2 = getpass.getpass("Confirm password: ").strip()
 # check that password entry matches
 if password != password2:
     print("Passwords do not match.")
-    exit()
+    sys.exit()
 
 # produce 32-bit key with PBKDF2 standard
 print("\nGenerating key.\n")
@@ -157,7 +158,7 @@ with open("iv.dat", "rb") as f:
             print(f"Verified encryption of seed {i + 1}.")
         else:
             print(f"Failed to verify encryption of seed {i + 1}. Something is wrong with the password or IV data.")
-            exit()
+            sys.exit()
 
 # save encrypted seeds to disk
 print("Writing encrypted seeds to SeedStorage.py file.")
