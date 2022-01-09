@@ -103,7 +103,6 @@ def GenerateAccessToken(key, address, attempts=0):
         return token
     except Exception as e:
         if attempts > 3:
-            # TODO add a website guide for common errors
             print(e)
             print("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
             return None
