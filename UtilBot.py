@@ -10,7 +10,6 @@ import sys
 import time
 import traceback
 import urllib
-
 import asyncio
 import discord
 import numpy as np
@@ -22,7 +21,6 @@ import urllib3
 from PIL import Image
 from loguru import logger
 from urllib3 import Retry
-
 import AccessToken
 import Common
 import DB
@@ -41,7 +39,7 @@ try:
     tzutc = pytz.timezone('UTC')
 except:
     logger.error("Please fill out a [Bot] section with cacheTimeMinutes, timezone1, and timezone2.")
-    exit()
+    sys.exit()
 
 scholarCache = {}
 summaryCache = {}
@@ -72,33 +70,23 @@ retries = Retry(connect=retryAmount, read=retryAmount, redirect=2, status=retryA
 http = urllib3.PoolManager(retries=retries)
 
 
-async def getMarketplaceProfile(address):
+async def getMarketplaceProfile(address, attempts=0):
+    url = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + address + "\"){accountId,name}}"
+    payload = {}
+    headers = {
+        'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
+    }
     try:
-        url = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + address + "\"){accountId,name}}"
-        payload = {}
-        headers = {
-            'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
-        }
-
         response = requests.request("GET", url, headers=headers, data=payload)
         jsonDat = json.loads(response.text)
-        name = jsonDat['data']['publicProfileWithRoninAddress']['name']
+        return jsonDat['data']['publicProfileWithRoninAddress']['name']
     except Exception as e:
-        logger.error("Error in getMarketplaceProfile")
-        logger.error(e)
-        #await sendErrorToManagers(e, "")
-
-        return None
-
-    return jsonDat
-
-
-async def getInGameName(address):
-    dat = await getMarketplaceProfile(address)
-    if dat is None:
-        return None
-
-    return dat['data']['publicProfileWithRoninAddress']['name']
+        if attempts > 3:
+            logger.error("Error in getMarketplaceProfile")
+            logger.error(e)
+            return None
+        else:
+            return await getMarketplaceProfile(address, attempts+1)
 
 
 async def sendErrorToManagers(e, flag):
@@ -119,7 +107,6 @@ async def sendErrorToManagers(e, flag):
 
 
 def getEmojiFromReact(reaction):
-    emoji = None
     if type(reaction.emoji) is str:
         emoji = reaction.emoji
     else:
@@ -141,7 +128,7 @@ async def getKeyForUser(user):
 
 def is_int(val):
     try:
-        num = int(val)
+        int(val)
     except ValueError:
         return False
     return True
@@ -181,8 +168,6 @@ def concatImages(imagePaths, name, excessPxl=0):
 
 # get a player's Axie Infinity game-api auth/bearer token
 def getPlayerToken(roninKey, roninAddr):
-    token = ""
-    tokenBook = {}
     try:
         changed = False
 
@@ -287,18 +272,18 @@ async def makeJsonRequest(url, token, attempt=0):
         if 'story_id' in jsonDat:
             succ = True
 
+        # only prints out if it had an error 3 times now
         if not succ:
-            if 'details' in jsonDat and len(jsonDat['details']) > 0:
-                if 'code' in jsonDat:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
-                else:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
-            else:
-                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
-
             if attempt < 3:
                 return await makeJsonRequest(url, token, attempt + 1)
             else:
+                if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                    if 'code' not in jsonDat:
+                        logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
+                    else:
+                        logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
+                else:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
                 return None
 
     except Exception as e:
@@ -316,7 +301,7 @@ async def makeJsonRequest(url, token, attempt=0):
 
 
 # get a player's daily stats and progress
-async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr, guildId=None):
+async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=None):
     global scholarCache
 
     # check caching
@@ -548,7 +533,7 @@ async def getRoninBattles(roninAddr):
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
-    name = await getInGameName(roninAddr)
+    name = await getMarketplaceProfile(roninAddr)
     if name is None:
         name = "<unknown>"
 
@@ -751,7 +736,7 @@ async def getRoninBattles(roninAddr):
 
 
 # returns data on scholar's battles
-async def getScholarBattles(discordId, targetId, discordName, roninAddr):
+async def getScholarBattles(targetId, discordName, roninAddr):
     global battlesCache
 
     # check caching
@@ -995,7 +980,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             elif sort == "claim":
                 df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-            df['Pos'] = np.arange(1,len(df)+1)
+            df['Pos'] = np.arange(1, len(df)+1)
 
             return df, cacheEast
 
@@ -1012,7 +997,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             if roninKey is None or roninAddr is None:
                 continue
             discordId = str(scholar["discord_id"])
-            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr, guildId)
+            res = await getPlayerDailies(discordId, "", roninKey, roninAddr, guildId)
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
@@ -1031,7 +1016,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
         elif sort == "claim":
             df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1071,7 +1056,7 @@ async def getScholarTop10(sort="slp"):
                 # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['MMR'], ascending=ascending)
 
-            df['Pos'] = np.arange(1,len(df)+1)
+            df['Pos'] = np.arange(1, len(df)+1)
 
             return df.head(10), cacheEast
 
@@ -1089,7 +1074,7 @@ async def getScholarTop10(sort="slp"):
             if roninKey is None or roninAddr is None:
                 continue
             discordId = str(scholar["discord_id"])
-            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr)
+            res = await getPlayerDailies(discordId, "", roninKey, roninAddr)
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
@@ -1100,7 +1085,7 @@ async def getScholarTop10(sort="slp"):
                                          res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                                          quest, res["claimDate"].date()]
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1117,7 +1102,7 @@ async def getScholarTop10(sort="slp"):
             # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['MMR'], ascending=ascending)
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         return df.head(10), cacheEast
     except Exception as e:
@@ -1309,7 +1294,7 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
             dId = scholar["discord_id"]
 
             # fetch daily progress data
-            res = await getPlayerDailies("", dId, name, roninKey, roninAddr)
+            res = await getPlayerDailies(dId, name, roninKey, roninAddr)
 
             # configure alert messages
             if res is not None:
