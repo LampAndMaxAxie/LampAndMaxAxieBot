@@ -1012,9 +1012,9 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
         return
 
     name = user['name']
-    payoutAddr = user['payoutAddr']
+    payoutAddr = user['payout_addr']
     if payoutAddr is not None:
-        payoutAddr = user['payout_addr'].strip()
+        payoutAddr = payoutAddr.strip()
     share = float(user['share'])
 
     if payoutAddr is None or payoutAddr == "":
