@@ -1490,17 +1490,44 @@ async def battlesCommand(message, args, isManager, discordId, isSlash=False):
         # check if they're a valid scholar
         author = await DB.getDiscordID(message.author.id)
         if (author["success"] and author["rows"]["is_scholar"]) or isManager:
-
             # check if the request is for someone else's data
-            tId = discordId
-            if len(args) > 1 and len(args[1].strip()) > 0:
+            if not isSlash and len(message.mentions) > 0:
+                tId = message.mentions[0].id
+                targ = await DB.getDiscordID(tId)
+                if targ["success"]:
+                    targ = targ["rows"]
+                    tId = targ["discord_id"]
+                else:
+                    tId = message.author.id
+                    targ = author["rows"]
+
+            elif len(args) > 1 and len(args[1].strip()) > 0 and UtilBot.is_int(args[1].strip()):
                 targ = await DB.getDiscordID(args[1])
                 if targ["success"]:
                     targ = targ["rows"]
                     tId = targ["discord_id"]
                 else:
+                    tId = message.author.id
                     targ = author["rows"]
+
+            elif len(args) > 1 and len(args[1].strip()) > 0:
+                scholarsDB = await DB.getAllScholars()
+                if not scholarsDB["success"]:
+                    await Common.handleResponse(message, "Failed to query database for scholars", isSlash)
+                    return
+                tId = message.author.id
+                targ = author["rows"]
+
+                search = args[1].strip().lower()
+
+                for r in scholarsDB["rows"]:
+                    if r["name"].lower().startswith(search):
+                        targ = r
+                        tId = targ["discord_id"]
+                        break
+
             else:
+                tId = message.author.id
                 targ = author["rows"]
 
             roninKey, roninAddr = await UtilBot.getKeyForUser(targ)

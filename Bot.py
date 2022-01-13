@@ -84,8 +84,8 @@ async def on_message(message):
 
     # user requests recent battles
     elif args[0] == prefix + "battles":
-        await message.reply("Sorry, following the latest Axie Infinity update battle logs are no longer available. :(")
-        # await Commands.battlesCommand(message, args, isManager, discordId, guildId)
+        #await message.reply("Sorry, following the latest Axie Infinity update battle logs are no longer available. :(")
+        await Commands.battlesCommand(message, args, isManager, discordId)
         return
 
     # user requests axie data

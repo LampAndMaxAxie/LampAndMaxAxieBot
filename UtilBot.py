@@ -218,22 +218,6 @@ async def makeJsonRequestWeb(url):
         )
 
         jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
-        succ = False
-        if 'success' in jsonDat:
-            succ = jsonDat['success']
-
-        if 'story_id' in jsonDat:
-            succ = True
-
-        if not succ:
-            if 'details' in jsonDat and len(jsonDat['details']) > 0:
-                if 'code' in jsonDat:
-                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['code'])
-                else:
-                    logger.error("API call failed in makeJsonRequest for: " + url + ", " + jsonDat['details'][0])
-            else:
-                logger.error("API call failed in makeJsonRequest for: " + url)
-            return None
 
     except Exception as e:
         logger.error("Exception in makeJsonRequest for: " + url)
@@ -501,13 +485,15 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
 async def getRoninBattles(roninAddr):
     global battlesCache
 
+    roninAddr = roninAddr.replace("ronin:", "0x")
+
     # check caching
     if roninAddr in battlesCache and int(battlesCache[roninAddr]["cache"]) - int(time.time()) > 0:
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = gameAPI + "/clients/" + roninAddr + "/battles?offset=0&limit=0&battle_type=0"
-    jsonDat = await makeJsonRequest(url, "none")
+    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x","ronin:")
+    jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
@@ -521,7 +507,7 @@ async def getRoninBattles(roninAddr):
         return None
 
     try:
-        battles = jsonDat['items']
+        battles = jsonDat['battles']
 
         # Arena data, mmr/rank
         player = jsonDatRank['items'][1]
@@ -543,32 +529,50 @@ async def getRoninBattles(roninAddr):
         lastTime = None
         latestMatches = []
         for battle in battles:
+            if roninAddr == battle["first_client_id"]:
+                fighter = "first_team_fighters"
+                bClient = "first_client_id"
+            else:
+                fighter = "second_team_fighters"
+                bClient = "second_client_id"
+
+            if "eloAndItem" in battle:
+                eloDat = True
+                if battle["eloAndItem"][0]["player_id"] == roninAddr:
+                    oldMmr = battle["eloAndItem"][0]["old_elo"]
+                    newMmr = battle["eloAndItem"][0]["new_elo"]
+
+                    if "_items" in battle["eloAndItem"][0]:
+                        slp = int(battle["eloAndItem"][0]["_items"][0]["amount"])
+                    else:
+                        slp = 0
+
+                else:
+                    oldMmr = battle["eloAndItem"][1]["old_elo"]
+                    newMmr = battle["eloAndItem"][1]["new_elo"]
+
+                    if "_items" in battle["eloAndItem"][1]:
+                        slp = int(battle["eloAndItem"][1]["_items"][0]["amount"])
+                    else:
+                        slp = 0
+            else:
+                eloDat = False
 
             if lastTime is None:
-                lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
+                lastTime = int(datetime.datetime.strptime(battle['game_ended'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc).timestamp())
 
-            # opponent ronin
-            if battle['first_client_id'] == roninAddr:
-                pos = 0
-                if len(axieIds) == 0:
-                    teamId = battle['first_team_id']
-                    for axie in battle['fighters']:
-                        if axie['team_id'] == teamId:
-                            axieIds.append(axie['fighter_id'])
-            else:
-                pos = 1
-                if len(axieIds) == 0:
-                    teamId = battle['second_team_id']
-                    for axie in battle['fighters']:
-                        if axie['team_id'] == teamId:
-                            axieIds.append(axie['fighter_id'])
+                fighter = "first_team_fighters"
+                if roninAddr != battle["first_client_id"]:
+                    figher = "second_team_fighters"
+                
+                axieIds = battle[fighter]
 
             # count draw
-            if battle['winner'] == 2:
+            if battle['winner'] == "draw":
                 draws += 1
                 result = 'draw'
             # count win
-            elif battle['winner'] == pos:
+            elif battle['winner'] == roninAddr:
                 wins += 1
                 result = 'win'
             # count loss
@@ -587,16 +591,20 @@ async def getRoninBattles(roninAddr):
             elif not streakBroken and streakType != result:
                 streakBroken = True
 
-            # opponent ronin
-            if battle['first_client_id'] == roninAddr:
-                opponent = battle['second_client_id']
+            if eloDat:
+                change = newMmr - oldMmr
+                if change >= 0:
+                    resTxt = f"{result}, +{change}, {slp} SLP"
+                else:
+                    resTxt = f"{result}, {change}, {slp} SLP"
+
             else:
-                opponent = battle['first_client_id']
+                resTxt = result
 
             if len(latestMatches) < 5:
-                latestMatches.append({'result': result,
+                latestMatches.append({'result': resTxt,
                                       'replay': 'https://cdn.axieinfinity.com/game/deeplink.html?f=rpl&q={}'.format(
-                                          battle['battle_uuid']), 'opponent': opponent})
+                                          battle['battle_uuid'])})
 
         axieImages = []
         combinedImg = None
@@ -701,14 +709,16 @@ async def getRoninBattles(roninAddr):
 # returns data on scholar's battles
 async def getScholarBattles(targetId, discordName, roninAddr):
     global battlesCache
+    
+    roninAddr = roninAddr.replace("ronin:", "0x")
 
     # check caching
-    if targetId in battlesCache and int(battlesCache[targetId]["cache"]) - int(time.time()) > 0:
-        return battlesCache[targetId]["data"]
+    if roninAddr in battlesCache and int(battlesCache[roninAddr]["cache"]) - int(time.time()) > 0:
+        return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = gameAPI + "/clients/" + roninAddr + "/battles?offset=0&limit=0&battle_type=0"
-    jsonDat = await makeJsonRequest(url, "none")
+    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x","ronin:")
+    jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
@@ -718,7 +728,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         return None
 
     try:
-        battles = jsonDat['items']
+        battles = jsonDat['battles']
 
         # Arena data, mmr/rank
         player = jsonDatRank['items'][1]
@@ -740,32 +750,46 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         lastTime = None
         latestMatches = []
         for battle in battles:
+            if roninAddr == battle["first_client_id"]:
+                fighter = "first_team_fighters"
+                bClient = "first_client_id"
+            else:
+                fighter = "second_team_fighters"
+                bClient = "second_client_id"
+
+            if "eloAndItem" in battle:
+                eloDat = True
+                if battle["eloAndItem"][0]["player_id"] == roninAddr:
+                    oldMmr = battle["eloAndItem"][0]["old_elo"]
+                    newMmr = battle["eloAndItem"][0]["new_elo"]
+
+                    if "_items" in battle["eloAndItem"][0]:
+                        slp = int(battle["eloAndItem"][0]["_items"][0]["amount"])
+                    else:
+                        slp = 0
+
+                else:
+                    oldMmr = battle["eloAndItem"][1]["old_elo"]
+                    newMmr = battle["eloAndItem"][1]["new_elo"]
+
+                    if "_items" in battle["eloAndItem"][1]:
+                        slp = int(battle["eloAndItem"][1]["_items"][0]["amount"])
+                    else:
+                        slp = 0
+            else:
+                eloDat = False
 
             if lastTime is None:
-                lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
+                lastTime = int(datetime.datetime.strptime(battle['game_ended'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc).timestamp())
 
-            # opponent ronin
-            if battle['first_client_id'] == roninAddr:
-                pos = 0
-                if len(axieIds) == 0:
-                    teamId = battle['first_team_id']
-                    for axie in battle['fighters']:
-                        if axie['team_id'] == teamId:
-                            axieIds.append(axie['fighter_id'])
-            else:
-                pos = 1
-                if len(axieIds) == 0:
-                    teamId = battle['second_team_id']
-                    for axie in battle['fighters']:
-                        if axie['team_id'] == teamId:
-                            axieIds.append(axie['fighter_id'])
+                axieIds = battle[fighter]
 
             # count draw
-            if battle['winner'] == 2:
+            if battle['winner'] == "draw":
                 draws += 1
                 result = 'draw'
             # count win
-            elif battle['winner'] == pos:
+            elif battle['winner'] == roninAddr:
                 wins += 1
                 result = 'win'
             # count loss
@@ -783,17 +807,20 @@ async def getScholarBattles(targetId, discordName, roninAddr):
                 streakAmount += 1
             elif not streakBroken and streakType != result:
                 streakBroken = True
-
-            # opponent ronin
-            if battle['first_client_id'] == roninAddr:
-                opponent = battle['second_client_id']
+            
+            if eloDat:
+                change = newMmr - oldMmr
+                if change >= 0:
+                    resTxt = f"{result}, +{change}, {slp} SLP"
+                else:
+                    resTxt = f"{result}, {change}, {slp} SLP"
             else:
-                opponent = battle['first_client_id']
+                resTxt = result
 
             if len(latestMatches) < 5:
-                latestMatches.append({'result': result,
+                latestMatches.append({'result': resTxt,
                                       'replay': 'https://cdn.axieinfinity.com/game/deeplink.html?f=rpl&q={}'.format(
-                                          battle['battle_uuid']), 'opponent': opponent})
+                                          battle['battle_uuid'])})
 
         axieImages = []
         combinedImg = None
