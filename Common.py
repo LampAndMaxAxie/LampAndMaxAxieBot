@@ -3,7 +3,7 @@ import configparser
 import getpass
 import json
 import os
-
+import sys
 import discord
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -11,11 +11,9 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util import Counter
 from discord.ext import commands
 from dislash import slash_commands
-from dislash.interactions import *
 from eth_account import Account
 from loguru import logger
 from web3 import Web3
-
 import SeedStorage
 
 # Setup Config Parser
@@ -24,19 +22,18 @@ try:
     config.read(r'./config.cfg')
 except:
     logger.error("Please fill out a config.cfg file according to specifications.")
-    exit()
+    sys.exit()
 
 try:
     programName = config.get('Manager', 'programName')
     ownerID = config.get('Manager', 'ownerDiscordID')
-    ownerRonin = config.get('Manager', 'ownerRoninAddr').replace("ronin:","0x")
+    ownerRonin = config.get('Manager', 'ownerRoninAddr').replace("ronin:", "0x")
 
     if ownerID is None or ownerID == "" or ownerRonin is None or ownerRonin == "":
         raise Exception("Missing owner information")
-
 except:
     logger.error("Please fill out a [Manager] section for programName and ownerId.")
-    exit()
+    sys.exit()
 
 try:
     alertChannelId = int(config.get('Server', 'alertsChannelId'))
@@ -45,7 +42,7 @@ try:
     serverIds = json.loads(config.get('Server', 'serverIds'))
 except:
     logger.error("Please fill out a [Server] section with alertsChannelId and serverIds.")
-    exit()
+    sys.exit()
 
 try:
     qrBlacklist = json.loads(config.get('Bot', 'qrBlacklistIds'))
@@ -71,7 +68,7 @@ try:
         dmErrorsToManagers = True
 except:
     logger.error("Please fill out a [Bot] section with qrBlacklistIds, prefix, dmErrorsToManagers, dmPayoutsToScholars, and hideScholarRonins.")
-    exit()
+    sys.exit()
 
 try:
     requireNaming = config.get('Bot', 'requireNaming')
@@ -91,10 +88,9 @@ try:
 
     if axieSalt == "" or axieSalt == "mysaltpleasechangeme" or len(axieSalt) > 1024: 
         raise Exception("Invalid salt")
-
 except:
     logger.error("Please fill out an [Encryption] section with a salt property up to 1024 characters.")
-    exit()
+    sys.exit()
 
 # Setup Discord Bot
 intents = discord.Intents.default()
@@ -113,7 +109,7 @@ key_bytes = 32
 
 if not os.path.exists("./iv.dat"):
     print("IV data file not found. Please restore the file or re-run your seed encryption.")
-    exit()
+    sys.exit()
 
 if os.path.exists("./.botpass"):
     with open("./.botpass", "r") as f:
@@ -131,7 +127,7 @@ with open("iv.dat", "rb") as f:
         iv = f.read()
     except:
         logger.error("There was an error reading your IV data file.")
-        exit()
+        sys.exit()
 
 
 # Functions
@@ -227,7 +223,7 @@ async def getFromMnemonic(seedNumber, accountNumber, scholarAddress):
         mnemonic = decrypt(decryptionKey, iv, mnemonicList[int(seedNumber) - 1]).decode("utf8")
         scholarAccount = Account.from_mnemonic(mnemonic, "", "m/44'/60'/0'/0/" + str(int(accountNumber) - 1))
         if scholarAddress.lower() == scholarAccount.address.lower():
-            #logger.info("Got the key for " + scholarAddress + " correctly")
+            # logger.info("Got the key for " + scholarAddress + " correctly")
             return {
                 "key": Web3.toHex(scholarAccount.key),
                 "address": scholarAccount.address.lower()
@@ -247,5 +243,4 @@ try:
     x = decrypt(decryptionKey, iv, mnemonicList[0]).decode("utf8")
 except:
     print(f"Password failed.")
-    exit()
-
+    sys.exit()
