@@ -15,3 +15,5 @@ package-lock.json
 .botpass
 iv.dat
 SeedStorage.py
+config.cfg
+
