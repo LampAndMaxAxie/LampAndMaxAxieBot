@@ -41,7 +41,7 @@ try:
     tzutc = pytz.timezone('UTC')
 except:
     logger.error("Please fill out a [Bot] section with cacheTimeMinutes, timezone1, and timezone2.")
-    exit()
+    sys.exit()
 
 scholarCache = {}
 summaryCache = {}
@@ -72,33 +72,23 @@ retries = Retry(connect=retryAmount, read=retryAmount, redirect=2, status=retryA
 http = urllib3.PoolManager(retries=retries)
 
 
-async def getMarketplaceProfile(address):
+async def getMarketplaceProfile(address, attempts=0):
+    url = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + address + "\"){accountId,name}}"
+    payload = {}
+    headers = {
+        'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
+    }
     try:
-        url = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + address + "\"){accountId,name}}"
-        payload = {}
-        headers = {
-            'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
-        }
-
         response = requests.request("GET", url, headers=headers, data=payload)
         jsonDat = json.loads(response.text)
-        name = jsonDat['data']['publicProfileWithRoninAddress']['name']
-    except Exception as e:
-        logger.error("Error in getMarketplaceProfile")
-        logger.error(e)
-        #await sendErrorToManagers(e, "")
-
-        return None
-
-    return jsonDat
-
-
-async def getInGameName(address):
-    dat = await getMarketplaceProfile(address)
-    if dat is None:
-        return None
-
-    return dat['data']['publicProfileWithRoninAddress']['name']
+        return jsonDat['data']['publicProfileWithRoninAddress']['name']
+    except Exception:
+        if attempts > 3:
+            # logger.error("Error in getMarketplaceProfile")
+            # logger.error(e)
+            return None
+        else:
+            return await getMarketplaceProfile(address, attempts+1)
 
 
 async def sendErrorToManagers(e, flag):
@@ -119,7 +109,6 @@ async def sendErrorToManagers(e, flag):
 
 
 def getEmojiFromReact(reaction):
-    emoji = None
     if type(reaction.emoji) is str:
         emoji = reaction.emoji
     else:
@@ -141,7 +130,7 @@ async def getKeyForUser(user):
 
 def is_int(val):
     try:
-        num = int(val)
+        int(val)
     except ValueError:
         return False
     return True
@@ -181,8 +170,6 @@ def concatImages(imagePaths, name, excessPxl=0):
 
 # get a player's Axie Infinity game-api auth/bearer token
 def getPlayerToken(roninKey, roninAddr):
-    token = ""
-    tokenBook = {}
     try:
         changed = False
 
@@ -220,7 +207,6 @@ def getPlayerToken(roninKey, roninAddr):
 # make an API request and process the result as JSON data
 async def makeJsonRequestWeb(url):
     response = None
-    jsonDat = None
     try:
         response = http.request(
             "GET",
@@ -264,7 +250,6 @@ async def makeJsonRequestWeb(url):
 # make an Axie Infinity game-api authorized request and process the result as JSON data
 async def makeJsonRequest(url, token, attempt=0):
     response = None
-    jsonDat = None
     try:
         response = http.request(
             "GET",
@@ -316,7 +301,7 @@ async def makeJsonRequest(url, token, attempt=0):
 
 
 # get a player's daily stats and progress
-async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr, guildId=None):
+async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=None):
     global scholarCache
 
     # check caching
@@ -350,7 +335,6 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         logger.error(f"Failed an API call for daily for {roninAddr}")
         return None
 
-    cacheExp = int(time.time()) + CACHE_TIME * 60
     try:
         meta = jsonDat['meta_data']
         jsonDat = jsonDat['player_stat']
@@ -361,21 +345,13 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         # process data
 
         maxEnergy = meta['max_energy']
-        maxSlp = meta['max_slp_by_day']
 
-        daysSinceCreated = round((utc_time - int(float(jsonDat['created_at']))) / (60 * 60 * 24), 1)
         lastUpdatedStamp = int(jsonDat['updated_at'])
-        lastUpdatedEast = datetime.datetime.fromtimestamp(lastUpdatedStamp).replace(tzinfo=tzutc).astimezone(tz1)
-        lastUpdatedPhil = datetime.datetime.fromtimestamp(lastUpdatedStamp).replace(tzinfo=tzutc).astimezone(tz2)
 
         # player-stats, energy/daily SLP/match counts
         remainingEnergy = int(jsonDat['remaining_energy'])
         pvpSlp = int(jsonDat['pvp_slp_gained_last_day'])
         pveSlp = int(jsonDat['pve_slp_gained_last_day'])
-        pvpCount = int(jsonDat['pvp_battle_number_last_day'])
-        pveCount = int(jsonDat['pve_battle_number_last_day'])
-        pvpLastPlayed = round((utc_time - int(jsonDat['last_played_pvp_at'])) / (60 * 60), 1)
-        pvpStreakLost = int(jsonDat['pvp_last_streak_lost'])
 
         # quests, quest completion data and progress
         quest = jsonDatQuests['items'][0]
@@ -408,9 +384,8 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         losses = int(player["lose_total"])
         draws = int(player["draw_total"])
 
-        winRate = "0%"
         if wins + losses + draws > 0:
-            winRate = str(round(wins / (wins + losses + draws), 2)) + "%"
+            pass
 
         # items, account/lifetime/earned SLP and claim date
         lifetimeSlp = jsonDatBalance["blockchain_related"]["checkpoint"]
@@ -432,7 +407,6 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
         else:
             inGameSlp = int(totalSlp - roninSlp - claimableSlp)
 
-        lastClaim = tz1.fromutc(datetime.datetime.fromtimestamp(int(jsonDatBalance["last_claimed_item_at"])))
         lastClaimStamp = int(jsonDatBalance["last_claimed_item_at"])
         nextClaimStamp = lastClaimStamp + (14 * 24 * 60 * 60)
         daysSinceClaim = math.ceil((utc_time - int(jsonDatBalance["last_claimed_item_at"])) / (60 * 60 * 24))
@@ -441,15 +415,12 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
 
         daysRemaining = 14 - daysSinceClaim
         if daysRemaining < 0:
-            daysRemaining = 0
-        claimText = str(claimDate)[:len(str(claimDate)) - 6] + ' - ({} days)'.format(daysRemaining)
+            pass
 
-        pvpText = "0"
-        pveText = "0"
         if pvpCount > 0:
-            pvpText = str(round(float(pvpSlp) / float(pvpCount), 2))
+            pass
         if pveCount > 0:
-            pveText = str(round(float(pveSlp) / float(pveCount), 2))
+            pass
 
         questTxt = ""
         if questCompleted and questClaimed:
@@ -460,13 +431,6 @@ async def getPlayerDailies(discordId, targetId, discordName, roninKey, roninAddr
             questTxt = "incomplete"
 
         checkInTxt = "complete" if checkIn else "incomplete"
-
-        updatedTxt = "`" + str(lastUpdatedEast) + '`\n`' + str(lastUpdatedPhil) + '`\n'
-
-        cacheEast = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz1)
-        cachePhil = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz2)
-
-        cacheTxt = "`" + str(cacheEast) + '`\n`' + str(cachePhil) + '`\n'
 
         slpPerDay = round(inGameSlp / daysSinceClaim, 1)
         pveTxt = str(pveQuest) + '/' + str(pveQuestN)
@@ -548,7 +512,7 @@ async def getRoninBattles(roninAddr):
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
-    name = await getInGameName(roninAddr)
+    name = await getMarketplaceProfile(roninAddr)
     if name is None:
         name = "<unknown>"
 
@@ -556,8 +520,6 @@ async def getRoninBattles(roninAddr):
     if jsonDat is None or jsonDatRank is None:
         return None
 
-    cacheExp = int(time.time()) + CACHE_TIME * 60
-    res = None
     try:
         battles = jsonDat['items']
 
@@ -581,16 +543,12 @@ async def getRoninBattles(roninAddr):
         lastTime = None
         latestMatches = []
         for battle in battles:
-            result = None
 
             if lastTime is None:
                 lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
 
             # opponent ronin
-            opponent = None
-            pos = None
             if battle['first_client_id'] == roninAddr:
-                opponent = battle['second_client_id']
                 pos = 0
                 if len(axieIds) == 0:
                     teamId = battle['first_team_id']
@@ -598,7 +556,6 @@ async def getRoninBattles(roninAddr):
                         if axie['team_id'] == teamId:
                             axieIds.append(axie['fighter_id'])
             else:
-                opponent = battle['first_client_id']
                 pos = 1
                 if len(axieIds) == 0:
                     teamId = battle['second_team_id']
@@ -631,7 +588,6 @@ async def getRoninBattles(roninAddr):
                 streakBroken = True
 
             # opponent ronin
-            opponent = None
             if battle['first_client_id'] == roninAddr:
                 opponent = battle['second_client_id']
             else:
@@ -690,14 +646,6 @@ async def getRoninBattles(roninAddr):
             count += 1
 
         streakText = "Current " + streakType.capitalize() + " Streak"
-
-        cacheEast = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz1)
-        cachePhil = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz2)
-        cacheTxt = "`" + str(cacheEast)[:len(str(cacheEast)) - 6] + '`\n`' + str(cachePhil)[:len(str(cachePhil)) - 6] + '`\n'
-
-        lastEast = lastTime.astimezone(tz1)
-        lastPhil = lastTime.astimezone(tz2)
-        lastTxt = "`" + str(lastEast)[:len(str(lastEast)) - 6] + '`\n`' + str(lastPhil)[:len(str(lastPhil)) - 6] + '`\n'
 
         embed = discord.Embed(title="Account Recent Battles", description="Recent battles for address " + roninAddr,
                               timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
@@ -751,7 +699,7 @@ async def getRoninBattles(roninAddr):
 
 
 # returns data on scholar's battles
-async def getScholarBattles(discordId, targetId, discordName, roninAddr):
+async def getScholarBattles(targetId, discordName, roninAddr):
     global battlesCache
 
     # check caching
@@ -769,8 +717,6 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
     if jsonDat is None or jsonDatRank is None:
         return None
 
-    cacheExp = int(time.time()) + CACHE_TIME * 60
-    res = None
     try:
         battles = jsonDat['items']
 
@@ -794,16 +740,12 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
         lastTime = None
         latestMatches = []
         for battle in battles:
-            result = None
 
             if lastTime is None:
                 lastTime = datetime.datetime.strptime(battle['created_at'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tzutc)
 
             # opponent ronin
-            opponent = None
-            pos = None
             if battle['first_client_id'] == roninAddr:
-                opponent = battle['second_client_id']
                 pos = 0
                 if len(axieIds) == 0:
                     teamId = battle['first_team_id']
@@ -811,7 +753,6 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
                         if axie['team_id'] == teamId:
                             axieIds.append(axie['fighter_id'])
             else:
-                opponent = battle['first_client_id']
                 pos = 1
                 if len(axieIds) == 0:
                     teamId = battle['second_team_id']
@@ -844,7 +785,6 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
                 streakBroken = True
 
             # opponent ronin
-            opponent = None
             if battle['first_client_id'] == roninAddr:
                 opponent = battle['second_client_id']
             else:
@@ -903,14 +843,6 @@ async def getScholarBattles(discordId, targetId, discordName, roninAddr):
             count += 1
 
         streakText = "Current " + streakType.capitalize() + " Streak"
-
-        cacheEast = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz1)
-        cachePhil = datetime.datetime.fromtimestamp(int(cacheExp)).replace(tzinfo=tzutc).astimezone(tz2)
-        cacheTxt = "`" + str(cacheEast)[:len(str(cacheEast)) - 6] + '`\n`' + str(cachePhil)[:len(str(cachePhil)) - 6] + '`\n'
-
-        lastEast = lastTime.astimezone(tz1)
-        lastPhil = lastTime.astimezone(tz2)
-        lastTxt = "`" + str(lastEast)[:len(str(lastEast)) - 6] + '`\n`' + str(lastPhil)[:len(str(lastPhil)) - 6] + '`\n'
 
         embed = discord.Embed(title="Scholar Recent Battles", description="Recent battles for scholar " + discordName,
                               timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
@@ -995,7 +927,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             elif sort == "claim":
                 df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-            df['Pos'] = np.arange(1,len(df)+1)
+            df['Pos'] = np.arange(1, len(df)+1)
 
             return df, cacheEast
 
@@ -1012,7 +944,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             if roninKey is None or roninAddr is None:
                 continue
             discordId = str(scholar["discord_id"])
-            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr, guildId)
+            res = await getPlayerDailies(discordId, "", roninKey, roninAddr, guildId)
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
@@ -1031,7 +963,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
         elif sort == "claim":
             df = df.sort_values(by=['NextClaim'], ascending=ascending)
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1071,7 +1003,7 @@ async def getScholarTop10(sort="slp"):
                 # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
                 df = df.sort_values(by=['MMR'], ascending=ascending)
 
-            df['Pos'] = np.arange(1,len(df)+1)
+            df['Pos'] = np.arange(1, len(df)+1)
 
             return df.head(10), cacheEast
 
@@ -1089,7 +1021,7 @@ async def getScholarTop10(sort="slp"):
             if roninKey is None or roninAddr is None:
                 continue
             discordId = str(scholar["discord_id"])
-            res = await getPlayerDailies(discordId, discordId, "", roninKey, roninAddr)
+            res = await getPlayerDailies(discordId, "", roninKey, roninAddr)
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
@@ -1100,7 +1032,7 @@ async def getScholarTop10(sort="slp"):
                                          res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                                          quest, res["claimDate"].date()]
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         # cache the summary data, can be re-sorted
         summaryCache["df"] = df
@@ -1117,7 +1049,7 @@ async def getScholarTop10(sort="slp"):
             # df = df.drop(columns=['CurSLP', 'SLP/Day', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             df = df.sort_values(by=['MMR'], ascending=ascending)
 
-        df['Pos'] = np.arange(1,len(df)+1)
+        df['Pos'] = np.arange(1, len(df)+1)
 
         return df.head(10), cacheEast
     except Exception as e:
@@ -1152,7 +1084,6 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
     utc_time = int(datetime.datetime.now(tzutc).timestamp())
     cacheExp = utc_time + 24 * 60 * 60 * 3  # 3 days
     try:
-        ind = -1
         if teamIndex <= 0:
             ind = 0
         elif teamIndex >= len(jsonDat['items']):
@@ -1196,8 +1127,6 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         embedComps = []
 
         j = 1
-        axieTitle = ""
-        axieBody = ""
         # build the message component for each axie
         for i in axieIds:
             stats = axieParts[i]["stats"]
@@ -1283,7 +1212,6 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
         logger.info("Processing near-reset alerts")
 
         channel = Common.client.get_channel(Common.alertChannelId)
-        msg = ""
 
         if not forceAlert:
             msg = "Hello %s! The %s daily reset is in 1 hour.\n\n" % (Common.programName, str(rn.date()))
@@ -1309,7 +1237,7 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
             dId = scholar["discord_id"]
 
             # fetch daily progress data
-            res = await getPlayerDailies("", dId, name, roninKey, roninAddr)
+            res = await getPlayerDailies(dId, name, roninKey, roninAddr)
 
             # configure alert messages
             if res is not None:

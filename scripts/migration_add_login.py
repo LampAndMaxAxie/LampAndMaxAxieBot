@@ -1,11 +1,8 @@
-import asyncio
 import aiosqlite as sql
-from loguru import logger
-from SeedStorage import *
-from Common import *
+
 import DB
-import sys
-import os
+from Common import *
+from SeedStorage import *
 
 fName = "migrate_login.txt"
 

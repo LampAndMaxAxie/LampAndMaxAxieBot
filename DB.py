@@ -454,10 +454,9 @@ async def setProperty(prop, val):
 
 # Select
 @logger.catch
-async def getProperty(prop, x=None):
+async def getProperty(prop):
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM properties WHERE property=?", (prop,))
         rows = await c.fetchone()
@@ -471,16 +470,15 @@ async def getProperty(prop, x=None):
 
 
 @logger.catch
-async def getLastClaim(roninAddr, x=None):
+async def getLastClaim(roninAddr):
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM claims WHERE ronin_addr = ? ORDER BY claim_time DESC", (roninAddr,))
         rows = await c.fetchone()
         # logger.info(f"Got last claim data for {roninAddr}")
 
-    except Exception as e:
+    except Exception:
         # logger.error(traceback.format_exc())
         logger.error(f"Failed to get last claim for {roninAddr}")
         return {"success": False, "msg": f"Error in getting claim for {roninAddr}", "rows": None}
@@ -489,10 +487,9 @@ async def getLastClaim(roninAddr, x=None):
 
 
 @logger.catch
-async def getAllScholars(x=None):
+async def getAllScholars():
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users WHERE is_scholar=1")
         rows = await c.fetchall()
@@ -506,14 +503,13 @@ async def getAllScholars(x=None):
 
 
 @logger.catch
-async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, x=None):
+async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None):
     c = await client.db.cursor()
 
     if minIndex is None or maxIndex is None:
         maxIndex = 0
         minIndex = 0
 
-    rows = None
     try:
         if minIndex == 0 or maxIndex == 0:
             await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ?", (int(seed),))
@@ -534,7 +530,6 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None, x=None):
 async def getAllManagers():
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users WHERE is_manager=1 OR is_owner=1")
         rows = await c.fetchall()
@@ -551,7 +546,6 @@ async def getAllManagers():
 async def getAllNoRole():
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users WHERE (is_manager=0 OR is_manager IS NULL) AND (is_scholar=0 OR is_scholar IS NULL) AND (is_owner=0 OR is_owner IS NULL)")
         rows = await c.fetchall()
@@ -568,7 +562,6 @@ async def getAllNoRole():
 async def getAllUsers():
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users")
         rows = await c.fetchall()
@@ -585,7 +578,6 @@ async def getAllUsers():
 async def getAllManagerIDs():
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users WHERE is_manager=1 or is_owner=1")
         rows = await c.fetchall()
@@ -606,7 +598,6 @@ async def getAllManagerIDs():
 async def getDiscordID(discordID):
     c = await client.db.cursor()
 
-    rows = None
     try:
         await c.execute("SELECT * FROM users WHERE discord_id=? LIMIT 1", (int(discordID),))
         rows = await c.fetchone()
@@ -630,7 +621,6 @@ async def getOwner():
     c = await client.db.cursor()
 
     # logger.info("before async in getOwner")
-    rows = None
     try:
         # logger.info("exec owner query")
         await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
