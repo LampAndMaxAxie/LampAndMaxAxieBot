@@ -1,23 +1,14 @@
 # Author: Michael Conard
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
-import datetime
-import os
-import time
 
-import discord
-import pandas as pd
-import plotly.graph_objects as go
 from discord.ext import tasks
-from loguru import logger
-
 import Commands
-import Common
-import DB
-import UtilBot
-from Common import prefix, client
+from Common import client
 from SeedStorage import DiscordBotToken
 from Slash import *
 
+global forceAlert
+global alertPing
 # Event Listeners
 
 
@@ -58,28 +49,22 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    isManager = False
-    managerIds = await DB.getAllManagerIDs()
-    logger.info("Manager IDs")
-    logger.info(managerIds)
-    if int(discordId) in managerIds:
-        isManager = True
-
+    isManager = DB.isManager(discordId)
     args = message.content.split(" ")
 
     # If the user requests a QR code
     if message.content == prefix + "qr":
-        await Commands.qrCommand(message, discordId, guildId)
+        await Commands.qrCommand(message, guildId)
         return
 
     # If the user requests login info
     if message.content == prefix + "login":
-        await Commands.loginInfoCommand(message, discordId, guildId)
+        await Commands.loginInfoCommand(message, guildId)
         return
 
     # user requests daily progress
     elif args[0] == prefix + "daily":
-        await Commands.dailyCommand(message, args, isManager, discordId, guildId)
+        await Commands.dailyCommand(message, args, guildId)
         return
 
     # user requests recent battles
@@ -90,18 +75,18 @@ async def on_message(message):
 
     # user requests axie data
     elif args[0] == prefix + "axies":
-        await Commands.axiesCommand(message, args, isManager, discordId)
+        await Commands.axiesCommand(message, args, isManager)
         return
 
     # user requests scholar summary data, can be restricted to manager only via the comment
     elif args[0] == prefix + "summary":  # and isManager:
         logger.info("Starting processing of a summary request, may take a while for large programs")
-        await Commands.summaryCommand(message, args, discordId, guildId)
+        await Commands.summaryCommand(message, args, guildId)
         return
 
     # user requests scholar top10 data, can be restricted to manager only via the comment
     elif args[0] == prefix + "top":  # and isManager:
-        await Commands.topCommand(message, args, discordId)
+        await Commands.topCommand(message, args)
         return
 
     # user requests alerts, must be manager
@@ -127,29 +112,29 @@ async def on_message(message):
         return
 
     elif args[0] == prefix + "addScholar" and isManager:
-        await Commands.addScholar(message, args, discordId)
+        await Commands.addScholar(message, args)
         return
 
     elif args[0] == prefix + "removeScholar" and isManager:
-        await Commands.removeScholar(message, args, discordId)
+        await Commands.removeScholar(message, args)
         return
 
     elif args[0] == prefix + "updateScholarShare" and isManager:
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
             return
-        await Commands.updateScholarShare(message, args, discordId)
+        await Commands.updateScholarShare(message, args)
         return
 
     elif args[0] == prefix + "setPayoutAddress":
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
             return
-        await Commands.updateScholarAddress(message, args, isManager, discordId)
+        await Commands.updateScholarAddress(message, args)
         return
     
     elif args[0] == prefix + "setAccountLogin":
-        await Commands.updateScholarLogin(message, args, discordId)
+        await Commands.updateScholarLogin(message, args)
         return
 
     elif args[0] == prefix + "addManager" and isManager:
@@ -168,7 +153,7 @@ async def on_message(message):
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
             return
-        await Commands.payoutCommand(message, args, isManager, discordId)
+        await Commands.payoutCommand(message, args)
         return
 
     elif args[0] == prefix + "massPayout" and isManager:
@@ -223,7 +208,7 @@ async def on_message(message):
 
     # user asked for command help
     elif message.content == prefix + "help":
-        await Commands.helpCommand(message, isManager, discordId)
+        await Commands.helpCommand(message, isManager)
         return
 
     logger.warning('Unknown command entered: {}'.format(message.content))

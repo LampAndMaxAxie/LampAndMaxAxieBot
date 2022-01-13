@@ -526,23 +526,6 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None):
     return {"success": True, "rows": rows}
 
 
-@logger.catch
-async def getAllManagers():
-    c = await client.db.cursor()
-
-    try:
-        await c.execute("SELECT * FROM users WHERE is_manager=1 OR is_owner=1")
-        rows = await c.fetchall()
-        logger.info(f"Fetched all managers")
-
-    except:
-        logger.error(f"Failed to get all managers")
-        return {"success": False, "msg": f"Exception in processing manager query"}
-
-    return {"success": True, "rows": rows}
-
-
-@logger.catch
 async def getAllNoRole():
     c = await client.db.cursor()
 
@@ -585,7 +568,7 @@ async def getAllManagerIDs():
 
     except:
         logger.error(f"Failed to get all managers")
-        return {"success": False, "msg": f"Exception in processing manager query"}
+        return {}
 
     ids = []
     for row in rows:
@@ -619,14 +602,9 @@ async def getDiscordID(discordID):
 @logger.catch
 async def getOwner():
     c = await client.db.cursor()
-
-    # logger.info("before async in getOwner")
     try:
-        # logger.info("exec owner query")
         await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
         rows = await c.fetchone()
-        # logger.info("fetched owner")
-
     except Exception as e:
         logger.error(f"Failed to get owner")
         logger.error(e)
@@ -637,10 +615,11 @@ async def getOwner():
 
 @logger.catch
 async def isManager(discordID):
-    mgrs = await getAllManagers()
-
-    for row in mgrs["rows"]:
-        if int(row['discord_id']) == int(discordID):
+    managerIds = await getAllManagerIDs()
+    logger.info("Manager IDs")
+    logger.info(managerIds)
+    for manager in managerIds:
+        if int(manager) == int(discordID):
             return True
 
     return await isOwner(discordID)
@@ -659,7 +638,7 @@ async def isOwner(discordID):
 @logger.catch
 async def getMembershipReport():
     try:
-        mgrs = await getAllManagers()
+        mgrs = len(await getAllManagerIDs())
         sclr = await getAllScholars()
         norl = await getAllNoRole()
         totl = await getAllUsers()
@@ -667,7 +646,6 @@ async def getMembershipReport():
 
         logger.info(norl)
 
-        mgrs = 0 if mgrs["rows"] is None else len(mgrs["rows"])
         sclr = 0 if sclr["rows"] is None else len(sclr["rows"])
         norl = 0 if norl["rows"] is None else len(norl["rows"])
         totl = 0 if totl["rows"] is None else len(totl["rows"])

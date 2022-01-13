@@ -20,11 +20,12 @@ from Common import prefix, dmPayoutsToScholars
 
 
 # Returns information on available commands
-async def helpCommand(message, isManager, discordId, isSlash=False):
+async def helpCommand(message, isManager, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
-    msg = 'Hello <@' + str(discordId) + '>! Here are the text command options:\n'
+    msg = 'Hello <@' + str(authorID) + '>! Here are the text command options:\n'
     msg += ' - `' + prefix + 'help`: returns this help message\n'
     msg += ' - `' + prefix + 'daily [name/ping/discordID]`: returns the player\'s match/SLP/quest data for today\n'
     msg += ' - `' + prefix + 'axies [name/ping/discordID] [index] [m]`: returns the player\'s Axies, [index] is to select a team (default 0), set [m] for mobile friendly\n'
@@ -60,7 +61,8 @@ async def helpCommand(message, isManager, discordId, isSlash=False):
 
 
 # DM the caller their QR login code
-async def qrCommand(message, discordId, guildId, isSlash=False):
+async def qrCommand(message, guildId, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
@@ -73,7 +75,7 @@ async def qrCommand(message, discordId, guildId, isSlash=False):
         await message.author.send(msg)
 
         if guildId is not None:
-            msg = 'Hi <@' + str(discordId) + '>, please check your DMs!'
+            msg = 'Hi <@' + str(authorID) + '>, please check your DMs!'
             await Common.handleResponse(message, msg, isSlash)
 
         return
@@ -89,17 +91,17 @@ async def qrCommand(message, discordId, guildId, isSlash=False):
             await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
             return
 
-        logger.info(f"Scholar {discordId} account addr confirmed as {accountAddress} via mnemonic")
+        logger.info(f"Scholar {authorID} account addr confirmed as {accountAddress} via mnemonic")
 
         if accountPrivateKey == "" or accountAddress == "":
-            msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured QR code generation.'
+            msg = 'Sorry <@' + str(authorID) + '>, your manager has not configured QR code generation.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
         accessToken = UtilBot.getPlayerToken(accountPrivateKey, accountAddress)
 
         if accessToken is None:
-            msg = 'Sorry <@' + str(discordId) + '>, there was an issue with your request. Please try again later.'
+            msg = 'Sorry <@' + str(authorID) + '>, there was an issue with your request. Please try again later.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
@@ -113,6 +115,7 @@ async def qrCommand(message, discordId, guildId, isSlash=False):
             await message.channel.send(content="Here is your new QR Code to login, remember to always keep it safe and not to let anyone else see it:", file=discord.File(qrFileName), flags=(1 << 6))
 
             # msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}qr"
+
             # await Common.handleResponse(message, msg, isSlash)
 
         else:
@@ -123,21 +126,22 @@ async def qrCommand(message, discordId, guildId, isSlash=False):
             await message.author.send("Remember to keep your QR code safe and don't let anyone else see it!")
 
             if guildId is not None:
-                msg = 'Hi <@' + str(discordId) + '>, please check your DMs!'
+                msg = 'Hi <@' + str(authorID) + '>, please check your DMs!'
                 await Common.handleResponse(message, msg, isSlash)
 
         return
 
     else:
         logger.warning("This user didn't receive a QR Code : " + message.author.name)
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
+        msg = 'Hello <@' + str(authorID) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
 
         await Common.handleResponse(message, msg, isSlash)
         return
 
 
 # DM the caller their login info
-async def loginInfoCommand(message, discordId, guildId, isSlash=False):
+async def loginInfoCommand(message, guildId, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
@@ -147,7 +151,7 @@ async def loginInfoCommand(message, discordId, guildId, isSlash=False):
         await message.author.send(msg)
 
         if guildId is not None:
-            msg = 'Hi <@' + str(discordId) + '>, please check your DMs!'
+            msg = 'Hi <@' + str(authorID) + '>, please check your DMs!'
             await Common.handleResponse(message, msg, isSlash)
 
         return
@@ -162,7 +166,7 @@ async def loginInfoCommand(message, discordId, guildId, isSlash=False):
         password = scholar["account_pass"]
 
         if email is None or password is None:
-            msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured login info.'
+            msg = 'Sorry <@' + str(authorID) + '>, your manager has not configured login info.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
@@ -171,7 +175,7 @@ async def loginInfoCommand(message, discordId, guildId, isSlash=False):
             # respond with hidden message with info
             await message.edit(content=f"Here is your login info, remember to always keep it safe and not to let anyone else see it:\nEmail: ||{email}||\nPassword: ||{password}||", flags=(1 << 6))
 
-            # msg = 'Hi <@' + str(discordId) + f">, this slash command isn\'t implemented yet! Please try {prefix}login"
+            # msg = 'Hi <@' + str(authorID) + f">, this slash command isn\'t implemented yet! Please try {prefix}login"
             # await Common.handleResponse(message, msg, isSlash)
 
         else:
@@ -182,14 +186,14 @@ async def loginInfoCommand(message, discordId, guildId, isSlash=False):
             await message.author.send(f"Remember to keep your login info safe and don't let anyone else see it!")
 
             if guildId is not None:
-                msg = 'Hi <@' + str(discordId) + '>, please check your DMs!'
+                msg = 'Hi <@' + str(authorID) + '>, please check your DMs!'
                 await Common.handleResponse(message, msg, isSlash)
 
         return
 
     else:
         logger.warning("This user didn't receive login info : " + message.author.name)
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
+        msg = 'Hello <@' + str(authorID) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
 
         await Common.handleResponse(message, msg, isSlash)
         return
@@ -307,26 +311,26 @@ async def processConfirmationManager(message, embed, timeoutSecs=None):
 
 
 # Get a scholar's data
-async def getScholar(message, args, discordId, isSlash=False):
+async def getScholar(message, args, isSlash=False):
     authorID = message.author.id
 
     if len(args) > 1 and not args[1].isnumeric():
         await Common.handleResponse(message, "Please ensure the discord ID is correct", isSlash)
         return
     if len(args) > 1:
-        discordId = int(args[1])
+        authorID = int(args[1])
 
-    name = await Common.getNameFromDiscordID(discordId)
+    name = await Common.getNameFromDiscordID(authorID)
     if name is None:
         await Common.handleResponse(message, "Could not find user with that discord ID", isSlash)
         return
 
-    scholarRes = await DB.getDiscordID(discordId)
+    scholarRes = await DB.getDiscordID(authorID)
     if not scholarRes["success"]:
         await Common.handleResponse(message, "Failed to get scholar from database", isSlash)
         return
     if scholarRes["rows"]["is_scholar"] is None or scholarRes["rows"]["is_scholar"] == 0:
-        await Common.handleResponse(message, f"Did not find a scholar with discord ID {discordId}", isSlash)
+        await Common.handleResponse(message, f"Did not find a scholar with discord ID {authorID}", isSlash)
         return
 
     scholar = scholarRes["rows"]
@@ -341,10 +345,10 @@ async def getScholar(message, args, discordId, isSlash=False):
     else:
         roninAddr = scholar["scholar_addr"]
 
-    embed = discord.Embed(title="Scholar Information", description=f"Information about scholar {name}/{discordId}",
+    embed = discord.Embed(title="Scholar Information", description=f"Information about scholar {name}/{authorID}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Scholar Name", value=f"{name}")
-    embed.add_field(name=":id: Scholar Discord ID", value=f"{discordId}")
+    embed.add_field(name=":id: Scholar Discord ID", value=f"{authorID}")
     embed.add_field(name=":bar_chart: Scholar Share", value=f"{round(scholarShare * 100, 2)}%")
     embed.add_field(name=":clock1: Scholar Created", value=f"<t:{createdTime}:D>")
     embed.add_field(name="Seed", value=f"{seedNum}")
@@ -359,7 +363,7 @@ async def getScholar(message, args, discordId, isSlash=False):
 
 
 # Add a scholar to the system
-async def addScholar(message, args, discordId, isSlash=False):
+async def addScholar(message, args, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
         await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
@@ -453,7 +457,7 @@ async def addScholar(message, args, discordId, isSlash=False):
         return
 
     # add scholar to DB
-    msg = f"<@{discordId}>: \n"
+    msg = f"<@{message.author.id}>: \n"
 
     res = await DB.addScholar(discordUID, name, seedNum, accountNum, roninAddr, scholarShare)
     msg += res['msg'] + "\n"
@@ -466,7 +470,7 @@ async def addScholar(message, args, discordId, isSlash=False):
 
 
 # Revoke a scholar's scholar status
-async def removeScholar(message, args, discordId, isSlash=False):
+async def removeScholar(message, args, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
         await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
@@ -504,11 +508,11 @@ async def removeScholar(message, args, discordId, isSlash=False):
 
     res = await DB.removeScholar(discordUID)
 
-    await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
+    await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
 
 
 # Update a scholar's payout share
-async def updateScholarShare(message, args, discordId, isSlash=False):
+async def updateScholarShare(message, args, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
         await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
@@ -575,11 +579,11 @@ async def updateScholarShare(message, args, discordId, isSlash=False):
 
     res = await DB.updateScholarShare(discordUID, scholarShare)
 
-    await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
+    await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
 
 
 # Update a scholar's login info
-async def updateScholarLogin(message, args, discordId, isSlash=False):
+async def updateScholarLogin(message, args, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
         await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
@@ -630,21 +634,21 @@ async def updateScholarLogin(message, args, discordId, isSlash=False):
 
     res = await DB.updateScholarLogin(discordUID, scholarAddr, email, password)
 
-    await confMsg.reply(content=f"<@{discordId}>: " + res['msg'])
+    await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
 
 
-async def updateScholarAddress(message, args, isManager, discordId, isSlash=False):
+async def updateScholarAddress(message, args, isSlash=False):
     authorID = message.author.id
-
+    isManager = DB.isManager(authorID)
     if len(args) < 2:
         await Common.handleResponse(message, f"Please specify: {prefix}payoutAddress", isSlash)
         return
 
     if len(args) > 2 and args[2].isnumeric() and isManager:
-        discordId = int(args[2])
+        authorID = int(args[2])
 
     payoutAddr = args[1].replace("ronin:", "0x").strip()
-    name = await Common.getNameFromDiscordID(discordId)
+    name = await Common.getNameFromDiscordID(authorID)
 
     if not payoutAddr.startswith("ronin:") and not payoutAddr.startswith("0x"):
         await Common.handleResponse(message, "Please ensure the payout address starts with ronin: or 0x", isSlash)
@@ -654,7 +658,7 @@ async def updateScholarAddress(message, args, isManager, discordId, isSlash=Fals
         await Common.handleResponse(message, "That does not seem to be a valid Ronin address. Please double check it and try again.", isSlash)
         return
 
-    res = await DB.getDiscordID(discordId)
+    res = await DB.getDiscordID(authorID)
     user = res["rows"]
     if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
@@ -668,10 +672,10 @@ async def updateScholarAddress(message, args, isManager, discordId, isSlash=Fals
     oldAddr = user["payout_addr"]
 
     # confirm with react
-    embed = discord.Embed(title="Update Scholar Payout Confirmation", description=f"Confirming update for scholar {discordId}",
+    embed = discord.Embed(title="Update Scholar Payout Confirmation", description=f"Confirming update for scholar {authorID}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name=":book: Scholar Name", value=f"{name}")
-    embed.add_field(name=":id: Scholar Discord ID", value=f"{discordId}")
+    embed.add_field(name=":id: Scholar Discord ID", value=f"{authorID}")
     embed.add_field(name="Note!", value="Please check the new address carefully!")
 
     embed.add_field(name="Old Address", value=f"{oldAddr}")
@@ -695,7 +699,7 @@ async def updateScholarAddress(message, args, isManager, discordId, isSlash=Fals
 
     # update scholar address in DB
 
-    res = await DB.updateScholarAddress(discordId, payoutAddr)
+    res = await DB.updateScholarAddress(authorID, payoutAddr)
 
     await confMsg.reply(content=f"<@{authorID}>: " + res['msg'])
 
@@ -977,29 +981,32 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
 
 
 # Command for an individual scholar payout
-async def payoutCommand(message, args, isManager, discordId, isSlash=False):
+async def payoutCommand(message, args, isSlash=False):
     authorID = message.author.id
+    isManager = DB.isManager(authorID)
 
     mp = await DB.getProperty("massPay")
-    if not mp["success"]:
+    if not mp["success"] or mp["rows"] is not None or mp["rows"]["realVal"] is None:
         await Common.handleResponse(message, "Failed to query database for massPay property", isSlash)
         return
-    if not isManager and mp["rows"] is not None and (mp["rows"]["realVal"] is None or int(mp["rows"]["realVal"]) != 0):
+    if not isManager and int(mp["rows"]["realVal"]) != 0:
         await Common.handleResponse(message, "Individual payouts are disabled. Ask your manager to run a mass payout or to enable individual payouts.", isSlash)
         return
+
+    if len(args) > 1 and not isManager:
+        await Common.handleResponse(message, "Sorry, you cannot pay out accounts that are not yours.", isSlash)
+        return
+    elif len(args) > 1 and isManager:
+        discordId = int(args[1])
+    else:
+        discordId = authorID
 
     res = await DB.getProperty("devDonation")
     if not res["success"]:
         await Common.handleResponse(message, "Failed to query database for devDonation property", isSlash)
         return
 
-    devDonation = 0.0
-    if res["rows"]["realVal"] is not None:
-        devDonation = round(float(res["rows"]["realVal"]), 3)
-
-    authorId = discordId
-    if len(args) > 1 and args[1].isnumeric() and isManager:
-        discordId = int(args[1])
+    dD = round(float(res["rows"]["realVal"]), 3)
 
     if int(discordId) in Common.payBlacklist:
         await Common.handleResponse(message, "Sorry, payouts are disabled for your account.", isSlash)
@@ -1007,7 +1014,7 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
 
     res = await DB.getDiscordID(discordId)
     user = res["rows"]
-    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+    if user is None or user["is_scholar"] is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with your discord ID", isSlash)
         return
 
@@ -1025,7 +1032,6 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
         return
 
     dbClaim = await DB.getLastClaim(address)
-    # print(dbClaim)
     if "success" in dbClaim and dbClaim["success"] and dbClaim["rows"] is not None and int(dbClaim["rows"]["claim_time"]) + 1209600 > time.time():
         nextT = int(dbClaim["rows"]["claim_time"]) + 1209600
         await Common.handleResponse(message, f"Sorry, your next claim isn't available yet! Please try again at <t:{nextT}:f> (<t:{nextT}:R>)", isSlash)
@@ -1036,20 +1042,9 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
-    # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
+    if dD == 0:
+        dD = 0.01
 
-    # accessToken = getPlayerToken(key, address)
-    # slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
-    # claimable = slp_data['claimable_total']
-    # nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
-    # if nextClaimTime > time.time():
-    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R>.", isSlash)
-    #    return
-    # if claimable == 0:
-    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R> but there is no claimable SLP.", isSlash)
-    #    return
-
-    # confirm with react
     embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name="Scholar Name", value=f"{name}")
@@ -1077,18 +1072,17 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
 
     try:
-        # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
-        claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, devDonation)
+        claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, dD)
     except Exception as e:
         logger.error(e)
-        if authorId == discordId:
+        if authorID == discordId:
             await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
         else:
-            await processMsg.reply(content=f"<@{authorId}> there was an error while processing the payout.")
+            await processMsg.reply(content=f"<@{authorID}> there was an error while processing the payout.")
         return
 
     if isinstance(claimRes, int):
-        if authorId == discordId:
+        if authorID == discordId:
             await processMsg.reply(content=f"<@{authorID}>: your account is available to claim <t:{claimRes}:R> at <t:{claimRes}:f>.")
         else:
             await processMsg.reply(content=f"<@{authorID}>: {name}'s account is available to claim <t:{claimRes}:R> at <t:{claimRes}:f>.")
@@ -1288,7 +1282,7 @@ async def payoutAllScholars(message, args, isSlash=False):
                 skips["invalidAddress"].append(f"{name}/{scholarID}")
                 continue
 
-            marketName = await UtilBot.getMarketplaceProfile(scholarAddress)
+            marketName = await UtilBot.getMarketplaceProfile(address)
             if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
                 skipped += 1
                 skips["badName"].append(f"{name}/{scholarID}")
@@ -1374,11 +1368,13 @@ async def payoutAllScholars(message, args, isSlash=False):
 
 
 # Command to get a daily summary for a scholar
-async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=False):
+async def dailyCommand(message, args, guildId, isSlash=False):
     if not isSlash:
         await message.channel.trigger_typing()
+    authorID = message.author.id
+    isManager = DB.isManager(authorID)
 
-        # check if they're a valid scholar
+    # check if they're a valid scholar
     author = await DB.getDiscordID(message.author.id)
     if (author["success"] and author["rows"]["is_scholar"]) or isManager:
         # check if the request is for someone else's data
@@ -1426,10 +1422,10 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
             await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
             return
 
-        logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
+        logger.info(f"Scholar {authorID} account addr confirmed as {roninAddr} via mnemonic")
 
         if roninAddr == "" or roninKey == "":
-            msg = 'Sorry <@' + str(discordId) + '>, your manager has not configured game data access.'
+            msg = 'Sorry <@' + str(authorID) + '>, your manager has not configured game data access.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
@@ -1437,7 +1433,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
         res = await UtilBot.getPlayerDailies(tId, targ["name"], roninKey, roninAddr, guildId)
 
         if res is None:
-            msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your stats. Please try again later.'
+            msg = 'Hello <@' + str(authorID) + '>! Unfortunately, there was an error fetching your stats. Please try again later.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
@@ -1449,7 +1445,7 @@ async def dailyCommand(message, args, isManager, discordId, guildId, isSlash=Fal
             await message.reply(embed=res["embed"])
 
     else:
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
+        msg = 'Hello <@' + str(authorID) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
         await Common.handleResponse(message, msg, isSlash)
 
     return
@@ -1543,7 +1539,8 @@ async def battlesCommand(message, args, isManager, discordId, isSlash=False):
 
 
 # Command to get a scholar's axie team information
-async def axiesCommand(message, args, isManager, discordId, isSlash=False):
+async def axiesCommand(message, args, isManager, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
@@ -1595,7 +1592,7 @@ async def axiesCommand(message, args, isManager, discordId, isSlash=False):
             await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
             return
 
-        logger.info(f"Scholar {discordId} account addr confirmed as {roninAddr} via mnemonic")
+        logger.info(f"Scholar {authorID} account addr confirmed as {roninAddr} via mnemonic")
 
         ind = -1
         if len(args) > 2 and str(args[2]).isnumeric():
@@ -1609,7 +1606,7 @@ async def axiesCommand(message, args, isManager, discordId, isSlash=False):
         res = await UtilBot.getPlayerAxies(tId, targ["name"], roninKey, roninAddr, ind)
 
         if res is None:
-            msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error fetching your axies. Please try again later.'
+            msg = 'Hello <@' + str(authorID) + '>! Unfortunately, there was an error fetching your axies. Please try again later.'
             await Common.handleResponse(message, msg, isSlash)
             return
 
@@ -1633,14 +1630,15 @@ async def axiesCommand(message, args, isManager, discordId, isSlash=False):
                 await message.reply(file=combinedFile, embed=embed)
 
     else:
-        msg = 'Hello <@' + str(discordId) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
+        msg = 'Hello <@' + str(authorID) + '>. Unfortunately, you do not appear to be one of ' + Common.programName + '\'s scholars.'
         await Common.handleResponse(message, msg, isSlash)
 
     return
 
 
 # Command to get a summary of all scholars
-async def summaryCommand(message, args, discordId, guildId, isSlash=False):
+async def summaryCommand(message, args, guildId, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
@@ -1665,7 +1663,7 @@ async def summaryCommand(message, args, discordId, guildId, isSlash=False):
 
     # error
     if table is None or cacheExp is None:
-        msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error building the summary. Please try again later.'
+        msg = 'Hello <@' + str(authorID) + '>! Unfortunately, there was an error building the summary. Please try again later.'
         if isSlash:
             await message.edit(content=msg)
         else:
@@ -1673,7 +1671,7 @@ async def summaryCommand(message, args, discordId, guildId, isSlash=False):
         return
 
     # send results
-    msg = 'Hello <@' + str(discordId) + '>, here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
+    msg = 'Hello <@' + str(authorID) + '>, here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
     if not csv:
         logger.info("Preparing summary image")
@@ -1725,7 +1723,8 @@ async def exportCommand(message, isManager, isSlash=False):
 
 
 # Command to get a top 10 summary of all scholars
-async def topCommand(message, args, discordId, isSlash=False):
+async def topCommand(message, args, isSlash=False):
+    authorID = message.author.id
     if not isSlash:
         await message.channel.trigger_typing()
 
@@ -1744,7 +1743,7 @@ async def topCommand(message, args, discordId, isSlash=False):
 
     # error
     if table is None or cacheExp is None:
-        msg = 'Hello <@' + str(discordId) + '>! Unfortunately, there was an error building the top 10. Please try again later.'
+        msg = 'Hello <@' + str(authorID) + '>! Unfortunately, there was an error building the top 10. Please try again later.'
         if isSlash:
             await message.edit(content=msg)
         else:
@@ -1752,7 +1751,7 @@ async def topCommand(message, args, discordId, isSlash=False):
         return
 
     # send results
-    msg = 'Hello <@' + str(discordId) + '>, here is the scholar top 10 sorted by `' + sort + " " + ascText + "`:"
+    msg = 'Hello <@' + str(authorID) + '>, here is the scholar top 10 sorted by `' + sort + " " + ascText + "`:"
 
     if not csv:
         logger.info("Preparing top10 image")
