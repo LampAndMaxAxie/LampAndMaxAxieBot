@@ -85,7 +85,7 @@ async def importScholars(fName):
             # skip comment lines
             if line.startswith('#'):
                 continue
-
+            line = line.replace("\ufeff", "")
             args = [x.strip() for x in line.split(',')]
 
             if len(args) > 4:
