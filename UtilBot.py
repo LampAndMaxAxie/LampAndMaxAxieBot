@@ -510,7 +510,10 @@ async def getRoninBattles(roninAddr):
         battles = jsonDat['battles']
 
         # Arena data, mmr/rank
-        player = jsonDatRank['items'][1]
+        if len(jsonDatRank['items']) > 1:
+            player = jsonDatRank['items'][1]
+        else:
+            player = jsonDatRank['items'][0]
         name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
@@ -601,7 +604,7 @@ async def getRoninBattles(roninAddr):
             else:
                 resTxt = result
 
-            if len(latestMatches) < 5:
+            if len(latestMatches) < 10:
                 latestMatches.append({'result': resTxt,
                                       'replay': 'https://cdn.axieinfinity.com/game/deeplink.html?f=rpl&q={}'.format(
                                           battle['battle_uuid'])})
@@ -650,7 +653,8 @@ async def getRoninBattles(roninAddr):
         count = 1
         for match in latestMatches:
             resultText += match['result'] + '\n'
-            replayText += '[Replay {}]({})\n'.format(count, match['replay'])
+            if count <= 5:
+                replayText += '[Replay {}]({})\n'.format(count, match['replay'])
             count += 1
 
         streakText = "Current " + streakType.capitalize() + " Streak"
@@ -666,7 +670,7 @@ async def getRoninBattles(roninAddr):
         embed.add_field(name=":dagger: Arena Wins", value=f"{wins}, {winrate}%")
         embed.add_field(name=":shield: Arena Losses", value=f"{losses}, {loserate}%")
         embed.add_field(name=":broken_heart: Arena Draws", value=f"{draws}, {drawrate}%")
-        embed.add_field(name="Last 5 Results", value=f"{resultText}")
+        embed.add_field(name="Last 10 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
         embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
         # embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
@@ -731,7 +735,10 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         battles = jsonDat['battles']
 
         # Arena data, mmr/rank
-        player = jsonDatRank['items'][1]
+        if len(jsonDatRank['items']) > 1:
+            player = jsonDatRank['items'][1]
+        else:
+            player = jsonDatRank['items'][0]
         name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
@@ -817,7 +824,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
             else:
                 resTxt = result
 
-            if len(latestMatches) < 5:
+            if len(latestMatches) < 10:
                 latestMatches.append({'result': resTxt,
                                       'replay': 'https://cdn.axieinfinity.com/game/deeplink.html?f=rpl&q={}'.format(
                                           battle['battle_uuid'])})
@@ -866,7 +873,8 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         count = 1
         for match in latestMatches:
             resultText += match['result'] + '\n'
-            replayText += '[Replay {}]({})\n'.format(count, match['replay'])
+            if count <= 5:
+                replayText += '[Replay {}]({})\n'.format(count, match['replay'])
             count += 1
 
         streakText = "Current " + streakType.capitalize() + " Streak"
@@ -882,7 +890,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         embed.add_field(name=":dagger: Arena Wins", value=f"{wins}, {winrate}%")
         embed.add_field(name=":shield: Arena Losses", value=f"{losses}, {loserate}%")
         embed.add_field(name=":broken_heart: Arena Draws", value=f"{draws}, {drawrate}%")
-        embed.add_field(name="Last 5 Results", value=f"{resultText}")
+        embed.add_field(name="Last 10 Results", value=f"{resultText}")
         embed.add_field(name="Last 5 Replays", value=f"{replayText}")
         embed.add_field(name=":floppy_disk: Cached Until", value=f"<t:{cacheExp}:R>")
         # embed.set_footer(text=f"The first timezone is {tz1String} and the second is {tz2String}.")
