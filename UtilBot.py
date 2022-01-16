@@ -627,13 +627,15 @@ async def getRoninBattles(roninAddr):
                 else:
                     axieImages.append(imgPath)
 
-        if not imgErr:
+        if len(axieIds) >= 3 and not imgErr:
             combinedIds = '{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             combinedImg = './images/{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             if not os.path.exists(combinedImg):
                 res = concatImages(axieImages, combinedImg)
                 if res is None:
                     imgErr = True
+        else:
+            imgErr = True
 
         matches = wins + losses + draws
 
@@ -847,13 +849,15 @@ async def getScholarBattles(targetId, discordName, roninAddr):
                 else:
                     axieImages.append(imgPath)
 
-        if not imgErr:
+        if len(axieIds) >= 3 and not imgErr:
             combinedIds = '{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             combinedImg = './images/{}-{}-{}.png'.format(axieIds[0], axieIds[1], axieIds[2])
             if not os.path.exists(combinedImg):
                 res = concatImages(axieImages, combinedImg)
                 if res is None:
                     imgErr = True
+        else:
+            imgErr = True
 
         matches = wins + losses + draws
 
