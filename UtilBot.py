@@ -257,17 +257,18 @@ async def makeJsonRequest(url, token, attempt=0):
             succ = True
 
         if not succ:
-            if 'details' in jsonDat and len(jsonDat['details']) > 0:
-                if 'code' in jsonDat:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
-                else:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
-            else:
-                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
-
             if attempt < 3:
                 return await makeJsonRequest(url, token, attempt + 1)
             else:
+                if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                    if 'code' in jsonDat:
+                        logger.error(
+                            f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
+                    else:
+                        logger.error(
+                            f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
+                else:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
                 return None
 
     except Exception as e:
