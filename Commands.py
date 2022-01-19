@@ -325,7 +325,7 @@ async def getScholar(message, args, discordId, isSlash=False):
     if not scholarRes["success"]:
         await Common.handleResponse(message, "Failed to get scholar from database", isSlash)
         return
-    if scholarRes["rows"]["is_scholar"] is None or scholarRes["rows"]["is_scholar"] == 0:
+    if scholarRes["rows"] is None or scholarRes["rows"]["is_scholar"] is None or scholarRes["rows"]["is_scholar"] == 0:
         await Common.handleResponse(message, f"Did not find a scholar with discord ID {discordId}", isSlash)
         return
 

@@ -189,10 +189,16 @@ async def messageManagers(msg, managerIds):
 
 async def getNameFromDiscordID(UID):
     logger.info(f"Fetching name for {UID}")
-    usr = await client.fetch_user(int(UID))
-    logger.info(usr)
+
+    try:
+        usr = await client.fetch_user(int(UID))
+        logger.info(usr)
+    except:
+        usr = None
+
     if usr is None:
         return None
+
     return usr.name + "#" + usr.discriminator
 
 
