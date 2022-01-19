@@ -1,6 +1,6 @@
 version: "3"
 services:
-  prismbot:
+  lampandmaxaxiebot:
     build: .
     restart: always
     hostname: lampandmaxaxiebot
