@@ -16,7 +16,7 @@ import ClaimSLP
 import Common
 import DB
 import UtilBot
-from Common import prefix, dmPayoutsToScholars
+from Common import prefix, client, dmPayoutsToScholars
 
 
 # Returns information on available commands
@@ -847,6 +847,7 @@ async def asyncLoadingUpdate(message):
             if massPayoutGlobal["counter"] == lastCount:
                 await asyncio.sleep(15)
                 continue
+            await client.wait_until_ready()
 
             complete = massPayoutGlobal["counter"]
             lastCount = complete
