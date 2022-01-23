@@ -880,8 +880,8 @@ async def asyncLoadingUpdate(message):
 
             await asyncio.sleep(10)
         except Exception as e:
-            logger.error("Exception while updating mass payout log message")
-            logger.error(e)
+            logger.warning("Failed to update the mass payout log message, shouldn't be an issue, happens sometimes")
+            #logger.error(e)
             await asyncio.sleep(10)
     pass
 
