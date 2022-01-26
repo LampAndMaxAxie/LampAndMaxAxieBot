@@ -1373,7 +1373,7 @@ async def payoutAllScholars(message, args, isSlash=False):
         out += f"Other: {other}"
 
     if len(out) > 0:
-        pass
+        report = await report.reply(content=out)
 
 
 # Command to get a daily summary for a scholar
