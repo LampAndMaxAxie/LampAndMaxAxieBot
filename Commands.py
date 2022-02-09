@@ -1373,7 +1373,7 @@ async def payoutAllScholars(message, args, isSlash=False):
         out += f"Other: {other}"
 
     if len(out) > 0:
-        report = await report.reply(content=out)
+        pass
 
 
 # Command to get a daily summary for a scholar
@@ -1708,7 +1708,8 @@ async def summaryCommand(message, args, discordId, guildId, isSlash=False):
     if not csv:
         logger.info("Preparing summary image")
         fig = go.Figure(data=[go.Table(
-            columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             header=dict(values=list(table.columns),
                         fill_color="paleturquoise",
                         align='center'),
@@ -1787,7 +1788,8 @@ async def topCommand(message, args, discordId, isSlash=False):
     if not csv:
         logger.info("Preparing top10 image")
         fig = go.Figure(data=[go.Table(
-            columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             header=dict(values=list(table.columns),
                         fill_color="paleturquoise",
                         align='center'),

@@ -479,6 +479,7 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
             "lifetimeSlp": lifetimeSlp,
             "claimCycleDays": daysSinceClaim,
             "inGameSlp": inGameSlp,
+            "discordName": discordName,
             "avgSlpPerDay": round(inGameSlp / daysSinceClaim, 1),
             "claimDate": claimDate
         }
@@ -987,8 +988,8 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
 
         # build the data table
         df = pd.DataFrame(
-            columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins',
-                     'PvESLP', 'Quest', 'NextClaim'])
+            #columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
         scholarsDict = await DB.getAllScholars()
         if scholarsDict["success"] is None:
             return None, None
@@ -998,16 +999,18 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             if roninKey is None or roninAddr is None:
                 continue
             discordId = str(scholar["discord_id"])
-            res = await getPlayerDailies(discordId, "", roninKey, roninAddr, guildId)
+            res = await getPlayerDailies(discordId, scholar["name"], roninKey, roninAddr, guildId)
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
                 quest = False
                 if res["questSlp"] == 25:
                     quest = True
-                df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
-                                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
-                                         quest, res["claimDate"].date()]
+                #df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
+                #                         quest, res["claimDate"].date()]
+                df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                                         res["energy"], res["pvpCount"], res["claimDate"].date()]
 
         # sort the summary table
         if sort in ["avgslp", "slp", "adventure", "adv"]:
@@ -1063,8 +1066,8 @@ async def getScholarTop10(sort="slp"):
 
         # build the data table
         df = pd.DataFrame(
-            columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins',
-                     'PvESLP', 'Quest', 'NextClaim'])
+            #columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
 
         scholarsDict = await DB.getAllScholars()
         if scholarsDict["success"] is None:
@@ -1082,9 +1085,11 @@ async def getScholarTop10(sort="slp"):
                 quest = False
                 if res["questSlp"] == 25:
                     quest = True
-                df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
-                                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
-                                         quest, res["claimDate"].date()]
+                #df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
+                #                         quest, res["claimDate"].date()]
+                df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                                         res["energy"], res["pvpCount"], res["claimDate"].date()]
 
         df['Pos'] = np.arange(1, len(df)+1)
 
