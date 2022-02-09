@@ -257,18 +257,17 @@ async def makeJsonRequest(url, token, attempt=0):
             succ = True
 
         if not succ:
+            if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                if 'code' in jsonDat:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
+                else:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
+            else:
+                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
+
             if attempt < 3:
                 return await makeJsonRequest(url, token, attempt + 1)
             else:
-                if 'details' in jsonDat and len(jsonDat['details']) > 0:
-                    if 'code' in jsonDat:
-                        logger.error(
-                            f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
-                    else:
-                        logger.error(
-                            f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
-                else:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
                 return None
 
     except Exception as e:
@@ -339,19 +338,33 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         pveSlp = int(jsonDat['pve_slp_gained_last_day'])
 
         # quests, quest completion data and progress
-        quest = jsonDatQuests['items'][0]
-        questClaimed = quest['claimed'] is not None
-        checkIn = quest['missions'][0]['is_completed']
-        pveQuest = quest['missions'][1]['progress']
-        pveCount = pveQuest  # temporary
-        pveQuestN = quest['missions'][1]['total']
-        pvpQuest = quest['missions'][2]['progress']
-        pvpCount = pvpQuest  # temporary
-        pvpQuestN = quest['missions'][2]['total']
-        questSlp = 0
-        questCompleted = pveQuest >= pveQuestN and pvpQuest >= pvpQuestN and checkIn
-        if questCompleted and questClaimed:
-            questSlp = 25
+        if len(jsonDatQuests['items']) > 0:
+            quest = jsonDatQuests['items'][0]
+            questClaimed = quest['claimed'] is not None
+            checkIn = quest['missions'][0]['is_completed']
+            pveQuest = quest['missions'][1]['progress']
+            pveCount = pveQuest  # temporary
+            pveQuestN = quest['missions'][1]['total']
+            pvpQuest = quest['missions'][2]['progress']
+            pvpCount = pvpQuest  # temporary
+            pvpQuestN = quest['missions'][2]['total']
+            questSlp = 0
+            questCompleted = pveQuest >= pveQuestN and pvpQuest >= pvpQuestN and checkIn
+            if questCompleted and questClaimed:
+                questSlp = 25
+        else:
+            quest = None
+            questClaimed = None
+            checkIn = False
+            pveQuest = 0
+            pveCount = pveQuest  # temporary
+            pveQuestN = 0
+            pvpQuest = 0
+            pvpCount = pvpQuest  # temporary
+            pvpQuestN = 0
+            questSlp = 0
+            questCompleted = False
+            questSlp = 0
 
         # sometimes it returns 0 energy if they haven't done anything yet
         if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
@@ -442,10 +455,11 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         embed.add_field(name=":crossed_swords: Arena MMR", value=f"{mmr}")
         embed.add_field(name=":trophy: Arena Rank", value=f"{rank}")
         embed.add_field(name=":cloud_lightning: Remaining Energy", value=f"{remainingEnergy}")
-        embed.add_field(name=":white_check_mark: Quest - Check in", value=f"{checkInTxt}")
-        embed.add_field(name=":bear: Quest - PvE", value=f"{pveTxt}, {pveSlp}/50 SLP")
-        embed.add_field(name=":bow_and_arrow: Quest - PvP", value=f"{pvpTxt}")
-        embed.add_field(name=":scroll: Daily Quest", value=f"{questTxt}")
+        if quest is not None:
+            embed.add_field(name=":white_check_mark: Quest - Check in", value=f"{checkInTxt}")
+            embed.add_field(name=":bear: Quest - PvE", value=f"{pveTxt}, {pveSlp}/50 SLP")
+            embed.add_field(name=":bow_and_arrow: Quest - PvP", value=f"{pvpTxt}")
+            embed.add_field(name=":scroll: Daily Quest", value=f"{questTxt}")
         embed.add_field(name=":clock1: Last Updated", value=f"<t:{lastUpdatedStamp}:f>")
         embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
 
