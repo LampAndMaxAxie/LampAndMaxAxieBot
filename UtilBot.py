@@ -1300,7 +1300,7 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
 
             # configure alert messages
             if res is not None:
-                alert = res["questSlp"] != 25 or res["energy"] > 0 or res["pveSlp"] < 50 or res["mmr"] < 1000
+                alert = res["energy"] > 0 or res["mmr"] < 1000
                 congrats = res["pvpCount"] >= 15
                 if alert or congrats:
                     # send early to avoid message size limits
@@ -1313,14 +1313,14 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
                     else:
                         msg += name.replace('`', '') + ":\n"
 
-                    if res["questSlp"] != 25:
-                        msg += '%s You have not completed/claimed the daily quest yet\n' % redX
+                    #if res["questSlp"] != 25:
+                    #    msg += '%s You have not completed/claimed the daily quest yet\n' % redX
                     if res["energy"] > 0:
                         msg += '%s You have %d energy remaining\n' % (redX, res["energy"])
-                    if res["pveSlp"] < 50:
-                        msg += '%s You only have %d/50 Adventure SLP completed\n' % (redX, res["pveSlp"])
+                    #if res["pveSlp"] < 50:
+                    #    msg += '%s You only have %d/50 Adventure SLP completed\n' % (redX, res["pveSlp"])
                     if res["mmr"] < 1000:
-                        msg += '%s You are only at %d MMR in Arena. <800 = no SLP.\n' % (redX, res["mmr"])
+                        msg += '%s You are only at %d MMR in Arena. <800 = only 1 SLP per win.\n' % (redX, res["mmr"])
                     if res["pvpCount"] >= 15:
                         msg += '%s Congrats on your %d Arena wins! Wow!\n' % (greenCheck, res["pvpCount"])
                 if alert:
@@ -1328,7 +1328,7 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
 
         if count == 0:
             msg += '\n'
-            msg += "Woohoo! It seems everyone has used their energy and completed the quest today!"
+            msg += "Woohoo! It seems everyone has used their energy today!"
 
         # send alerts
         await channel.send(msg)
