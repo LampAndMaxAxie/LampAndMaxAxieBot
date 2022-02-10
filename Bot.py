@@ -265,7 +265,8 @@ async def checkEnergyQuest():
                 msg = 'Hello ' + Common.programName + ', here is the scholar summary sorted by `' + sort + " " + ascText + "`:"
 
                 fig = go.Figure(data=[go.Table(
-                    columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+                    columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+                    #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
                     header=dict(values=list(table.columns),
                                 fill_color="paleturquoise",
                                 align='center'),
