@@ -329,7 +329,6 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         # process data
 
         maxEnergy = meta['max_energy']
-
         lastUpdatedStamp = int(jsonDat['updated_at'])
 
         # player-stats, energy/daily SLP/match counts
@@ -367,11 +366,11 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
             questSlp = 0
 
         # sometimes it returns 0 energy if they haven't done anything yet
-        if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
-            if maxEnergy is not None and maxEnergy > 0:
-                remainingEnergy = maxEnergy
-            else:
-                remainingEnergy = 20
+        #if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
+        #    if maxEnergy is not None and maxEnergy > 0:
+        #        remainingEnergy = maxEnergy
+        #    else:
+        #        remainingEnergy = 20
 
         # battle data. mmr/rank/wins etc
         player = jsonDatBattle['items'][1]
