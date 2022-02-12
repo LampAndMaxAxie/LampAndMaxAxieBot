@@ -1,10 +1,10 @@
 version: "3"
 services:
-  prismbot:
+  lampandmaxaxiebot:
     build: .
     restart: always
-    hostname: prismbot
-    container_name: prismbot
+    hostname: lampandmaxaxiebot
+    container_name: lampandmaxaxiebot
     network_mode: host
     logging:
       options:
