@@ -1,16 +1,9 @@
-# Author: Michael Conard
+# Authors: Michael Conard & Maxbrand99
 
 ### Code Setup
-1. If on Linux, you're good to go. If on Windows, I recommend setting up Windows Subsystem for Linux: https://www.notion.so/Script-Install-Guide-1bfef048044d47dc8c665bbe502a159a
-2. Install python3 via your preferred method, if you don't already have it.
-3. Setup your github ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
-3. Clone the github repository: `git clone git@github.com:maconard/Lamp-sAxieBot-Base.git`
-4. Move the install script from the scripts folder to main folder. `cp scripts/install-ubuntu.sh install.sh` 
-5. Run the installation script `./install.sh` to install a lot of the basic libraries used. If running the bot fails, just see what library is missing via the error message and install it with pip3 like `pip3 install <missingLibName>`. Can then remove the script `rm install.sh`.
-6. Fill out/replace the values in `config.cfg`. Everything is required.
-7. Run `python3 EncryptSeeds.py`. Read the information printed, choose your encryption password, and input your seeds in the order you reference them for your scholars.
-8. Go to the Discord Dev Portal site and create a DiscordBot. Can follow a simple tutorial like this one: https://www.freecodecamp.org/news/create-a-discord-bot-with-python/
-9. Add the bot's "client token" to the bottom of the `SeedStorage.py` file.
+1a. We recommend using AWS to run your bot, can follow this account creation guide: https://lampandmaxaxiebot.notion.site/AWS-Install-Guide-09ebd3d5365c4d8ca339053d69715aea
+1b. If you prefer to host on Linux, you're good to go. If on Windows, I recommend setting up Windows Subsystem for Linux: https://lampandmaxaxiebot.notion.site/Windows-Install-Guide-5f09a3c782d342f9a1382c30217092d3
+2. Follow this setup/usage guide: https://lampandmaxaxiebot.notion.site/Setting-up-LampAndMax-s-Axie-Bot-8c3ae409a9cd4ef7a09dea06daadff96
 
 ### Bot Setup
 When doing O-Auth to add your bot to your Discord server, make sure to grant/do the following:
@@ -28,9 +21,9 @@ If migrating (i.e. upgrading to new bot version that needs migration):
 
 If importing (i.e. first time using the bot):
 1. Make sure your config.cfg file is up to date and accurate.
-2. Create your import file. Currently this takes the form: `seedNum, accountNum, accountAddr, discordId, scholarShare`, see `sampleTexts/` for an example.
+2. Create your import file. Currently this takes the form: `accountAddr, discordId, scholarShare, <scholarPayoutAddr>`, see `sampleTexts/` for an example.
 3. Copy the importScholars.py file from the scripts folder to the main code file.
-3. From your main bot directory, run `importScholars.py myImportFile.txt` for your input file. 
+3. From your main bot directory, run `python3 importScholars.py myImportFile.txt` for your input file. 
 Note, importing like this is only necessary if you have a large number of scholars and don't want to add them to the bot one by one via Guide item 3 below. Can delete the script and import file when no longer needed.
 
 ### Guide
@@ -60,11 +53,9 @@ For other utility commands, run the `&help` command on your active bot.
 8. Get recent battles for a scholar/ronin address (disabled by Axie servers)
 
 ### Additional Information
-NOTE: slash commands currently not functioning.
+Supports text commands with prefix and slash commands! Note that embeds in slash commands can't contain images due to "API limitations" (quote the API docs), so if you want the images in `battles` and `axies` calls, use a text command instead of a slash command.
 
-Supports text commands with prefix and slash commands! Note that embeds in slash commands can't contain images due to "API limitations" (quote the shitty API docs), so if you want the images in `battles` and `axies` calls, use a text command instead of a slash command.
-
-Feel free to reach out to MaikeruKonare#3141 on Discord for support or bug reports.
+Feel free to reach out to MaikeruKonare#1043 or Maxbrand99#5913 on Discord for support or bug reports.
 
 I'd recommend you run the bot using a supervisor service, such as `supervisord`, so that it runs on machine boot up and re-launches itself on crashes. You can configure stdout and stderr logging to land where you'd like. Otherwise, you could run the bot in a `tmux` or `screen` instance; this would be manual start up but then it would keep running. Up to you. If you're not using your own machine, you can use a secure Amazon EC2 instance.
 
@@ -78,4 +69,3 @@ If you create a custom icon called exactly `:slp:` (yes, lowercase) then the bot
 
 ### Transparency / Developer Donations
 The bot comes with a default 1% (0.01) developer donation configured. We've put hundreds of payless hours into this project, and every SLP helps. If this is a problem, or if you'd like to donate a higher percentage, please reach out to us.
-
