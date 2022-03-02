@@ -1,8 +1,8 @@
 # Authors: Michael Conard & Maxbrand99
 
 ### Code Setup
-1a. We recommend using AWS to run your bot, can follow this account creation guide: https://lampandmaxaxiebot.notion.site/AWS-Install-Guide-09ebd3d5365c4d8ca339053d69715aea
-1b. If you prefer to host on Linux, you're good to go. If on Windows, I recommend setting up Windows Subsystem for Linux: https://lampandmaxaxiebot.notion.site/Windows-Install-Guide-5f09a3c782d342f9a1382c30217092d3
+1a. We recommend using AWS to run your bot, can follow this account creation guide: https://lampandmaxaxiebot.notion.site/AWS-Install-Guide-09ebd3d5365c4d8ca339053d69715aea  
+1b. If you prefer to host on Linux, you're good to go. If on Windows, I recommend setting up Windows Subsystem for Linux: https://lampandmaxaxiebot.notion.site/Windows-Install-Guide-5f09a3c782d342f9a1382c30217092d3  
 2. Follow this setup/usage guide: https://lampandmaxaxiebot.notion.site/Setting-up-LampAndMax-s-Axie-Bot-8c3ae409a9cd4ef7a09dea06daadff96
 
 ### Bot Setup
