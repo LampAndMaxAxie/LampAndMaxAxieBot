@@ -968,7 +968,7 @@ async def getDisperseExport(amount):
         return None, None
 
     for scholar in scholarsDict["rows"]:
-        df.loc[len(df.index)] = [scholar["scholar_addr"] + " " + str(amount)]
+        df.loc[len(df.index)] = [scholar["scholar_addr"].replace('0x', 'ronin:') + " " + amount]
     return df
 
 

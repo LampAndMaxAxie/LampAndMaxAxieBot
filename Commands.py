@@ -1930,9 +1930,9 @@ async def disperseCommand(message, args, isManager, isSlash=False):
         await message.reply("Sorry, this command is only for managers!")
         return
 
-    amount = 1
+    amount = "1"
     if len(args) > 1:
-        amount = int(args[1])
+        amount = args[1]
     df = await UtilBot.getDisperseExport(amount)
     df.to_csv("export.csv", index=False)
 
