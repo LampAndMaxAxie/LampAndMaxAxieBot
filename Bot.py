@@ -1,4 +1,4 @@
-# Author: Michael Conard
+# Author: Michael Conard and Maxbrand99
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 import datetime
 import os
@@ -58,13 +58,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    isManager = False
-    managerIds = await DB.getAllManagerIDs()
-    logger.info("Manager IDs")
-    logger.info(managerIds)
-    if int(discordId) in managerIds:
-        isManager = True
-
+    isManager = await DB.isManager(discordId)
     args = message.content.split(" ")
 
     # If the user requests a QR code
@@ -84,7 +78,7 @@ async def on_message(message):
 
     # user requests recent battles
     elif args[0] == prefix + "battles":
-        #await message.reply("Sorry, following the latest Axie Infinity update battle logs are no longer available. :(")
+        # await message.reply("Sorry, following the latest Axie Infinity update battle logs are no longer available. :(")
         await Commands.battlesCommand(message, args, isManager, discordId)
         return
 
@@ -94,13 +88,13 @@ async def on_message(message):
         return
 
     # user requests scholar summary data, can be restricted to manager only via the comment
-    elif args[0] == prefix + "summary":  # and isManager:
+    elif args[0] == prefix + "summary" and isManager:
         logger.info("Starting processing of a summary request, may take a while for large programs")
         await Commands.summaryCommand(message, args, discordId, guildId)
         return
 
     # user requests scholar top10 data, can be restricted to manager only via the comment
-    elif args[0] == prefix + "top":  # and isManager:
+    elif args[0] == prefix + "top" and isManager:
         await Commands.topCommand(message, args, discordId)
         return
 
@@ -112,6 +106,11 @@ async def on_message(message):
     # get export csv of scholars
     elif args[0] == prefix + "export" and isManager:
         await Commands.exportCommand(message, isManager)
+        return
+
+    # get export csv of scholars
+    elif args[0] == prefix + "disperse" and isManager:
+        await Commands.disperseCommand(message, args, isManager)
         return
 
     elif args[0] == prefix + "getProperty":
@@ -224,10 +223,6 @@ async def on_message(message):
 
         return
 
-    elif message.content == prefix + "wipeClaims":
-        await Commands.wipeClaims(message, isManager)
-        return
-
     # user asked for command help
     elif message.content == prefix + "help":
         await Commands.helpCommand(message, isManager, discordId)
@@ -273,7 +268,7 @@ async def checkEnergyQuest():
 
                 fig = go.Figure(data=[go.Table(
                     columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
-                    #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+                    # columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
                     header=dict(values=list(table.columns),
                                 fill_color="paleturquoise",
                                 align='center'),

@@ -1,5 +1,4 @@
 import json
-
 import requests
 from eth_account.messages import encode_defunct
 from web3 import Web3

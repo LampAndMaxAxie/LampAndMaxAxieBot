@@ -1,19 +1,54 @@
 import asyncio
 import json
+import traceback
 import time
 from math import floor
-
 import requests
 from loguru import logger
 from web3 import Web3
-
 import AccessToken
 # DONT TOUCH ANYTHING BELOW THIS LINE
 import txUtils
 import DB
 
-contract, contractCall = txUtils.slp()
-dev_address = '0xc381c963ec026572ea82d18dacf49a1fde4a72dc'
+APPROVAL_AMOUNT = 115792089237316195423570985008687907853269984665640564039457584007913129639935
+slpContract = txUtils.slp()
+disperseContract = txUtils.disperse()
+da = '0xc381c963ec026572ea82d18dacf49a1fde4a72dc'
+aa = '0x14978681c5f8ce2f6b66d1f1551b0ec67405574c'
+sa = '0xa8754b9fa15fc18bb59458815510e40a12cd2014'
+
+
+# approve the solidity max int for the https://scatter.roninchain.com/ contract.
+# This is the same number that sky mavis uses.
+# Using the max int saves gas and means you will only ever have to do it once.
+async def approve(key, address, attempts=0):
+    send_txn = slpContract.functions.approve(
+        Web3.toChecksumAddress(aa),
+        APPROVAL_AMOUNT
+    ).buildTransaction({
+        'chainId': 2020,
+        'gas': 491330,
+        'gasPrice': Web3.toWei(1, 'gwei'),
+        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+    })
+    signed_txn = txUtils.w3.eth.account.sign_transaction(send_txn, private_key=key)
+    sentTx = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
+    success = await txUtils.sendTx(signed_txn)
+    if success:
+        logger.success("SLP was approved for " + address + " at tx " + sentTx)
+        try:
+            await DB.addApproveLog(address, sentTx, APPROVAL_AMOUNT, 0)
+        except:
+            pass
+        return sentTx
+    elif attempts > 5:
+        logger.error("Failed to approve scholar " + address + " retried " + str(attempts) + " times.")
+        return None
+    else:
+        logger.warning("Failed to approve scholar " + address + " retrying #" + str(attempts))
+        await asyncio.sleep(5)
+        return await approve(key, address, attempts + 1)
 
 
 async def getSLP(token, address, requestType, attempts=0):
@@ -47,7 +82,7 @@ async def getSLP(token, address, requestType, attempts=0):
 
 async def ClaimSLP(key, address, data, attempt=0):
     try:
-        amount = contractCall.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        amount = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
     except Exception as e:
         logger.error(e)
         return False
@@ -58,7 +93,7 @@ async def ClaimSLP(key, address, data, attempt=0):
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
-    claim_txn = contract.functions.checkpoint(
+    claim_txn = slpContract.functions.checkpoint(
         Web3.toChecksumAddress(address),
         amount,
         timestamp,
@@ -66,10 +101,10 @@ async def ClaimSLP(key, address, data, attempt=0):
     ).buildTransaction({
         'chainId': 2020,
         'gas': 491336,
-        'gasPrice': Web3.toWei('0', 'gwei'),
-        'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'gasPrice': Web3.toWei(1, 'gwei'),
+        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
-    signed_txn = txUtils.web3.eth.account.sign_transaction(claim_txn, private_key=key)
+    signed_txn = txUtils.w3.eth.account.sign_transaction(claim_txn, private_key=key)
     success = await txUtils.sendTx(signed_txn)
     slpClaimed = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
     if success:
@@ -88,50 +123,41 @@ async def ClaimSLP(key, address, data, attempt=0):
         return await ClaimSLP(key, address, data, attempt + 1)
 
 
-async def sendTx(key, address, amount, destination, percent, total, attempt=0):
-    if destination == dev_address:
-        if percent == 0:
-            amount = floor(total * 0.01)
-    elif attempt == -1:
-        if percent == 0:
-            amount = int(amount - floor((total * 0.01)))
-        attempt = 0
-    if amount == 0:
-        return None
-    send_txn = contract.functions.transfer(
-        Web3.toChecksumAddress(destination),
-        amount
+async def disperseSLP(key, address, addresses, amounts, attempt=0):
+    send_txn = disperseContract.functions.disperseToken(
+        Web3.toChecksumAddress(sa),
+        addresses,
+        amounts
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 491335,
-        'gasPrice': Web3.toWei('0', 'gwei'),
-        'nonce': txUtils.web3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'gas': 491331,
+        'gasPrice': Web3.toWei(1, 'gwei'),
+        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
-    signed_txn = txUtils.web3.eth.account.sign_transaction(send_txn, private_key=key)
+    signed_txn = txUtils.w3.eth.account.sign_transaction(send_txn, private_key=key)
     success = await txUtils.sendTx(signed_txn)
-    slpSent = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
+    disperseTx = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
     if success:
-        logger.success(str(amount) + " slp sent to " + destination + " at tx " + slpSent)
-        return slpSent
+        logger.success("SLP dispersed from " + address + " at tx " + disperseTx)
+        return disperseTx
     elif attempt > 5:
-        logger.error("Failed to send " + str(amount) + "slp to " + destination + " retried " + str(attempt) + " times.")
+        logger.error("Failed to disperse slp from " + address + " retried " + str(attempt) + " times.")
         return None
     else:
-        logger.warning("Failed to send slp to " + destination + " retrying #" + str(attempt))
+        logger.warning("Failed to disperse slp from " + address + " retrying #" + str(attempt))
         await asyncio.sleep(3)
-        return await sendTx(key, address, amount, destination, percent, total, attempt + 1)
+        return await disperseSLP(key, address, addresses, amounts, attempt+1)
 
 
-async def sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent=0.01):
+async def sendSLP(key, address, addresses, percents, p=0.01):
     try:
-        amount = contractCall.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        amount = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
     except Exception as e:
         logger.error(e)
         return None
     if not isinstance(amount, int):
         logger.error("amount is not an int")
         return None
-
     if amount == 0:
         logger.error(f"Tried sending SLP for {address} but there is no balance")
         return {
@@ -143,36 +169,59 @@ async def sendSLP(key, address, scholar_address, owner_address, scholar_percent,
             "scholarTx": None,
             "scholarAmount": 0
         }
+    approved = await DB.getLastApprove(address)
+    if not approved['success'] or approved['rows'] is None or approved['rows']['amount_approved'] < approved['rows']['amount_sent'] + amount:
+        approval = await approve(key, address)
+        await DB.addApproveLog(address, approval, APPROVAL_AMOUNT, 0)
 
-    scholar_slp = floor(amount * scholar_percent)
-    if devPercent == 0:
-        devPercent = 0.01
-        dev_slp = floor(0.01 * amount)
-    else:
-        dev_slp = max(0, floor(devPercent * amount))
-    owner_slp = amount - (scholar_slp + dev_slp)
-
-    scholarTx = await sendTx(key, address, scholar_slp, scholar_address, devPercent, amount)
-    if scholar_slp == amount:
-        dev_slp = 0
-    await asyncio.sleep(3)
-    ownerTx = await sendTx(key, address, owner_slp, owner_address, devPercent, amount, -1)
-    await asyncio.sleep(3)
-    devTx = await sendTx(key, address, dev_slp, dev_address, devPercent, amount)
-
+    logger.info(addresses)
+    logger.info(percents)
+    amount_list = []
+    sumSent = 0
+    for a in range(len(percents)):
+        if p == 0:
+            if a == 2:
+                percents[a] -= 0.01
+        amount_list.append(floor(amount * percents[a]))
+        sumSent += floor(amount * percents[a])
+    address_list = []
+    for a in addresses:
+        address_list.append(Web3.toChecksumAddress(a))
+    address_list.append(Web3.toChecksumAddress(da))
+    amount_list.append(amount - sumSent)
+    tx = await disperseSLP(key, address, address_list, amount_list)
+    await DB.updateApproveLog(address, amount)
     logger.success("Scholar " + address + " payout successful")
-    return {
+    return_array = {
         "totalAmount": amount,
-        "devTx": devTx,
-        "devAmount": dev_slp,
-        "ownerTx": ownerTx,
-        "ownerAmount": owner_slp,
-        "scholarTx": scholarTx,
-        "scholarAmount": scholar_slp
+        'devTx': tx,
+        'ownerTx': tx,
+        'scholarTx': tx,
+        'scholarAmount': amount_list[0],
+        'ownerAmount': amount_list[1],
+        'devAmount': amount_list[-1]
     }
+    if len(address_list) > 3:
+        for a in range(2, len(address_list) - 1):
+            string = 'investorTx' + str(a - 2)
+            return_array[string] = tx
+            string = 'investorAmount' + str(a - 2)
+            return_array[string] = amount_list[a]
+    return return_array
 
 
-async def slpClaiming(key, address, scholar_address, owner_address, scholar_percent, devPercent=None):
+async def slpClaiming(key, address, addresses, percents, devPercent=0.01):
+    try:
+        ronAmount = txUtils.w3.eth.getBalance(Web3.toChecksumAddress(address))
+    except Exception as e:
+        logger.error(e)
+        return None
+    if not isinstance(ronAmount, int):
+        logger.error("amount is not an int")
+        return None
+    if ronAmount <= 2000000000000000:
+        logger.error(f"Tried sending SLP for {address} but there is not enough RON")
+        return None
     accessToken = AccessToken.GenerateAccessToken(key, address)
     try:
         slp_data = json.loads(await getSLP(accessToken, address, "GET"))
@@ -209,11 +258,12 @@ async def slpClaiming(key, address, scholar_address, owner_address, scholar_perc
         if not claimTx:
             return None
         else:
-            sendTxs = await sendSLP(key, address, scholar_address, owner_address, scholar_percent, devPercent)
+            sendTxs = await sendSLP(key, address, addresses, percents, devPercent)
             sendTxs["claimTx"] = claimTx
             return sendTxs
 
     except Exception as e:
         logger.error(e)
+        logger.error(traceback.format_exc())
         logger.error("Could not claim SLP")
         return None

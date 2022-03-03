@@ -88,4 +88,3 @@ async def migration(fName):
         sys.exit()
 
 client.run(DiscordBotToken)
-

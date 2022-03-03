@@ -1,4 +1,4 @@
-# Author: Michael Conard
+# Author: Michael Conard and Maxbrand99
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 
 from dislash.interactions import *
@@ -792,4 +792,3 @@ async def top(ctx):
         args.append("arena")
 
     await topCommand(ctx, args, discordId, True)
-

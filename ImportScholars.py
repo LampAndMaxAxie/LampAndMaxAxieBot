@@ -69,4 +69,3 @@ async def importScholars(fName):
     sys.exit()
 
 client.run(DiscordBotToken)
-

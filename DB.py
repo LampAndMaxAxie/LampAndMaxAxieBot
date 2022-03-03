@@ -22,31 +22,17 @@ async def createMainTables():
     # logger.info("got connection")
     async with client.db.cursor() as c:
         # logger.info("got cursor")
-        await c.execute('''CREATE TABLE IF NOT EXISTS users 
-            (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, 
-             is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, 
-             account_num INTEGER, scholar_addr TEXT, payout_addr TEXT, share REAL, account_email TEXT, account_pass TEXT, 
-             created_at TIMESTAMP DEFAULT (strftime('%s', 'now')), updated_at TIMESTAMP DEFAULT (strftime('%s','now'))
-            )''')
-        await c.execute('''CREATE TABLE IF NOT EXISTS properties 
-            (id INTEGER PRIMARY KEY AUTOINCREMENT, property TEXT NOT NULL,
-             realVal REAL, textVal TEXT,
-             created_at TIMESTAMP DEFAULT (strftime('%s', 'now')), updated_at TIMESTAMP DEFAULT (strftime('%s','now'))
-            )''')
-        await c.execute('''CREATE TABLE IF NOT EXISTS slp_tracker 
-            (id INTEGER PRIMARY KEY AUTOINCREMENT, discord_id INTEGER NOT NULL, for_date TIMESTAMP NOT NULL,
-             total_slp INTEGER NOT NULL, adventure_slp INTEGER, arena_slp INTEGER, quest_slp INTEGER,
-             created_at TIMESTAMP DEFAULT (strftime('%s', 'now'))
-            )''')
-        await c.execute('''CREATE TABLE IF NOT EXISTS claims 
-            (id INTEGER PRIMARY KEY AUTOINCREMENT, claim_time TIMESTAMP NOT NULL,
-             total_slp INTEGER NOT NULL, ronin_addr TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime('%s', 'now'))
-            )''')
+        await c.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, is_owner INTEGER, is_manager INTEGER, is_scholar INTEGER, discord_id INTEGER NOT NULL, seed_num INTEGER, account_num INTEGER, scholar_addr TEXT, payout_addr TEXT, share REAL, account_email TEXT, account_pass TEXT, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
+        await c.execute('CREATE TABLE IF NOT EXISTS properties (id INTEGER PRIMARY KEY AUTOINCREMENT, property TEXT NOT NULL, realVal REAL, textVal TEXT, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
+        await c.execute('CREATE TABLE IF NOT EXISTS slp_tracker (id INTEGER PRIMARY KEY AUTOINCREMENT, discord_id INTEGER NOT NULL, for_date TIMESTAMP NOT NULL, total_slp INTEGER NOT NULL, adventure_slp INTEGER, arena_slp INTEGER, quest_slp INTEGER, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')))')
+        await c.execute('CREATE TABLE IF NOT EXISTS claims (id INTEGER PRIMARY KEY AUTOINCREMENT, claim_time TIMESTAMP NOT NULL, total_slp INTEGER NOT NULL, ronin_addr TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')))')
+        await c.execute('CREATE TABLE IF NOT EXISTS approves (ronin_addr TEXT NOT NULL PRIMARY KEY, tx_hash TEXT NOT NULL, amount_approved TEXT NOT NULL, amount_sent TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
+        await c.execute('CREATE TABLE IF NOT EXISTS investors (ronin_addr TEXT NOT NULL PRIMARY KEY, investor_addresses TEXT NOT NULL, investor_amounts TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
         logger.success("Initialized database tables")
 
         # set initial dev donation if it doesn't exist
         devDonation = await getProperty("devDonation")
-        if devDonation["success"] and devDonation["rows"] is None:
+        if devDonation["success"] and (devDonation["rows"] is None or devDonation["rows"] == 0):
             await setProperty("devDonation", 0.01)
 
         # set initial payout style
@@ -59,29 +45,11 @@ async def createMainTables():
     pass
 
 
-# Insert/Delete/Update
-@logger.catch
-async def wipeClaimLogs():
-    async with client.db.cursor() as c:
-        try:
-            await c.execute("DELETE FROM claims")
-            logger.info(f"Wiped claim logs")
-
-        except Exception:
-            # logger.error(traceback.format_exc())
-            logger.error(f"Failed to wipe claim logs")
-            return {"success": False, "msg": f"Error in wiping claim logs"}
-
-    return {"success": True, "msg": f"Wiped claim logs"}
-
-
 @logger.catch
 async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
     async with client.db.cursor() as c:
         try:
-            await c.execute('''INSERT INTO claims
-                (ronin_addr, total_slp, claim_time) 
-                VALUES (?, ?, ?)''', (roninAddr, totalSLP, claimTimeStamp))
+            await c.execute('INSERT INTO claims (ronin_addr, total_slp, claim_time) VALUES (?, ?, ?)', (roninAddr, totalSLP, claimTimeStamp))
 
             logger.info(f"Logged claim history for {roninAddr}")
 
@@ -91,6 +59,22 @@ async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
             return {"success": False, "msg": f"Error in logging claim for {roninAddr}"}
 
     return {"success": True, "msg": f"Scholar logged claim {roninAddr}"}
+
+
+@logger.catch
+async def addApproveLog(roninAddr, tx_hash, amount_approved, amount_sent):
+    async with client.db.cursor() as c:
+        try:
+            await c.execute('INSERT INTO approves (ronin_addr, tx_hash, amount_approved, amount_sent) VALUES (?, ?, ?, ?)', (roninAddr, tx_hash, str(amount_approved), str(amount_sent)))
+
+            logger.info(f"Logged approve history for {roninAddr}")
+
+        except Exception:
+            logger.error(traceback.format_exc())
+            logger.error(f"Failed to log approve for {roninAddr}")
+            return {"success": False, "msg": f"Error in logging approve for {roninAddr}"}
+
+    return {"success": True, "msg": f"Scholar logged approve {roninAddr}"}
 
 
 @logger.catch
@@ -118,12 +102,9 @@ async def addScholar(discordID, name, seedNum, accountNum, roninAddr, share):
         await c.execute("BEGIN")
         try:
             if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_scholar"] is None or int(user["is_scholar"]) == 0):
-                await c.execute('''UPDATE users SET is_scholar=1,seed_num=?,account_num=?,scholar_addr=?,share=?
-                            where discord_id=?''', (seedNum, accountNum, roninAddr, share, discordID))
+                await c.execute('UPDATE users SET is_scholar=1,seed_num=?,account_num=?,scholar_addr=?,share=? where discord_id=?', (seedNum, accountNum, roninAddr, share, discordID))
             else:
-                await c.execute('''INSERT INTO users 
-                    (discord_id, name, is_scholar, seed_num, account_num, scholar_addr, share) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)''', (discordID, name, 1, seedNum, accountNum, roninAddr, share))
+                await c.execute('INSERT INTO users (discord_id, name, is_scholar, seed_num, account_num, scholar_addr, share) VALUES (?, ?, ?, ?, ?, ?, ?)', (discordID, name, 1, seedNum, accountNum, roninAddr, share))
             await c.execute("COMMIT")
 
             logger.info(f"Saved scholar {name}/{discordID} with seed/account/addr {seedNum}/{accountNum}/{roninAddr} and share {share}")
@@ -142,8 +123,7 @@ async def removeScholar(discordID):
     async with client.db.cursor() as c:
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET is_scholar=0,seed_num=?,account_num=?,scholar_addr=?,share=?
-                    WHERE discord_id=?''', (None, None, None, None, discordID))
+            await c.execute('UPDATE users SET is_scholar=0,seed_num=?,account_num=?,scholar_addr=?,share=? WHERE discord_id=?', (None, None, None, None, discordID))
             await c.execute("COMMIT")
 
             logger.info(f"Deleted scholar {discordID}")
@@ -154,6 +134,34 @@ async def removeScholar(discordID):
             return {"success": False, "msg": f"Error in processing scholar deletion for {discordID}"}
 
     return {"success": True, "msg": f"Scholar {discordID} deleted"}
+
+
+@logger.catch
+async def updateApproveLog(ronin_addr, new_amount):
+    async with client.db.cursor() as c:
+        try:
+            res = await getLastApprove(ronin_addr)
+            if res['success']:
+                await c.execute("BEGIN")
+                try:
+                    amount = int(res['rows']['amount_sent']) + new_amount
+                    await c.execute('UPDATE approves SET amount_sent=? WHERE ronin_addr=?', (str(amount), ronin_addr))
+                    await c.execute("COMMIT")
+                    logger.info(f"Updated {ronin_addr}'s approve log to {amount}")
+                except:
+                    await c.execute("ROLLBACK")
+                    logger.error(traceback.format_exc())
+                    logger.error(f"Failed to update scholar {ronin_addr}'s approval")
+                    return {"success": False, "msg": f"Error in processing approval update for {ronin_addr}"}
+            else:
+                logger.info(f"Scholar {ronin_addr} did not have an approval record to update.")
+                return {"success": False, "msg": f"Scholar {ronin_addr} did not have an approval record to update."}
+        except:
+            logger.error(traceback.format_exc())
+            logger.error(f"Failed to update scholar {ronin_addr}")
+            return {"success": False, "msg": f"Error in processing approval update for {ronin_addr}"}
+
+    return {"success": True, "msg": f"Scholar {ronin_addr}'s approve updated to {amount}"}
 
 
 @logger.catch
@@ -177,8 +185,7 @@ async def updateScholarShare(discordID, share):
 
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET share=?
-                    WHERE discord_id=?''', (share, discordID))
+            await c.execute('UPDATE users SET share=? WHERE discord_id=?', (share, discordID))
             await c.execute("COMMIT")
 
             logger.info(f"Updated {discordID}'s share to {share}")
@@ -212,8 +219,7 @@ async def updateScholarAddress(discordID, addr):
 
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET payout_addr=?
-                    WHERE discord_id=?''', (addr.replace('ronin:', '0x'), discordID))
+            await c.execute('UPDATE users SET payout_addr=? WHERE discord_id=?', (addr.replace('ronin:', '0x'), discordID))
             await c.execute("COMMIT")
 
             logger.info(f"Updated {discordID}'s payout address to {addr}")
@@ -254,8 +260,7 @@ async def updateScholarMainAddress(discordID, addr):
 
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET scholar_addr=?
-                    WHERE discord_id=?''', (addr.replace('ronin:', '0x'), discordID))
+            await c.execute('UPDATE users SET scholar_addr=? WHERE discord_id=?', (addr.replace('ronin:', '0x'), discordID))
             await c.execute("COMMIT")
 
             logger.info(f"Updated {discordID}'s scholar address to {addr}")
@@ -279,13 +284,6 @@ async def updateScholarLogin(discordID, addr, email, password):
             user = None
             # return userR
 
-        # logger.info(user)
-        # out = "["
-        # for col in user:
-        #    out += str(col) + ","
-        # out += "]"
-        # logger.info(out)
-
         if user is None:
             logger.error(f"Failed to update {discordID} because they are not in the database")
             return {"success": False, "msg": f"Failed to update {discordID} because they are not in the database"}
@@ -296,8 +294,7 @@ async def updateScholarLogin(discordID, addr, email, password):
 
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET account_email = ?, account_pass = ?
-                    WHERE discord_id = ? AND scholar_addr = ?''', (email, password, discordID, addr.replace('ronin:', '0x')))
+            await c.execute('UPDATE users SET account_email = ?, account_pass = ? WHERE discord_id = ? AND scholar_addr = ?', (email, password, discordID, addr.replace('ronin:', '0x')))
             await c.execute("COMMIT")
 
             logger.info(f"Updated {discordID}'s scholar account login info updated")
@@ -326,12 +323,9 @@ async def addManager(discordID, name):
         await c.execute("BEGIN")
         try:
             if user is not None and int(user["discord_id"]) == int(discordID) and (user["is_manager"] is None or int(user["is_manager"]) == 0):
-                await c.execute('''UPDATE users SET is_manager=1
-                            WHERE discord_id=?''', (discordID,))
+                await c.execute('UPDATE users SET is_manager=1 WHERE discord_id=?', (discordID,))
             else:
-                await c.execute('''INSERT INTO users 
-                    (discord_id, name, is_manager) 
-                    VALUES (?, ?, ?)''', (discordID, name, 1))
+                await c.execute('INSERT INTO users (discord_id, name, is_manager) VALUES (?, ?, ?)', (discordID, name, 1))
             await c.execute("COMMIT")
 
             logger.success(f"Saved manager {name}/{discordID}")
@@ -349,8 +343,7 @@ async def removeManager(discordID):
     async with client.db.cursor() as c:
         await c.execute("BEGIN")
         try:
-            await c.execute('''UPDATE users SET is_manager=0
-                    WHERE discord_id=?''', (discordID,))
+            await c.execute('UPDATE users SET is_manager=0 WHERE discord_id=?', (discordID,))
             await c.execute("COMMIT")
 
             logger.success(f"Deleted manager {discordID}")
@@ -389,12 +382,9 @@ async def setOwner(discordID, name):
         await c.execute("BEGIN")
         try:
             if user is not None and int(user["discord_id"]) == int(discordID):
-                await c.execute('''UPDATE users SET name=?,is_manager=1,is_owner=1
-                            WHERE discord_id=?''', (name, discordID))
+                await c.execute('UPDATE users SET name=?,is_manager=1,is_owner=1 WHERE discord_id=?', (name, discordID))
             else:
-                await c.execute('''INSERT INTO users 
-                    (discord_id, name, is_manager, is_owner) 
-                    VALUES (?, ?, ?, ?)''', (discordID, name, 1, 1))
+                await c.execute('INSERT INTO users (discord_id, name, is_manager, is_owner) VALUES (?, ?, ?, ?)', (discordID, name, 1, 1))
             await c.execute("COMMIT")
 
             logger.info(f"Saved owner {name}/{discordID}")
@@ -423,22 +413,16 @@ async def setProperty(prop, val):
             if res["success"] and res["rows"] is not None:
                 # update
                 if isNum:
-                    await c.execute('''UPDATE properties SET realVal=?,textVal=?
-                            WHERE property=?''', (val, None, prop))
+                    await c.execute('UPDATE properties SET realVal=?,textVal=? WHERE property=?', (val, None, prop))
                 else:
-                    await c.execute('''UPDATE properties SET textVal=?,realVal=?
-                            WHERE property=?''', (val, None, prop))
+                    await c.execute('UPDATE properties SET textVal=?,realVal=? WHERE property=?', (val, None, prop))
 
             elif res["success"] and res["rows"] is None:
                 # insert
                 if isNum:
-                    await c.execute('''INSERT INTO properties 
-                        (property, realVal) 
-                        VALUES (?, ?)''', (prop, val))
+                    await c.execute('INSERT INTO properties (property, realVal) VALUES (?, ?)', (prop, val))
                 else:
-                    await c.execute('''INSERT INTO properties 
-                        (property, textVal) 
-                        VALUES (?, ?)''', (prop, val))
+                    await c.execute('INSERT INTO properties (property, textVal) VALUES (?, ?)', (prop, val))
             else:
                 # error
                 await c.execute("ROLLBACK")
@@ -458,7 +442,7 @@ async def getProperty(prop):
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM properties WHERE property=?", (prop,))
+        await c.execute('SELECT * FROM properties WHERE property=?', (prop,))
         rows = await c.fetchone()
         # logger.info(f"Fetched property: {prop}")
 
@@ -474,7 +458,7 @@ async def getLastClaim(roninAddr):
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM claims WHERE ronin_addr = ? ORDER BY claim_time DESC", (roninAddr,))
+        await c.execute('SELECT * FROM claims WHERE ronin_addr = ? ORDER BY claim_time DESC', (roninAddr,))
         rows = await c.fetchone()
         # logger.info(f"Got last claim data for {roninAddr}")
 
@@ -487,11 +471,29 @@ async def getLastClaim(roninAddr):
 
 
 @logger.catch
+async def getLastApprove(roninAddr):
+    c = await client.db.cursor()
+    try:
+        await c.execute('SELECT * FROM approves WHERE ronin_addr = ?', (roninAddr,))
+        rows = await c.fetchone()
+        rows['amount_sent'] = int(rows['amount_sent'])
+        rows['amount_approved'] = int(rows['amount_approved'])
+        # logger.info(f"Got last claim data for {roninAddr}")
+
+    except Exception:
+        # logger.error(traceback.format_exc())
+        logger.error(f"Failed to get last approve for {roninAddr}")
+        return {"success": False, "msg": f"Error in getting approve for {roninAddr}", "rows": None}
+
+    return {"success": True, "rows": rows}
+
+
+@logger.catch
 async def getAllScholars():
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users WHERE is_scholar=1")
+        await c.execute('SELECT * FROM users WHERE is_scholar=1')
         rows = await c.fetchall()
         logger.info(f"Fetched all scholars")
 
@@ -512,9 +514,9 @@ async def getAllScholarsByIndex(seed, minIndex=None, maxIndex=None):
 
     try:
         if minIndex == 0 or maxIndex == 0:
-            await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ?", (int(seed),))
+            await c.execute('SELECT * FROM users WHERE is_scholar=1 AND seed_num = ?', (int(seed),))
         else:
-            await c.execute("SELECT * FROM users WHERE is_scholar=1 AND seed_num = ? AND account_num >= ? AND account_num <= ?", (int(seed), int(minIndex), int(maxIndex)))
+            await c.execute('SELECT * FROM users WHERE is_scholar=1 AND seed_num = ? AND account_num >= ? AND account_num <= ?', (int(seed), int(minIndex), int(maxIndex)))
         rows = await c.fetchall()
         logger.info(f"Fetched all scholars with seed={seed} and account range {minIndex}-{maxIndex}")
 
@@ -531,7 +533,7 @@ async def getAllManagers():
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users WHERE is_manager=1 OR is_owner=1")
+        await c.execute('SELECT * FROM users WHERE is_manager=1 OR is_owner=1')
         rows = await c.fetchall()
         logger.info(f"Fetched all managers")
 
@@ -547,7 +549,7 @@ async def getAllNoRole():
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users WHERE (is_manager=0 OR is_manager IS NULL) AND (is_scholar=0 OR is_scholar IS NULL) AND (is_owner=0 OR is_owner IS NULL)")
+        await c.execute('SELECT * FROM users WHERE (is_manager=0 OR is_manager IS NULL) AND (is_scholar=0 OR is_scholar IS NULL) AND (is_owner=0 OR is_owner IS NULL)')
         rows = await c.fetchall()
         logger.info(f"Fetched all users with no role")
 
@@ -563,7 +565,7 @@ async def getAllUsers():
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users")
+        await c.execute('SELECT * FROM users')
         rows = await c.fetchall()
         logger.info(f"Fetched all users")
 
@@ -579,7 +581,7 @@ async def getAllManagerIDs():
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users WHERE is_manager=1 or is_owner=1")
+        await c.execute('SELECT * FROM users WHERE is_manager=1 or is_owner=1')
         rows = await c.fetchall()
         logger.info(f"Fetched all managers")
 
@@ -599,7 +601,7 @@ async def getDiscordID(discordID):
     c = await client.db.cursor()
 
     try:
-        await c.execute("SELECT * FROM users WHERE discord_id=? LIMIT 1", (int(discordID),))
+        await c.execute('SELECT * FROM users WHERE discord_id=? LIMIT 1', (int(discordID),))
         rows = await c.fetchone()
         logger.info(f"Fetched discord ID {discordID}")
         # out = "["
@@ -623,7 +625,7 @@ async def getOwner():
     # logger.info("before async in getOwner")
     try:
         # logger.info("exec owner query")
-        await c.execute("SELECT * FROM users WHERE is_owner=1 LIMIT 1")
+        await c.execute('SELECT * FROM users WHERE is_owner=1 LIMIT 1')
         rows = await c.fetchone()
         # logger.info("fetched owner")
 

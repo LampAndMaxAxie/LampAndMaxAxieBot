@@ -1,4 +1,4 @@
-# Author: Michael Conard
+# Author: Michael Conard and Maxbrand99
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 import asyncio
 import datetime
@@ -29,8 +29,6 @@ async def helpCommand(message, isManager, discordId, isSlash=False):
     msg += ' - `' + prefix + 'daily [name/ping/discordID]`: returns the player\'s match/SLP/quest data for today\n'
     msg += ' - `' + prefix + 'axies [name/ping/discordID] [index] [m]`: returns the player\'s Axies, [index] is to select a team (default 0), set [m] for mobile friendly\n'
     # msg += ' - `' + prefix + 'battles [name/ping/discordID]`: returns the scholar\'s recent battle records\n'
-    msg += ' - `' + prefix + 'summary [sort] [ascending] [csv]`: returns a scholar summary, [avgslp/slp, mmr/rank, claim], [asc, desc], [csv]\n'
-    msg += ' - `' + prefix + 'top [sort] [csv]`: returns the scholar top 10 rankings, [avgslp/slp, mmr/rank, claim], [csv]\n'
     msg += ' - `' + prefix + 'membership`: returns information about the status of the user database\n'
 
     if not isManager:  # scholar
@@ -54,6 +52,9 @@ async def helpCommand(message, isManager, discordId, isSlash=False):
         msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "massPay")\n'
         msg += ' - `' + prefix + 'massPayout [seedFilter] [minIndex] [maxIndex]`: triggers a scholar payout for all scholars, optional filters\n'
         msg += ' - `' + prefix + 'payout discordID`: triggers a payout for the specified user\n'
+        msg += ' - `' + prefix + 'disperse [amount]`: returns a csv that you can copy paste into scatter.roninchain.com to send RON to scholars.\n'
+        msg += ' - `' + prefix + 'summary [sort] [ascending] [csv]`: returns a scholar summary, [avgslp/slp, mmr/rank, claim], [asc, desc], [csv]\n'
+        msg += ' - `' + prefix + 'top [sort] [csv]`: returns the scholar top 10 rankings, [avgslp/slp, mmr/rank, claim], [csv]\n'
 
     await Common.handleResponse(message, msg, isSlash)
     return
@@ -882,7 +883,7 @@ async def asyncLoadingUpdate(message):
             await asyncio.sleep(10)
         except Exception as e:
             logger.warning("Failed to update the mass payout log message, shouldn't be an issue, happens sometimes")
-            #logger.error(e)
+            # logger.error(e)
             await asyncio.sleep(10)
     pass
 
@@ -892,7 +893,10 @@ async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarSha
     global massPayoutGlobal
 
     try:
-        res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
+        addresses = [scholarAddress, ownerRonin]
+        percents = [scholarShare, (1 - (devDonation + scholarShare))]
+        res = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
+        # res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
     except Exception as e:
         logger.error(f"Exception thrown during claiming for {address}/{name}")
         logger.error(e)
@@ -1081,7 +1085,9 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
 
     try:
         # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
-        claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, devDonation)
+        addresses = [payoutAddr, Common.ownerRonin]
+        percents = [share, (1 - (devDonation + share))]
+        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
     except Exception as e:
         logger.error(e)
         if authorId == discordId:
@@ -1239,7 +1245,10 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
 
     try:
         # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
-        claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, devDonation)
+        addresses = [payoutAddr, Common.ownerRonin]
+        percents = [share, (1 - (devDonation + share))]
+        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
+        # claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, devDonation)
     except Exception as e:
         logger.error(e)
         if authorId == discordId:
@@ -1866,7 +1875,7 @@ async def summaryCommand(message, args, discordId, guildId, isSlash=False):
     if not csv:
         logger.info("Preparing summary image")
         fig = go.Figure(data=[go.Table(
-            #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            # columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             header=dict(values=list(table.columns),
                         fill_color="paleturquoise",
@@ -1913,6 +1922,24 @@ async def exportCommand(message, isManager, isSlash=False):
     os.remove("export.csv")
 
 
+async def disperseCommand(message, args, isManager, isSlash=False):
+    if not isManager:
+        await message.reply("Sorry, this command is only for managers!")
+        return
+
+    amount = 1
+    if len(args) > 1:
+        amount = int(args[1])
+    df = await UtilBot.getDisperseExport(amount)
+    df.to_csv("export.csv", index=False)
+
+    if isSlash:
+        await message.channel.send(file=discord.File('export.csv'))
+    else:
+        await message.reply(file=discord.File('export.csv'))
+    os.remove("export.csv")
+
+
 # Command to get a top 10 summary of all scholars
 async def topCommand(message, args, discordId, isSlash=False):
     if not isSlash:
@@ -1946,7 +1973,7 @@ async def topCommand(message, args, discordId, isSlash=False):
     if not csv:
         logger.info("Preparing top10 image")
         fig = go.Figure(data=[go.Table(
-            #columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
+            # columnwidth=[75, 400, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             columnwidth=[75, 350, 350, 100, 200, 150, 200, 150, 150, 150, 150, 100, 200],
             header=dict(values=list(table.columns),
                         fill_color="paleturquoise",
@@ -1995,18 +2022,3 @@ async def alertsCommand(message, args, isSlash=False):
 
     await UtilBot.nearResetAlerts(rn, True, ping)
 
-
-async def wipeClaims(message, isManager, isSlash=False):
-    if not isSlash:
-        await message.channel.trigger_typing()
-
-    if not isManager:
-        await message.reply("Sorry, managers only.")
-        return
-
-    res = await DB.wipeClaimLogs()
-
-    if res["success"]:
-        await message.reply("Wiped the claim logs!")
-    else:
-        await message.reply("Failed to wipe the claim logs.")

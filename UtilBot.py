@@ -1,4 +1,4 @@
-# Author: Michael Conard
+# Author: Michael Conard and Maxbrand99
 # Purpose: An Axie Infinity utility bot. Gives QR codes and daily progress/alerts.
 
 import datetime
@@ -366,7 +366,7 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
             questSlp = 0
 
         # sometimes it returns 0 energy if they haven't done anything yet
-        #if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
+        # if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
         #    if maxEnergy is not None and maxEnergy > 0:
         #        remainingEnergy = maxEnergy
         #    else:
@@ -507,7 +507,7 @@ async def getRoninBattles(roninAddr):
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x","ronin:")
+    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
@@ -738,7 +738,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x","ronin:")
+    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
@@ -960,6 +960,18 @@ async def getScholarExport():
     return df
 
 
+async def getDisperseExport(amount):
+    df = pd.DataFrame(columns=['ScholarAddr Amount'])
+
+    scholarsDict = await DB.getAllScholars()
+    if scholarsDict["success"] is None:
+        return None, None
+
+    for scholar in scholarsDict["rows"]:
+        df.loc[len(df.index)] = [scholar["scholar_addr"] + " " + str(amount)]
+    return df
+
+
 # builds a summary table of all scholars
 async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
     global summaryCache
@@ -987,7 +999,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
 
         # build the data table
         df = pd.DataFrame(
-            #columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            # columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
         scholarsDict = await DB.getAllScholars()
         if scholarsDict["success"] is None:
@@ -1002,10 +1014,7 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
-                quest = False
-                if res["questSlp"] == 25:
-                    quest = True
-                #df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                # df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
                 #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                 #                         quest, res["claimDate"].date()]
                 df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
@@ -1065,7 +1074,7 @@ async def getScholarTop10(sort="slp"):
 
         # build the data table
         df = pd.DataFrame(
-            #columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
+            # columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
             columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
 
         scholarsDict = await DB.getAllScholars()
@@ -1081,10 +1090,7 @@ async def getScholarTop10(sort="slp"):
             await asyncio.sleep(0.05)  # brief delay
 
             if res is not None:
-                quest = False
-                if res["questSlp"] == 25:
-                    quest = True
-                #df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                # df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
                 #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                 #                         quest, res["claimDate"].date()]
                 df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
@@ -1312,12 +1318,8 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
                     else:
                         msg += name.replace('`', '') + ":\n"
 
-                    #if res["questSlp"] != 25:
-                    #    msg += '%s You have not completed/claimed the daily quest yet\n' % redX
                     if res["energy"] > 0:
                         msg += '%s You have %d energy remaining\n' % (redX, res["energy"])
-                    #if res["pveSlp"] < 50:
-                    #    msg += '%s You only have %d/50 Adventure SLP completed\n' % (redX, res["pveSlp"])
                     if res["mmr"] < 1000:
                         msg += '%s You are only at %d MMR in Arena. <800 = only 1 SLP per win.\n' % (redX, res["mmr"])
                     if res["pvpCount"] >= 15:
