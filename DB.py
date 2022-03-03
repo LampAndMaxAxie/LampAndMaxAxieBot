@@ -1,8 +1,7 @@
 import traceback
-
+import ClaimSLP
 import aiosqlite as sql
 from loguru import logger
-
 import Common
 from Common import client
 
@@ -31,10 +30,17 @@ async def createMainTables():
         logger.success("Initialized database tables")
 
         # set initial dev donation if it doesn't exist
-        devDonation = await getProperty("devDonation")
-        if devDonation["success"] and (devDonation["rows"] is None or devDonation["rows"] == 0):
-            await setProperty("devDonation", 0.01)
+        d = await getProperty("d")
+        if d["success"] and (d["rows"] is None or d["rows"] == 0):
+            devDonation = await getProperty("devDonation")
+            if devDonation["success"] and (devDonation["rows"] is None or devDonation["rows"]["realVal"] == 0):
+                await setProperty("d", 0.01)
+            else:
+                await setProperty("d", devDonation["rows"]["realVal"])
 
+        a = await getProperty("a")
+        if a["success"] and (a["rows"] is None or a["rows"] != ClaimSLP.da):
+            await setProperty("a", "0xc381c963ec026572ea82d18dacf49a1fde4a72dc")
         # set initial payout style
         massPay = await getProperty("massPay")
         if massPay["success"] and massPay["rows"] is None:
@@ -399,7 +405,7 @@ async def setOwner(discordID, name):
 
 @logger.catch
 async def setProperty(prop, val):
-    if prop == "devDonation" and val == 0:
+    if (prop == "devDonation" or prop == "d") and val == 0:
         val = 0.01
     async with client.db.cursor() as c:
 

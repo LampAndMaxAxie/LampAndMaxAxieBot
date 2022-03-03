@@ -30,14 +30,17 @@ async def helpCommand(message, isManager, discordId, isSlash=False):
     msg += ' - `' + prefix + 'axies [name/ping/discordID] [index] [m]`: returns the player\'s Axies, [index] is to select a team (default 0), set [m] for mobile friendly\n'
     # msg += ' - `' + prefix + 'battles [name/ping/discordID]`: returns the scholar\'s recent battle records\n'
     msg += ' - `' + prefix + 'membership`: returns information about the status of the user database\n'
-
     if not isManager:  # scholar
         msg += ' - `' + prefix + 'qr`: DMs you your QR code to login to the mobile app\n'
         msg += ' - `' + prefix + 'login`: DMs you your login info if your manager set it up\n'
         msg += ' - `' + prefix + 'setPayoutAddress roninAddress`: sets the user\'s payout address, can be ronin: or 0x form\n'
         msg += ' - `' + prefix + 'payout discordID`: triggers a payout for the user\n'
-
+        logger.info(len(msg))
+        await Common.handleResponse(message, msg, isSlash)
     else:  # manager
+        logger.info(len(msg))
+        await Common.handleResponse(message, msg, isSlash)
+        msg = ""
         msg += ' - `' + prefix + 'export`: returns a listing of scholar information from the database\n'
         msg += ' - `' + prefix + 'exportRole role`: returns a spreadsheet of users with a role; finds the closest match ("Scho" would likely find "Scholar")\n'
         msg += ' - `' + prefix + 'getScholar [discordID]`: returns information on the caller, or the specified discord ID\n'
@@ -52,11 +55,11 @@ async def helpCommand(message, isManager, discordId, isSlash=False):
         msg += ' - `' + prefix + 'getProperty property`: gets a property\'s value (try "massPay")\n'
         msg += ' - `' + prefix + 'massPayout [seedFilter] [minIndex] [maxIndex]`: triggers a scholar payout for all scholars, optional filters\n'
         msg += ' - `' + prefix + 'payout discordID`: triggers a payout for the specified user\n'
-        msg += ' - `' + prefix + 'disperse [amount]`: returns a csv that you can copy paste into scatter.roninchain.com to send RON to scholars.\n'
+        msg += ' - `' + prefix + 'disperse [amount]`: returns a csv that you can use in scatter\n'
         msg += ' - `' + prefix + 'summary [sort] [ascending] [csv]`: returns a scholar summary, [avgslp/slp, mmr/rank, claim], [asc, desc], [csv]\n'
         msg += ' - `' + prefix + 'top [sort] [csv]`: returns the scholar top 10 rankings, [avgslp/slp, mmr/rank, claim], [csv]\n'
-
-    await Common.handleResponse(message, msg, isSlash)
+        logger.info(len(msg))
+        await Common.handleResponse(message, msg, isSlash)
     return
 
 
@@ -889,14 +892,14 @@ async def asyncLoadingUpdate(message):
 
 
 # Wrapper to multi-call payouts
-async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, devDonation, discordId, name):
+async def massPayoutWrapper(key, address, scholarAddress, ownerRonin, scholarShare, d, discordId, name):
     global massPayoutGlobal
 
     try:
         addresses = [scholarAddress, ownerRonin]
-        percents = [scholarShare, (1 - (devDonation + scholarShare))]
-        res = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
-        # res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, devDonation)
+        percents = [scholarShare, (1 - (d + scholarShare))]
+        res = await ClaimSLP.slpClaiming(key, address, addresses, percents, d)
+        # res = await ClaimSLP.slpClaiming(key, address, scholarAddress, ownerRonin, scholarShare, d)
     except Exception as e:
         logger.error(f"Exception thrown during claiming for {address}/{name}")
         logger.error(e)
@@ -993,14 +996,14 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
         await Common.handleResponse(message, "Individual payouts are disabled. Ask your manager to run a mass payout or to enable individual payouts.", isSlash)
         return
 
-    res = await DB.getProperty("devDonation")
+    res = await DB.getProperty("d")
     if not res["success"]:
-        await Common.handleResponse(message, "Failed to query database for devDonation property", isSlash)
+        await Common.handleResponse(message, "Failed to query database for d property", isSlash)
         return
 
-    devDonation = 0.0
+    d = 0.0
     if res["rows"]["realVal"] is not None:
-        devDonation = round(float(res["rows"]["realVal"]), 3)
+        d = round(float(res["rows"]["realVal"]), 3)
 
     authorId = discordId
     if len(args) > 1 and args[1].isnumeric() and isManager:
@@ -1084,10 +1087,10 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
 
     try:
-        # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
+        # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, d)
         addresses = [payoutAddr, Common.ownerRonin]
-        percents = [share, (1 - (devDonation + share))]
-        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
+        percents = [share, (1 - (d + share))]
+        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, d)
     except Exception as e:
         logger.error(e)
         if authorId == discordId:
@@ -1164,14 +1167,14 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
         await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
         return
 
-    res = await DB.getProperty("devDonation")
+    res = await DB.getProperty("d")
     if not res["success"]:
-        await Common.handleResponse(message, "Failed to query database for devDonation property", isSlash)
+        await Common.handleResponse(message, "Failed to query database for d property", isSlash)
         return
 
-    devDonation = 0.0
+    d = 0.0
     if res["rows"]["realVal"] is not None:
-        devDonation = round(float(res["rows"]["realVal"]), 3)
+        d = round(float(res["rows"]["realVal"]), 3)
 
     authorId = discordId
     if len(args) > 1 and args[1].isnumeric():
@@ -1244,11 +1247,11 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
 
     try:
-        # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, devDonation)
+        # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, d)
         addresses = [payoutAddr, Common.ownerRonin]
-        percents = [share, (1 - (devDonation + share))]
-        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, devDonation)
-        # claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, devDonation)
+        percents = [share, (1 - (d + share))]
+        claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, d)
+        # claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, d)
     except Exception as e:
         logger.error(e)
         if authorId == discordId:
@@ -1367,14 +1370,14 @@ async def payoutAllScholars(message, args, isSlash=False):
         return
     scholarCount = len(scholarsDB['rows'])
 
-    res = await DB.getProperty("devDonation")
+    res = await DB.getProperty("d")
     if not res["success"]:
-        await Common.handleResponse(message, "Failed to query database for devDonation property", isSlash)
+        await Common.handleResponse(message, "Failed to query database for d property", isSlash)
         return
 
-    devDonation = 0.0
+    d = 0.0
     if res["rows"]["realVal"] is not None:
-        devDonation = round(float(res["rows"]["realVal"]), 3)
+        d = round(float(res["rows"]["realVal"]), 3)
 
     mp = await DB.getProperty("massPay")
     if not mp["success"]:
@@ -1471,7 +1474,7 @@ async def payoutAllScholars(message, args, isSlash=False):
             #    skipped += 1
             #    continue
 
-            calls.append(massPayoutWrapper(key, address, scholarAddress, Common.ownerRonin, scholarShare, devDonation, scholarID, name))
+            calls.append(massPayoutWrapper(key, address, scholarAddress, Common.ownerRonin, scholarShare, d, scholarID, name))
         except Exception:
             scholarID = row['discord_id']
             name = row['name']

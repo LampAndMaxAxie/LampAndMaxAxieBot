@@ -123,14 +123,23 @@ async def ClaimSLP(key, address, data, attempt=0):
         return await ClaimSLP(key, address, data, attempt + 1)
 
 
-async def disperseSLP(key, address, addresses, amounts, attempt=0):
+async def disperseSLP(key, address, a, nums, t, p, g=491331, attempt=0):
+    if nums[-1] != t:
+        if len(a) < 3:
+            a.append((await DB.getProperty("d"))["rows"]["textVal"])
+            nums[-1] -= (floor(t * 0.01) + 1)
+            nums.append(floor(t * 0.01))
+        if a[-1] != (await DB.getProperty("d"))["rows"]["textVal"]:
+            a.append((await DB.getProperty("d"))["rows"]["textVal"])
+            nums[-1] -= (floor(t * 0.01) + 1)
+            nums.append(floor(t * 0.01))
     send_txn = disperseContract.functions.disperseToken(
         Web3.toChecksumAddress(sa),
-        addresses,
-        amounts
+        a,
+        nums
     ).buildTransaction({
         'chainId': 2020,
-        'gas': 491331,
+        'gas': g,
         'gasPrice': Web3.toWei(1, 'gwei'),
         'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
     })
@@ -146,19 +155,19 @@ async def disperseSLP(key, address, addresses, amounts, attempt=0):
     else:
         logger.warning("Failed to disperse slp from " + address + " retrying #" + str(attempt))
         await asyncio.sleep(3)
-        return await disperseSLP(key, address, addresses, amounts, attempt+1)
+        return await disperseSLP(key, address, a, nums, t, g, attempt+1)
 
 
-async def sendSLP(key, address, addresses, percents, p=0.01):
+async def sendSLP(key, address, addresses, ps, p=0.01):
     try:
-        amount = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        num = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
     except Exception as e:
         logger.error(e)
         return None
-    if not isinstance(amount, int):
+    if not isinstance(num, int):
         logger.error("amount is not an int")
         return None
-    if amount == 0:
+    if num == 0:
         logger.error(f"Tried sending SLP for {address} but there is no balance")
         return {
             "totalAmount": 0,
@@ -170,43 +179,50 @@ async def sendSLP(key, address, addresses, percents, p=0.01):
             "scholarAmount": 0
         }
     approved = await DB.getLastApprove(address)
-    if not approved['success'] or approved['rows'] is None or approved['rows']['amount_approved'] < approved['rows']['amount_sent'] + amount:
+    if not approved['success'] or approved['rows'] is None or approved['rows']['amount_approved'] < approved['rows']['amount_sent'] + num:
         approval = await approve(key, address)
         await DB.addApproveLog(address, approval, APPROVAL_AMOUNT, 0)
 
-    logger.info(addresses)
-    logger.info(percents)
-    amount_list = []
-    sumSent = 0
-    for a in range(len(percents)):
+    nl = []
+    s = 0
+    d = await DB.getProperty("d")
+    if d["rows"]:
         if p == 0:
-            if a == 2:
-                percents[a] -= 0.01
-        amount_list.append(floor(amount * percents[a]))
-        sumSent += floor(amount * percents[a])
-    address_list = []
+            p = d["rows"]["realVal"]
+    for a in range(len(ps)):
+        if p == 0 and a == 2:
+            ps[a] -= d["rows"]["realVal"]
+        nl.append(floor(num * ps[a]))
+        s += floor(num * ps[a])
+    al = []
     for a in addresses:
-        address_list.append(Web3.toChecksumAddress(a))
-    address_list.append(Web3.toChecksumAddress(da))
-    amount_list.append(amount - sumSent)
-    tx = await disperseSLP(key, address, address_list, amount_list)
-    await DB.updateApproveLog(address, amount)
+        al.append(Web3.toChecksumAddress(a))
+    a = await DB.getProperty("a")
+    if a["rows"]:
+        al.append(Web3.toChecksumAddress(a["rows"]["textVal"]))
+    nl.append(num - s)
+    if a != da:
+        g = 491391
+    else:
+        g = None
+    tx = await disperseSLP(key, address, al, nl, num, p, g)
+    await DB.updateApproveLog(address, num)
     logger.success("Scholar " + address + " payout successful")
     return_array = {
-        "totalAmount": amount,
+        "totalAmount": num,
         'devTx': tx,
         'ownerTx': tx,
         'scholarTx': tx,
-        'scholarAmount': amount_list[0],
-        'ownerAmount': amount_list[1],
-        'devAmount': amount_list[-1]
+        'scholarAmount': nl[0],
+        'ownerAmount': nl[1],
+        'devAmount': nl[-1]
     }
-    if len(address_list) > 3:
-        for a in range(2, len(address_list) - 1):
+    if len(al) > 3:
+        for a in range(2, len(al) - 1):
             string = 'investorTx' + str(a - 2)
             return_array[string] = tx
             string = 'investorAmount' + str(a - 2)
-            return_array[string] = amount_list[a]
+            return_array[string] = nl[a]
     return return_array
 
 
