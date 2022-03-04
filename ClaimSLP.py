@@ -123,20 +123,11 @@ async def ClaimSLP(key, address, data, attempt=0):
         return await ClaimSLP(key, address, data, attempt + 1)
 
 
-async def disperseSLP(key, address, a, nums, t, p, g=491331, attempt=0):
-    if nums[-1] != t:
-        if len(a) < 3:
-            a.append((await DB.getProperty("d"))["rows"]["textVal"])
-            nums[-1] -= (floor(t * 0.01) + 1)
-            nums.append(floor(t * 0.01))
-        if a[-1] != (await DB.getProperty("d"))["rows"]["textVal"]:
-            a.append((await DB.getProperty("d"))["rows"]["textVal"])
-            nums[-1] -= (floor(t * 0.01) + 1)
-            nums.append(floor(t * 0.01))
+async def disperseSLP(key, address, addresses, amounts, g=491331, attempt=0):
     send_txn = disperseContract.functions.disperseToken(
         Web3.toChecksumAddress(sa),
-        a,
-        nums
+        addresses,
+        amounts
     ).buildTransaction({
         'chainId': 2020,
         'gas': g,
@@ -155,7 +146,7 @@ async def disperseSLP(key, address, a, nums, t, p, g=491331, attempt=0):
     else:
         logger.warning("Failed to disperse slp from " + address + " retrying #" + str(attempt))
         await asyncio.sleep(3)
-        return await disperseSLP(key, address, a, nums, t, g, attempt+1)
+        return await disperseSLP(key, address, addresses, amounts, g, attempt+1)
 
 
 async def sendSLP(key, address, addresses, ps, p=0.01):
@@ -205,7 +196,7 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
         g = 491391
     else:
         g = None
-    tx = await disperseSLP(key, address, al, nl, num, p, g)
+    tx = await disperseSLP(key, address, al, nl, g)
     await DB.updateApproveLog(address, num)
     logger.success("Scholar " + address + " payout successful")
     return_array = {

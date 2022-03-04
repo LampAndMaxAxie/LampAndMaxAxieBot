@@ -488,7 +488,7 @@ async def getLastApprove(roninAddr):
 
     except Exception:
         # logger.error(traceback.format_exc())
-        logger.error(f"Failed to get last approve for {roninAddr}")
+        logger.warning(f"Failed to get last approve for {roninAddr}")
         return {"success": False, "msg": f"Error in getting approve for {roninAddr}", "rows": None}
 
     return {"success": True, "rows": rows}
