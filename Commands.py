@@ -1206,27 +1206,14 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
-    # logger.info(f"Scholar {discordId} account addr confirmed as {address} via mnemonic")
-
-    # accessToken = getPlayerToken(key, address)
-    # slp_data = json.loads(await ClaimSLP.getSLP(accessToken, address))
-    # claimable = slp_data['claimable_total']
-    # nextClaimTime = slp_data['last_claimed_item_at'] + 1209600
-    # if nextClaimTime > time.time():
-    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R>.", isSlash)
-    #    return
-    # if claimable == 0:
-    #    await handleResponse(message,f"Unable to process claim for {name}; payout can be claimed <t:{nextClaimTime}:R> but there is no claimable SLP.", isSlash)
-    #    return
-
     # confirm with react
-    embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
+    embed = discord.Embed(title="Force Scholar Payout Confirmation", description=f"Confirming payout for {name}",
                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
     embed.add_field(name="Scholar Name", value=f"{name}")
     embed.add_field(name="Scholar Discord ID", value=f"{discordId}")
     embed.add_field(name="Scholar Share", value=f"{round(share * 100, 3)}")
     embed.add_field(name="Payout Address", value=f"{payoutAddr}")
-    embed.add_field(name="Note", value="Please carefully check the payout address! Misplaced SLP cannot be recovered!")
+    embed.add_field(name="Note", value="Please carefully check the payout address! Misplaced SLP cannot be recovered! ONLY Use this command for stuck payouts.")
 
     embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
 
@@ -1304,6 +1291,150 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
         failedSend += f"Owner ({ownerAmt})"
 
     embed2.add_field(name="Total SLP Farmed", value=f"[{totalAmt}]({roninTx}{claimTx})")
+    embed2.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
+
+    if failedSend != "":
+        embed2.add_field(name="Possible Failures", value=f"{failedSend}")
+
+    if dmPayoutsToScholars:
+        logger.warning("DMing payout info to scholar: " + str(discordId))
+        user = await Common.client.fetch_user(int(discordId))
+        if user is not None:
+            tm = int(time.time())
+            await user.send(content=f"<t:{tm}:f> Payout Info", embed=embed2)
+        else:
+            logger.error("Failed to DM payout info to scholar: " + str(discordId))
+
+    await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
+
+
+# Command for an individual scholar payout
+async def forceDisperseCommand(message, args, discordId, isSlash=False):
+    authorID = message.author.id
+    if not await DB.isManager(authorID):
+        await Common.handleResponse(message, "You must be a manager to use this command", isSlash)
+        return
+
+    res = await DB.getProperty("d")
+    if not res["success"]:
+        await Common.handleResponse(message, "Failed to query database for d property", isSlash)
+        return
+
+    d = 0.0
+    if res["rows"]["realVal"] is not None:
+        d = round(float(res["rows"]["realVal"]), 3)
+
+    authorId = discordId
+    if len(args) > 1 and args[1].isnumeric():
+        discordId = int(args[1])
+
+    res = await DB.getDiscordID(discordId)
+    user = res["rows"]
+    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+        await Common.handleResponse(message, "Did not find a scholar with your discord ID", isSlash)
+        return
+
+    name = user['name']
+    payoutAddr = user['payout_addr']
+    if payoutAddr is not None:
+        payoutAddr = payoutAddr.strip()
+    share = float(user['share'])
+
+    if payoutAddr is None or payoutAddr == "":
+        await Common.handleResponse(message, f"Please set your payout address with '{prefix}setPayoutAddress ronin:...' first", isSlash)
+        return
+
+    key, address = await UtilBot.getKeyForUser(user)
+    if key is None or address is None:
+        await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
+        return
+
+    marketName = await UtilBot.getMarketplaceProfile(payoutAddr)
+    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
+        await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
+        return
+
+    # confirm with react
+    embed = discord.Embed(title="Individual Scholar Payout Confirmation", description=f"Confirming payout for {name}",
+                          timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
+    embed.add_field(name="Scholar Name", value=f"{name}")
+    embed.add_field(name="Scholar Discord ID", value=f"{discordId}")
+    embed.add_field(name="Scholar Share", value=f"{round(share * 100, 3)}")
+    embed.add_field(name="Payout Address", value=f"{payoutAddr}")
+    embed.add_field(name="Note", value="Please carefully check the payout address! Misplaced SLP cannot be recovered! ONLY use this command for accounts that did not correctly send SLP.")
+
+    embed.set_footer(text="Click \N{White Heavy Check Mark} to confirm.")
+
+    confMsg, conf = await processConfirmationAuthor(message, embed, 60)
+
+    if conf is None:
+        # timeout
+        await confMsg.reply(content="You did not confirm within the timeout period, canceling!")
+        return
+    elif conf:
+        # confirmed
+        pass
+    else:
+        # denied/error
+        await confMsg.reply(content="Canceling the request!")
+        return
+
+    processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
+
+    try:
+        addresses = [payoutAddr, Common.ownerRonin]
+        percents = [share, (1 - (d + share))]
+        claimRes = await ClaimSLP.sendSLP(key, address, addresses, percents, d)
+    except Exception as e:
+        logger.error(e)
+        if authorId == discordId:
+            await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please work with your manager to have it manually resolved.")
+        else:
+            await processMsg.reply(content=f"<@{authorId}> there was an error while processing the payout.")
+        return
+
+    if isinstance(claimRes, int):
+        if authorId == discordId:
+            await processMsg.reply(content=f"<@{authorID}>: your account is available to claim <t:{claimRes}:R> at <t:{claimRes}:f>.")
+        else:
+            await processMsg.reply(content=f"<@{authorID}>: {name}'s account is available to claim <t:{claimRes}:R> at <t:{claimRes}:f>.")
+        return
+
+    if claimRes is None:
+        await processMsg.reply(content=f"<@{discordId}> there was an error while processing your payout. Please ask your manager if you should try again.")
+        return
+
+    devTx = claimRes["devTx"]
+    ownerTx = claimRes["ownerTx"]
+    scholarTx = claimRes["scholarTx"]
+    devAmt = claimRes["devAmount"]
+    ownerAmt = claimRes["ownerAmount"]
+    scholarAmt = claimRes["scholarAmount"]
+    totalAmt = claimRes["totalAmount"]
+
+    if totalAmt == 0:
+        await processMsg.reply(content=f"<@{discordId}> there was no SLP to claim.")
+        return
+
+    roninTx = "https://explorer.roninchain.com/tx/"
+    roninAddr = "https://explorer.roninchain.com/address/"
+    embed2 = discord.Embed(title="Individual Scholar Payout Results", description=f"Data regarding the payout for {discordId}/{name}",
+                           timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
+
+    failedSend = ""
+    if scholarTx is not None:
+        embed2.add_field(name="SLP Paid to Scholar", value=f"[{scholarAmt}]({roninTx}{scholarTx})")
+    else:
+        failedSend += f"Scholar ({scholarAmt}), "
+    if devTx is not None:
+        embed2.add_field(name="SLP Donated to Devs", value=f"[{devAmt}]({roninTx}{devTx})")
+    elif devAmt > 0:
+        failedSend += f"Devs ({devAmt}), "
+    if ownerTx is not None:
+        embed2.add_field(name="SLP Paid to Manager", value=f"[{ownerAmt}]({roninTx}{ownerTx})")
+    else:
+        failedSend += f"Owner ({ownerAmt})"
+
     embed2.add_field(name="Scholar Share Paid To", value=f"[{payoutAddr}]({roninAddr}{payoutAddr})")
 
     if failedSend != "":

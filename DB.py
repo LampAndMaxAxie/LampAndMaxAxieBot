@@ -25,7 +25,6 @@ async def createMainTables():
         await c.execute('CREATE TABLE IF NOT EXISTS properties (id INTEGER PRIMARY KEY AUTOINCREMENT, property TEXT NOT NULL, realVal REAL, textVal TEXT, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
         await c.execute('CREATE TABLE IF NOT EXISTS slp_tracker (id INTEGER PRIMARY KEY AUTOINCREMENT, discord_id INTEGER NOT NULL, for_date TIMESTAMP NOT NULL, total_slp INTEGER NOT NULL, adventure_slp INTEGER, arena_slp INTEGER, quest_slp INTEGER, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')))')
         await c.execute('CREATE TABLE IF NOT EXISTS claims (id INTEGER PRIMARY KEY AUTOINCREMENT, claim_time TIMESTAMP NOT NULL, total_slp INTEGER NOT NULL, ronin_addr TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')))')
-        await c.execute('CREATE TABLE IF NOT EXISTS approves (ronin_addr TEXT NOT NULL PRIMARY KEY, tx_hash TEXT NOT NULL, amount_approved TEXT NOT NULL, amount_sent TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
         await c.execute('CREATE TABLE IF NOT EXISTS investors (ronin_addr TEXT NOT NULL PRIMARY KEY, investor_addresses TEXT NOT NULL, investor_amounts TEXT NOT NULL, created_at TIMESTAMP DEFAULT (strftime(\'%s\', \'now\')), updated_at TIMESTAMP DEFAULT (strftime(\'%s\',\'now\')))')
         logger.success("Initialized database tables")
 
@@ -65,22 +64,6 @@ async def addClaimLog(roninAddr, claimTimeStamp, totalSLP):
             return {"success": False, "msg": f"Error in logging claim for {roninAddr}"}
 
     return {"success": True, "msg": f"Scholar logged claim {roninAddr}"}
-
-
-@logger.catch
-async def addApproveLog(roninAddr, tx_hash, amount_approved, amount_sent):
-    async with client.db.cursor() as c:
-        try:
-            await c.execute('INSERT INTO approves (ronin_addr, tx_hash, amount_approved, amount_sent) VALUES (?, ?, ?, ?)', (roninAddr, tx_hash, str(amount_approved), str(amount_sent)))
-
-            logger.info(f"Logged approve history for {roninAddr}")
-
-        except Exception:
-            logger.error(traceback.format_exc())
-            logger.error(f"Failed to log approve for {roninAddr}")
-            return {"success": False, "msg": f"Error in logging approve for {roninAddr}"}
-
-    return {"success": True, "msg": f"Scholar logged approve {roninAddr}"}
 
 
 @logger.catch
@@ -140,34 +123,6 @@ async def removeScholar(discordID):
             return {"success": False, "msg": f"Error in processing scholar deletion for {discordID}"}
 
     return {"success": True, "msg": f"Scholar {discordID} deleted"}
-
-
-@logger.catch
-async def updateApproveLog(ronin_addr, new_amount):
-    async with client.db.cursor() as c:
-        try:
-            res = await getLastApprove(ronin_addr)
-            if res['success']:
-                await c.execute("BEGIN")
-                try:
-                    amount = int(res['rows']['amount_sent']) + new_amount
-                    await c.execute('UPDATE approves SET amount_sent=? WHERE ronin_addr=?', (str(amount), ronin_addr))
-                    await c.execute("COMMIT")
-                    logger.info(f"Updated {ronin_addr}'s approve log to {amount}")
-                except:
-                    await c.execute("ROLLBACK")
-                    logger.error(traceback.format_exc())
-                    logger.error(f"Failed to update scholar {ronin_addr}'s approval")
-                    return {"success": False, "msg": f"Error in processing approval update for {ronin_addr}"}
-            else:
-                logger.info(f"Scholar {ronin_addr} did not have an approval record to update.")
-                return {"success": False, "msg": f"Scholar {ronin_addr} did not have an approval record to update."}
-        except:
-            logger.error(traceback.format_exc())
-            logger.error(f"Failed to update scholar {ronin_addr}")
-            return {"success": False, "msg": f"Error in processing approval update for {ronin_addr}"}
-
-    return {"success": True, "msg": f"Scholar {ronin_addr}'s approve updated to {amount}"}
 
 
 @logger.catch
@@ -472,24 +427,6 @@ async def getLastClaim(roninAddr):
         # logger.error(traceback.format_exc())
         logger.error(f"Failed to get last claim for {roninAddr}")
         return {"success": False, "msg": f"Error in getting claim for {roninAddr}", "rows": None}
-
-    return {"success": True, "rows": rows}
-
-
-@logger.catch
-async def getLastApprove(roninAddr):
-    c = await client.db.cursor()
-    try:
-        await c.execute('SELECT * FROM approves WHERE ronin_addr = ?', (roninAddr,))
-        rows = await c.fetchone()
-        rows['amount_sent'] = int(rows['amount_sent'])
-        rows['amount_approved'] = int(rows['amount_approved'])
-        # logger.info(f"Got last claim data for {roninAddr}")
-
-    except Exception:
-        # logger.error(traceback.format_exc())
-        logger.warning(f"Failed to get last approve for {roninAddr}")
-        return {"success": False, "msg": f"Error in getting approve for {roninAddr}", "rows": None}
 
     return {"success": True, "rows": rows}
 

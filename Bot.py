@@ -177,6 +177,13 @@ async def on_message(message):
         await Commands.forcePayoutCommand(message, args, discordId)
         return
 
+    elif args[0] == prefix + "forceDisperse":
+        if guildId is None:
+            await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")
+            return
+        await Commands.forceDisperseCommand(message, args, discordId)
+        return
+
     elif args[0] == prefix + "massPayout" and isManager:
         if guildId is None:
             await message.reply(content="Please do not use payout commands in DMs with the bot, so records are available in the Discord server.")

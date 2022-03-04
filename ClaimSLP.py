@@ -37,10 +37,6 @@ async def approve(key, address, attempts=0):
     success = await txUtils.sendTx(signed_txn)
     if success:
         logger.success("SLP was approved for " + address + " at tx " + sentTx)
-        try:
-            await DB.addApproveLog(address, sentTx, APPROVAL_AMOUNT, 0)
-        except:
-            pass
         return sentTx
     elif attempts > 5:
         logger.error("Failed to approve scholar " + address + " retried " + str(attempts) + " times.")
@@ -169,10 +165,12 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
             "scholarTx": None,
             "scholarAmount": 0
         }
-    approved = await DB.getLastApprove(address)
-    if not approved['success'] or approved['rows'] is None or approved['rows']['amount_approved'] < approved['rows']['amount_sent'] + num:
-        approval = await approve(key, address)
-        await DB.addApproveLog(address, approval, APPROVAL_AMOUNT, 0)
+    approved = slpContract.functions.allowance(Web3.toChecksumAddress(address), Web3.toChecksumAddress(aa)).call()
+    if approved == 0:
+        logger.info("approving " + address + " to use scatter contract")
+        await approve(key, address)
+    else:
+        logger.info(address + " is already approved")
 
     nl = []
     s = 0
@@ -197,7 +195,6 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
     else:
         g = None
     tx = await disperseSLP(key, address, al, nl, g)
-    await DB.updateApproveLog(address, num)
     logger.success("Scholar " + address + " payout successful")
     return_array = {
         "totalAmount": num,
