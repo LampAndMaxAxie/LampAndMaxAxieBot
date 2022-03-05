@@ -262,8 +262,8 @@ async def makeJsonRequest(url, token, attempt=0):
             except:
                 pass
 
-        print(url)
-        print(jsonDat)
+        # print(url)
+        # print(jsonDat)
         if not succ:
             if 'details' in jsonDat and len(jsonDat['details']) > 0:
                 if 'code' in jsonDat:
@@ -326,8 +326,8 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
 
     urlName = graphQL + "?query={publicProfileWithRoninAddress(roninAddress:\"" + roninAddr + "\"){accountId,name}}"
     jsonDatName = await makeJsonRequestWeb(urlName)
-    print(urlName)
-    print(jsonDatName)
+    # print(urlName)
+    # print(jsonDatName)
     # fail out if any data is missing
     # if jsonDat is None or jsonDatQuests is None or jsonDatBattle is None or jsonDatBalance is None:
     if jsonDat is None or jsonDatBattle is None or jsonDatBalance is None:
