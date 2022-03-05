@@ -52,6 +52,7 @@ slpEmojiID = {}
 
 graphQL = "https://graphql-gateway.axieinfinity.com/graphql"
 gameAPI = "https://game-api.skymavis.com/game-api"
+gameAPI2 = "https://game-api.axie.technology"
 
 
 def getQRCode(accessToken, discordID):
@@ -252,10 +253,17 @@ async def makeJsonRequest(url, token, attempt=0):
         succ = False
         if 'success' in jsonDat:
             succ = jsonDat['success']
-
-        if 'story_id' in jsonDat:
+        elif 'story_id' in jsonDat:
             succ = True
+        else:
+            try:
+                if 'success' in jsonDat[0]:
+                    succ = jsonDat[0]['success']
+            except:
+                pass
 
+        print(url)
+        print(jsonDat)
         if not succ:
             if 'details' in jsonDat and len(jsonDat['details']) > 0:
                 if 'code' in jsonDat:
@@ -273,7 +281,7 @@ async def makeJsonRequest(url, token, attempt=0):
     except Exception as e:
         logger.error(f"Exception in makeJsonRequest for: {url}, attempt {attempt}")
         logger.error(response.data.decode('utf8'))
-        # traceback.print_exc()
+        traceback.print_exc()
 
         if attempt < 3:
             return await makeJsonRequest(url, token, attempt + 1)
@@ -302,68 +310,76 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         return None
 
     # fetch data
-    url = gameAPI + "/clients/" + roninAddr + "/player-stats"
+    url = gameAPI2 + "/player/v2/" + roninAddr
     jsonDat = await makeJsonRequest(url, token)
 
-    urlQuests = gameAPI + "/clients/" + roninAddr + "/quests"
-    jsonDatQuests = await makeJsonRequest(urlQuests, token)
+    # urlQuests = gameAPI + "/clients/" + roninAddr + "/quests"
+    # jsonDatQuests = await makeJsonRequest(urlQuests, token)
 
-    urlBattle = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
+    urlBattle = gameAPI2 + "/mmr/v2/" + roninAddr
     jsonDatBattle = await makeJsonRequest(urlBattle, token)
+    jsonDatBattle = jsonDatBattle[0]
 
-    urlBalance = gameAPI + "/clients/" + roninAddr + "/items/1"
+    urlBalance = gameAPI2 + "/slp/v2/" + roninAddr
     jsonDatBalance = await makeJsonRequest(urlBalance, token)
+    jsonDatBalance = jsonDatBalance[0]
 
+    urlName = graphQL + "?query={publicProfileWithRoninAddress(roninAddress:\"" + roninAddr + "\"){accountId,name}}"
+    jsonDatName = await makeJsonRequestWeb(urlName)
+    print(urlName)
+    print(jsonDatName)
     # fail out if any data is missing
-    if jsonDat is None or jsonDatQuests is None or jsonDatBattle is None or jsonDatBalance is None:
+    # if jsonDat is None or jsonDatQuests is None or jsonDatBattle is None or jsonDatBalance is None:
+    if jsonDat is None or jsonDatBattle is None or jsonDatBalance is None:
         logger.error(f"Failed an API call for daily for {roninAddr}")
         return None
 
     try:
-        meta = jsonDat['meta_data']
-        jsonDat = jsonDat['player_stat']
+        # meta = jsonDat['meta_data']
+        # jsonDat = jsonDat['player_stat']
 
         utc_time = int(datetime.datetime.now(tzutc).timestamp())
         cacheExp = utc_time + CACHE_TIME * 60
 
         # process data
 
-        maxEnergy = meta['max_energy']
-        lastUpdatedStamp = int(jsonDat['updated_at'])
+        maxEnergy = jsonDat['energy']['total']
+        remainingEnergy = jsonDat['energy']['remaining']
+        lastUpdatedStamp = int(jsonDat['last_time_online'])
 
         # player-stats, energy/daily SLP/match counts
-        remainingEnergy = int(jsonDat['remaining_energy'])
-        pvpSlp = int(jsonDat['pvp_slp_gained_last_day'])
-        pveSlp = int(jsonDat['pve_slp_gained_last_day'])
+        # remainingEnergy = int(jsonDat['remaining_energy'])
+        # pvpSlp = int(jsonDat['pvp_slp_gained_last_day'])
+        # pveSlp = int(jsonDat['pve_slp_gained_last_day'])
 
         # quests, quest completion data and progress
-        if len(jsonDatQuests['items']) > 0:
-            quest = jsonDatQuests['items'][0]
-            questClaimed = quest['claimed'] is not None
-            checkIn = quest['missions'][0]['is_completed']
-            pveQuest = quest['missions'][1]['progress']
-            pveCount = pveQuest  # temporary
-            pveQuestN = quest['missions'][1]['total']
-            pvpQuest = quest['missions'][2]['progress']
-            pvpCount = pvpQuest  # temporary
-            pvpQuestN = quest['missions'][2]['total']
-            questSlp = 0
-            questCompleted = pveQuest >= pveQuestN and pvpQuest >= pvpQuestN and checkIn
-            if questCompleted and questClaimed:
-                questSlp = 25
-        else:
-            quest = None
-            questClaimed = None
-            checkIn = False
-            pveQuest = 0
-            pveCount = pveQuest  # temporary
-            pveQuestN = 0
-            pvpQuest = 0
-            pvpCount = pvpQuest  # temporary
-            pvpQuestN = 0
-            questSlp = 0
-            questCompleted = False
-            questSlp = 0
+        # if len(jsonDatQuests['items']) > 0:
+        #     quest = jsonDatQuests['items'][0]
+        #     questClaimed = quest['claimed'] is not None
+        #     checkIn = quest['missions'][0]['is_completed']
+        #     pveQuest = quest['missions'][1]['progress']
+        #     pveCount = pveQuest  # temporary
+        #     pveQuestN = quest['missions'][1]['total']
+        #     pvpQuest = quest['missions'][2]['progress']
+        #     pvpCount = pvpQuest  # temporary
+        #     pvpQuestN = quest['missions'][2]['total']
+        #     questSlp = 0
+        #     questCompleted = pveQuest >= pveQuestN and pvpQuest >= pvpQuestN and checkIn
+        #     if questCompleted and questClaimed:
+        #         questSlp = 25
+        # else:
+        #     quest = None
+        #     questClaimed = None
+        #     checkIn = False
+        #     pveQuest = 0
+        #     pveCount = pveQuest  # temporary
+        #     pveQuestN = 0
+        #     pvpQuest = 0
+        #     pvpCount = pvpQuest  # temporary
+        #     pvpQuestN = 0
+        #     questSlp = 0
+        #     questCompleted = False
+        #     questSlp = 0
 
         # sometimes it returns 0 energy if they haven't done anything yet
         # if questSlp == 0 and remainingEnergy == 0 and pvpCount == 0 and pveCount == 0 and pveSlp == 0:
@@ -373,16 +389,10 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         #        remainingEnergy = 20
 
         # battle data. mmr/rank/wins etc
-        player = jsonDatBattle['items'][1]
-        name = player["name"]
+        player = jsonDatBattle['items'][0]
+        name = jsonDatName['data']['publicProfileWithRoninAddress']['name']
         mmr = int(player["elo"])
         rank = int(player["rank"])
-        wins = int(player["win_total"])
-        losses = int(player["lose_total"])
-        draws = int(player["draw_total"])
-
-        if wins + losses + draws > 0:
-            pass
 
         # items, account/lifetime/earned SLP and claim date
         lifetimeSlp = jsonDatBalance["blockchain_related"]["checkpoint"]
@@ -414,24 +424,26 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         if daysRemaining < 0:
             pass
 
-        if pvpCount > 0:
-            pass
-        if pveCount > 0:
-            pass
-
-        questTxt = ""
-        if questCompleted and questClaimed:
-            questTxt = "completed and claimed"
-        elif questCompleted and not questClaimed:
-            questTxt = "completed but not claimed"
-        elif not questCompleted:
-            questTxt = "incomplete"
-
-        checkInTxt = "complete" if checkIn else "incomplete"
-
         slpPerDay = round(inGameSlp / daysSinceClaim, 1)
-        pveTxt = str(pveQuest) + '/' + str(pveQuestN)
-        pvpTxt = str(pvpQuest) + '/' + str(pvpQuestN)
+        #
+        # if pvpCount > 0:
+        #     pass
+        # if pveCount > 0:
+        #     pass
+        #
+        # questTxt = ""
+        # if questCompleted and questClaimed:
+        #     questTxt = "completed and claimed"
+        # elif questCompleted and not questClaimed:
+        #     questTxt = "completed but not claimed"
+        # elif not questCompleted:
+        #     questTxt = "incomplete"
+        #
+        # checkInTxt = "complete" if checkIn else "incomplete"
+        #
+
+        # pveTxt = str(pveQuest) + '/' + str(pveQuestN)
+        # pvpTxt = str(pvpQuest) + '/' + str(pvpQuestN)
 
         slpIcon = None
         if guildId and guildId in slpEmojiID:
@@ -454,11 +466,11 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
         embed.add_field(name=":crossed_swords: Arena MMR", value=f"{mmr}")
         embed.add_field(name=":trophy: Arena Rank", value=f"{rank}")
         embed.add_field(name=":cloud_lightning: Remaining Energy", value=f"{remainingEnergy}")
-        if quest is not None:
-            embed.add_field(name=":white_check_mark: Quest - Check in", value=f"{checkInTxt}")
-            embed.add_field(name=":bear: Quest - PvE", value=f"{pveTxt}, {pveSlp}/50 SLP")
-            embed.add_field(name=":bow_and_arrow: Quest - PvP", value=f"{pvpTxt}")
-            embed.add_field(name=":scroll: Daily Quest", value=f"{questTxt}")
+        # if quest is not None:
+        #     embed.add_field(name=":white_check_mark: Quest - Check in", value=f"{checkInTxt}")
+        #     embed.add_field(name=":bear: Quest - PvE", value=f"{pveTxt}, {pveSlp}/50 SLP")
+        #     embed.add_field(name=":bow_and_arrow: Quest - PvP", value=f"{pvpTxt}")
+        #     embed.add_field(name=":scroll: Daily Quest", value=f"{questTxt}")
         embed.add_field(name=":clock1: Last Updated", value=f"<t:{lastUpdatedStamp}:f>")
         embed.add_field(name=":floppy_disk: Uncache Timer", value=f"<t:{cacheExp}:R>")
 
@@ -468,12 +480,12 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
             "mmr": mmr,
             "rank": rank,
             "name": name,
-            "pvpSlp": pvpSlp,
-            "pveSlp": pveSlp,
-            "pvpCount": pvpCount,
-            "pveCount": pveCount,
-            "questSlp": questSlp,
-            "totalSlp": pveSlp + pvpSlp + questSlp,
+            # "pvpSlp": pvpSlp,
+            # "pveSlp": pveSlp,
+            # "pvpCount": pvpCount,
+            # "pveCount": pveCount,
+            # "questSlp": questSlp,
+            # "totalSlp": pveSlp + pvpSlp + questSlp,
             "energy": remainingEnergy,
             "lifetimeSlp": lifetimeSlp,
             "claimCycleDays": daysSinceClaim,
@@ -507,10 +519,10 @@ async def getRoninBattles(roninAddr):
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
+    url = gameAPI2 + "/logs/pvp/v2/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
-    urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
+    urlRank = gameAPI2 + "/mmr/v2/" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
     name = await getMarketplaceProfile(roninAddr)
@@ -741,7 +753,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
     url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
-    urlRank = gameAPI + "/leaderboard?client_id=" + roninAddr + "&offset=0&limit=0"
+    urlRank = gameAPI2 + "/mmr/v2/?client_id=" + roninAddr + "&offset=0&limit=0"
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
     # fail out if any data is missing
@@ -1000,7 +1012,8 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
         # build the data table
         df = pd.DataFrame(
             # columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
-            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
+            # columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
+            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'NextClaim'])
         scholarsDict = await DB.getAllScholars()
         if scholarsDict["success"] is None:
             return None, None
@@ -1017,8 +1030,10 @@ async def getScholarSummary(sort="avgslp", ascending=False, guildId=None):
                 # df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
                 #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                 #                         quest, res["claimDate"].date()]
+                # df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                #                          res["energy"], res["pvpCount"], res["claimDate"].date()]
                 df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
-                                         res["energy"], res["pvpCount"], res["claimDate"].date()]
+                                         res["energy"], res["claimDate"].date()]
 
         # sort the summary table
         if sort in ["avgslp", "slp", "adventure", "adv"]:
@@ -1075,8 +1090,8 @@ async def getScholarTop10(sort="slp"):
         # build the data table
         df = pd.DataFrame(
             # columns=['Pos', 'Scholar', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'PvEWins', 'PvESLP', 'Quest', 'NextClaim'])
-            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
-
+            # columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'PvPWins', 'NextClaim'])
+            columns=['Pos', 'Scholar (In-Game)', 'Scholar (Discord)', 'MMR', 'ArenaRank', 'CurSLP', 'SLP/Day', 'Energy', 'NextClaim'])
         scholarsDict = await DB.getAllScholars()
         if scholarsDict["success"] is None:
             return None, None
@@ -1093,8 +1108,10 @@ async def getScholarTop10(sort="slp"):
                 # df.loc[len(df.index)] = [0, res["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
                 #                         res["energy"], res["pvpCount"], res["pveCount"], str(res["pveSlp"]) + "/50",
                 #                         quest, res["claimDate"].date()]
+                # df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
+                #                          res["energy"], res["pvpCount"], res["claimDate"].date()]
                 df.loc[len(df.index)] = [0, res["name"], scholar["name"], res["mmr"], res["rank"], res["inGameSlp"], res["avgSlpPerDay"],
-                                         res["energy"], res["pvpCount"], res["claimDate"].date()]
+                                         res["energy"], res["claimDate"].date()]
 
         df['Pos'] = np.arange(1, len(df)+1)
 
@@ -1306,8 +1323,9 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
             # configure alert messages
             if res is not None:
                 alert = res["energy"] > 0 or res["mmr"] < 1000
-                congrats = res["pvpCount"] >= 15
-                if alert or congrats:
+                # congrats = res["pvpCount"] >= 15
+                # if alert or congrats:
+                if alert:
                     # send early to avoid message size limits
                     if len(msg) >= 1600:
                         await channel.send(msg)
@@ -1322,8 +1340,8 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
                         msg += '%s You have %d energy remaining\n' % (redX, res["energy"])
                     if res["mmr"] < 1000:
                         msg += '%s You are only at %d MMR in Arena. <800 = only 1 SLP per win.\n' % (redX, res["mmr"])
-                    if res["pvpCount"] >= 15:
-                        msg += '%s Congrats on your %d Arena wins! Wow!\n' % (greenCheck, res["pvpCount"])
+                    # if res["pvpCount"] >= 15:
+                    #     msg += '%s Congrats on your %d Arena wins! Wow!\n' % (greenCheck, res["pvpCount"])
                 if alert:
                     count += 1
 
