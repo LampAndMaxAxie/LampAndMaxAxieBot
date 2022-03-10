@@ -10,14 +10,6 @@ def signRoninMessage(message, key, attempts2=0):
         ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
         sig = ronweb3.eth.account.sign_message(mes, private_key=key)
         signature = sig['signature'].hex()
-        temp = signature[-2:]
-        signature = signature[:-2]
-        if temp == "1c":
-            signature += "01"
-        elif temp == "1b":
-            signature += "00"
-        else:
-            print("something went wrong with signRoninMessage")
         return signature
     except Exception as e:
         if attempts2 > 3:
@@ -33,9 +25,10 @@ def GenerateAccessToken(key, address, attempts=0):
         try:
             url = "https://graphql-gateway.axieinfinity.com/graphql"
 
-            payload = "{\"query\":\"mutation CreateRandomMessage {\\r\\n  createRandomMessage\\r\\n}\",\"variables\":{}}"
+            payload = '{"query":"mutation CreateRandomMessage{createRandomMessage}","variables":{}}'
             headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)'
             }
 
             response = requests.request("POST", url, headers=headers, data=payload)
@@ -55,14 +48,6 @@ def GenerateAccessToken(key, address, attempts=0):
             ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
             sig = ronweb3.eth.account.sign_message(mes, private_key=key)
             signature = sig['signature'].hex()
-            temp = signature[-2:]
-            signature = signature[:-2]
-            if temp == "1c":
-                signature += "01"
-            elif temp == "1b":
-                signature += "00"
-            else:
-                print("something went wrong with signRoninMessage")
             return signature
         except Exception as e:
             if attempts2 > 3:
@@ -75,11 +60,7 @@ def GenerateAccessToken(key, address, attempts=0):
     def CreateAccessToken(message, signature, address, attempts2=0):
         try:
             url = "https://graphql-gateway.axieinfinity.com/graphql"
-            payload = "{\"query\":\"mutation CreateAccessTokenWithSignature($input: SignatureInput!)" \
-                      "{\\r\\n  createAccessTokenWithSignature(input: $input)" \
-                      "{\\r\\n    newAccount\\r\\n    result\\r\\n    accessToken\\r\\n    __typename\\r\\n  }" \
-                      "\\r\\n}\\r\\n\",\"variables\":{\"input\":{\"mainnet\":\"ronin\",\"owner\":\"" + \
-                      address + "\",\"message\":\"" + message + "\",\"signature\":\"" + signature + "\"}}}"
+            payload = '{"query":"mutation CreateAccessTokenWithSignature($input:SignatureInput!){createAccessTokenWithSignature(input:$input){newAccount,result,accessToken,__typename}}","variables":{"input":{"mainnet":"ronin","owner":"' + address + '","message":"' + message + '","signature":"' + signature + '"}}}'
             headers = {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)'
