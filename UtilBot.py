@@ -291,16 +291,15 @@ async def makeJsonRequest(url, token, attempt=0):
     return jsonDat
 
 
-async def makeJsonRequestPOST(url, token, attempt=0):
+async def makeJsonRequestName(url, attempt=0):
     response = None
     try:
         response = http.request(
-            "POST",
+            "GET",
             url,
             headers={
                 'Content-Type': 'application/json',
                 "User-Agent": "UnityPlayer/2019.4.28f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)",
-                "Authorization": 'Bearer ' + token,
                 'origin': 'LampAndMaxAxieBot',
                 'referer': 'LampAndMaxAxieBot',
             }
@@ -311,6 +310,8 @@ async def makeJsonRequestPOST(url, token, attempt=0):
         if 'success' in jsonDat:
             succ = jsonDat['success']
         elif 'story_id' in jsonDat:
+            succ = True
+        elif 'data' in jsonDat:
             succ = True
         else:
             try:
@@ -331,7 +332,7 @@ async def makeJsonRequestPOST(url, token, attempt=0):
                 logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
 
             if attempt < 3:
-                return await makeJsonRequest(url, token, attempt + 1)
+                return await makeJsonRequestName(url, attempt + 1)
             else:
                 return None
 
@@ -341,7 +342,7 @@ async def makeJsonRequestPOST(url, token, attempt=0):
         traceback.print_exc()
 
         if attempt < 3:
-            return await makeJsonRequest(url, token, attempt + 1)
+            return await makeJsonRequestName(url, attempt + 1)
         else:
             await sendErrorToManagers(e, url)
             return None
@@ -381,12 +382,12 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
     jsonDatBalance = await makeJsonRequest(urlBalance, token)
     jsonDatBalance = jsonDatBalance[0]
 
-    urlName = graphQL + "?query={publicProfileWithRoninAddress(address:\"" + roninAddr.replace("ronin:", "0x") + "\"){name}}"
+    urlName = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + roninAddr.replace("ronin:", "0x") + "\"){name}}"
     success = False
     name = ""
     attempt = 0
     while not success and attempt <= 5:
-        jsonDatName = await makeJsonRequestPOST(urlName, token)
+        jsonDatName = await makeJsonRequestName(urlName)
         try:
             name = jsonDatName['data']['publicProfileWithRoninAddress']['name']
             success = True
