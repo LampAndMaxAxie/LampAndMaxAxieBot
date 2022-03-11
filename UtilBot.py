@@ -185,7 +185,7 @@ def getPlayerToken(roninKey, roninAddr):
             tokenBook = json.load(f)
 
             # check if cached token is available and not-expired for player
-            if roninAddr in tokenBook and int(tokenBook[roninAddr]["exp"]) > int(time.time()) and len(tokenBook[roninAddr]["token"]) > 400:
+            if roninAddr in tokenBook and int(tokenBook[roninAddr]["exp"]) > int(time.time()) and len(tokenBook[roninAddr]["token"]) > 400 and int(tokenBook[roninAddr]["exp"]) > 1647508397:
                 token = tokenBook[roninAddr]["token"]
             else:
                 # generate new token
