@@ -245,7 +245,64 @@ async def makeJsonRequest(url, token, attempt=0):
                 "Accept": "*/*",
                 "Accept-Encoding": "identity",
                 "Authorization": 'Bearer ' + token,
-                "X-Unity-Version": "2019.4.28f1"
+            }
+        )
+
+        jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
+        succ = False
+        if 'success' in jsonDat:
+            succ = jsonDat['success']
+        elif 'story_id' in jsonDat:
+            succ = True
+        else:
+            try:
+                if 'success' in jsonDat[0]:
+                    succ = jsonDat[0]['success']
+            except:
+                pass
+
+        # print(url)
+        # print(jsonDat)
+        if not succ:
+            if 'details' in jsonDat and len(jsonDat['details']) > 0:
+                if 'code' in jsonDat:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
+                else:
+                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
+            else:
+                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
+
+            if attempt < 3:
+                return await makeJsonRequest(url, token, attempt + 1)
+            else:
+                return None
+
+    except Exception as e:
+        logger.error(f"Exception in makeJsonRequest for: {url}, attempt {attempt}")
+        logger.error(response.data.decode('utf8'))
+        traceback.print_exc()
+
+        if attempt < 3:
+            return await makeJsonRequest(url, token, attempt + 1)
+        else:
+            await sendErrorToManagers(e, url)
+            return None
+
+    return jsonDat
+
+
+async def makeJsonRequestPOST(url, token, attempt=0):
+    response = None
+    try:
+        response = http.request(
+            "POST",
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                "User-Agent": "UnityPlayer/2019.4.28f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)",
+                "Authorization": 'Bearer ' + token,
+                'origin': 'LampAndMaxAxieBot',
+                'referer': 'LampAndMaxAxieBot',
             }
         )
 
@@ -324,8 +381,20 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
     jsonDatBalance = await makeJsonRequest(urlBalance, token)
     jsonDatBalance = jsonDatBalance[0]
 
-    urlName = graphQL + "?query={publicProfileWithRoninAddress(roninAddress:\"" + roninAddr + "\"){accountId,name}}"
-    jsonDatName = await makeJsonRequestWeb(urlName)
+    urlName = graphQL + "?query={publicProfileWithRoninAddress(address:\"" + roninAddr.replace("ronin:", "0x") + "\"){name}}"
+    success = False
+    name = ""
+    attempt = 0
+    while not success and attempt <= 5:
+        jsonDatName = await makeJsonRequestPOST(urlName, token)
+        try:
+            name = jsonDatName['data']['publicProfileWithRoninAddress']['name']
+            success = True
+        except:
+            attempt += 1
+    if attempt == 5:
+        logger.error(f"Could not get marketplace profile for {roninAddr}. Is something wrong with the axie servers? Tried 5 times.")
+        return None
     # print(urlName)
     # print(jsonDatName)
     # fail out if any data is missing
@@ -390,7 +459,6 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
 
         # battle data. mmr/rank/wins etc
         player = jsonDatBattle['items'][0]
-        name = jsonDatName['data']['publicProfileWithRoninAddress']['name']
         mmr = int(player["elo"])
         rank = int(player["rank"])
 
