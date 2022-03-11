@@ -185,7 +185,10 @@ def getPlayerToken(roninKey, roninAddr):
             tokenBook = json.load(f)
 
             # check if cached token is available and not-expired for player
-            if roninAddr in tokenBook and int(tokenBook[roninAddr]["exp"]) > int(time.time()) and len(tokenBook[roninAddr]["token"]) > 400 and int(tokenBook[roninAddr]["exp"]) > 1647508397:
+            if (roninAddr in tokenBook and "exp" in tokenBook[roninAddr]
+                    and int(tokenBook[roninAddr]["exp"]) > int(time.time())
+                    and len(tokenBook[roninAddr]["token"]) > 400
+                    and int(tokenBook[roninAddr]["exp"]) > 1647508397):
                 token = tokenBook[roninAddr]["token"]
             else:
                 # generate new token
@@ -663,7 +666,7 @@ async def getRoninBattles(roninAddr):
                 fighter = "first_team_fighters"
                 if roninAddr != battle["first_client_id"]:
                     figher = "second_team_fighters"
-                
+
                 axieIds = battle[fighter]
 
             # count draw
@@ -811,7 +814,7 @@ async def getRoninBattles(roninAddr):
 # returns data on scholar's battles
 async def getScholarBattles(targetId, discordName, roninAddr):
     global battlesCache
-    
+
     roninAddr = roninAddr.replace("ronin:", "0x")
 
     # check caching
@@ -912,7 +915,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
                 streakAmount += 1
             elif not streakBroken and streakType != result:
                 streakBroken = True
-            
+
             if eloDat:
                 change = newMmr - oldMmr
                 if change >= 0:
