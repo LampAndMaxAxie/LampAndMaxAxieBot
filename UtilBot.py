@@ -186,6 +186,7 @@ def getPlayerToken(roninKey, roninAddr):
 
             # check if cached token is available and not-expired for player
             if (roninAddr in tokenBook and "exp" in tokenBook[roninAddr]
+                    and tokenBook[roninAddr] is not None
                     and int(tokenBook[roninAddr]["exp"]) > int(time.time())
                     and len(tokenBook[roninAddr]["token"]) > 400
                     and int(tokenBook[roninAddr]["exp"]) > 1647508397):
