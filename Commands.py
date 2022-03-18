@@ -1003,7 +1003,7 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
 
     d = 0.0
     if res["rows"]["realVal"] is not None:
-        d = round(float(res["rows"]["realVal"]), 3)
+        d = max(round(float(res["rows"]["realVal"]), 3), 0)
 
     authorId = discordId
     if len(args) > 1 and args[1].isnumeric() and isManager:
@@ -1160,7 +1160,7 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
 
 
-# Command for an individual scholar payout
+# Command for an individual scholar payout ignores wait timer
 async def forcePayoutCommand(message, args, discordId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -1174,7 +1174,7 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
 
     d = 0.0
     if res["rows"]["realVal"] is not None:
-        d = round(float(res["rows"]["realVal"]), 3)
+        d = max(round(float(res["rows"]["realVal"]), 3), 0)
 
     authorId = discordId
     if len(args) > 1 and args[1].isnumeric():
@@ -1199,11 +1199,6 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
     key, address = await UtilBot.getKeyForUser(user)
     if key is None or address is None:
         await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
-        return
-
-    marketName = await UtilBot.getMarketplaceProfile(payoutAddr)
-    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
-        await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
     # confirm with react
@@ -1308,7 +1303,7 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
     await processMsg.reply(content=f"<@{authorID}>", embed=embed2)
 
 
-# Command for an individual scholar payout
+# Command for an individual scholar payout used if the scholar still has SLP left
 async def forceDisperseCommand(message, args, discordId, isSlash=False):
     authorID = message.author.id
     if not await DB.isManager(authorID):
@@ -1322,7 +1317,7 @@ async def forceDisperseCommand(message, args, discordId, isSlash=False):
 
     d = 0.0
     if res["rows"]["realVal"] is not None:
-        d = round(float(res["rows"]["realVal"]), 3)
+        d = max(round(float(res["rows"]["realVal"]), 3), 0)
 
     authorId = discordId
     if len(args) > 1 and args[1].isnumeric():
@@ -1347,11 +1342,6 @@ async def forceDisperseCommand(message, args, discordId, isSlash=False):
     key, address = await UtilBot.getKeyForUser(user)
     if key is None or address is None:
         await Common.handleResponse(message, "Mismatch detected between configured scholar account address and seed/account indices, or scholar not found.", isSlash)
-        return
-
-    marketName = await UtilBot.getMarketplaceProfile(payoutAddr)
-    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
-        await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
     # confirm with react
@@ -1508,7 +1498,7 @@ async def payoutAllScholars(message, args, isSlash=False):
 
     d = 0.0
     if res["rows"]["realVal"] is not None:
-        d = round(float(res["rows"]["realVal"]), 3)
+        d = max(round(float(res["rows"]["realVal"]), 3), 0)
 
     mp = await DB.getProperty("massPay")
     if not mp["success"]:

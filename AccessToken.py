@@ -4,22 +4,6 @@ from eth_account.messages import encode_defunct
 from web3 import Web3
 
 
-def signRoninMessage(message, key, attempts2=0):
-    try:
-        mes = encode_defunct(text=message)
-        ronweb3 = Web3(Web3.HTTPProvider('https://api.roninchain.com/rpc', request_kwargs={"headers": {"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"}}))
-        sig = ronweb3.eth.account.sign_message(mes, private_key=key)
-        signature = sig['signature'].hex()
-        return signature
-    except Exception as e:
-        if attempts2 > 3:
-            print("Could not Sign Message. Are the servers having issues?")
-            print(e)
-            return None
-        else:
-            return signRoninMessage(message, key, attempts2 + 1)
-
-
 def GenerateAccessToken(key, address, attempts=0):
     def getRandomMessage(attempts2=0):
         try:
