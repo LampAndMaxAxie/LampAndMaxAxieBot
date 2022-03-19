@@ -2,6 +2,8 @@ import json
 import requests
 from eth_account.messages import encode_defunct
 from web3 import Web3
+from loguru import logger
+import traceback
 
 
 def GenerateAccessToken(key, address, attempts=0):
@@ -18,10 +20,10 @@ def GenerateAccessToken(key, address, attempts=0):
             response = requests.request("POST", url, headers=headers, data=payload)
             json_data = json.loads(response.text)
             return json_data['data']['createRandomMessage']
-        except Exception as e:
+        except:
             if attempts2 > 3:
-                print("Could not generate AccessToken Random Message. Are the servers having issues?")
-                print(e)
+                logger.error("Could not generate AccessToken Random Message. Are the servers having issues?")
+                logger.error(traceback.format_exc())
                 return None
             else:
                 return getRandomMessage(attempts2 + 1)
@@ -33,10 +35,10 @@ def GenerateAccessToken(key, address, attempts=0):
             sig = ronweb3.eth.account.sign_message(mes, private_key=key)
             signature = sig['signature'].hex()
             return signature
-        except Exception as e:
+        except:
             if attempts2 > 3:
-                print("Could not Sign Message. Are the servers having issues?")
-                print(e)
+                logger.error("Could not Sign Message. Are the servers having issues?")
+                logger.error(traceback.format_exc())
                 return None
             else:
                 return signRoninMessage(message, key, attempts2 + 1)
@@ -52,10 +54,10 @@ def GenerateAccessToken(key, address, attempts=0):
             response = requests.request("POST", url, headers=headers, data=payload)
             json_data = json.loads(response.text)
             return json_data['data']['createAccessTokenWithSignature']['accessToken']
-        except Exception as e:
+        except:
             if attempts2 > 3:
-                print("Could not Create Access Token. Are the servers having issues?")
-                print(e)
+                logger.error("Could not Create Access Token. Are the servers having issues?")
+                logger.error(traceback.format_exc())
                 return None
             else:
                 return CreateAccessToken(message, signature, address, attempts2 + 1)
@@ -65,10 +67,10 @@ def GenerateAccessToken(key, address, attempts=0):
         mySignature = signRoninMessage(myResponse, key)
         token = CreateAccessToken(repr(myResponse).replace("\'", ""), mySignature, address)
         return token
-    except Exception as e:
+    except:
         if attempts > 3:
-            print(e)
-            print("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
+            logger.error("Unable To generate Access Token. This is gernerally an internet issue or a server issue.")
+            logger.error(traceback.format_exc())
             return None
         else:
             return GenerateAccessToken(key, address, attempts + 1)

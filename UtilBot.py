@@ -185,8 +185,11 @@ def getPlayerToken(roninKey, roninAddr):
             tokenBook = json.load(f)
 
             # check if cached token is available and not-expired for player
-            if (roninAddr in tokenBook and "exp" in tokenBook[roninAddr]
-                    and tokenBook[roninAddr] is not None
+            if (roninAddr in tokenBook
+                    and "exp" in tokenBook[roninAddr]
+                    and "token" in tokenBook[roninAddr]
+                    and tokenBook[roninAddr]["exp"] is not None
+                    and tokenBook[roninAddr]["token"] is not None
                     and int(tokenBook[roninAddr]["exp"]) > int(time.time())
                     and len(tokenBook[roninAddr]["token"]) > 400
                     and int(tokenBook[roninAddr]["exp"]) > 1647508397):
@@ -206,6 +209,10 @@ def getPlayerToken(roninKey, roninAddr):
         logger.error("Failed to get token for: " + roninAddr)
         logger.error(traceback.format_exc())
         return None
+
+    if token is None:
+        logger.error("Token is None, something is wrong")
+
     return token
 
 
