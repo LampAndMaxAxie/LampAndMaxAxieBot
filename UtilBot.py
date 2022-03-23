@@ -833,7 +833,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
     url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
-    urlRank = gameAPI2 + "/mmr/v2/?client_id=" + roninAddr + "&offset=0&limit=0"
+    urlRank = gameAPI2 + "/mmr/v2/?client_id=" + roninAddr
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
     # fail out if any data is missing
