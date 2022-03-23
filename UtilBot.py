@@ -602,7 +602,7 @@ async def getRoninBattles(roninAddr):
     url = gameAPI2 + "/logs/pvp/v2/" + roninAddr.replace("0x", "ronin:")
     jsonDat = await makeJsonRequestWeb(url)
 
-    urlRank = gameAPI2 + "/mmr/v2/" + roninAddr + "&offset=0&limit=0"
+    urlRank = gameAPI2 + "/mmr/v2/" + roninAddr
     jsonDatRank = await makeJsonRequest(urlRank, "none")
 
     name = await getMarketplaceProfile(roninAddr)
