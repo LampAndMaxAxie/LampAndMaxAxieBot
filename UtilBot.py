@@ -382,9 +382,6 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
     url = gameAPI2 + "/player/v2/" + roninAddr
     jsonDat = await makeJsonRequest(url, token)
 
-    # urlQuests = gameAPI + "/clients/" + roninAddr + "/quests"
-    # jsonDatQuests = await makeJsonRequest(urlQuests, token)
-
     urlBattle = gameAPI2 + "/mmr/v2/" + roninAddr
     jsonDatBattle = await makeJsonRequest(urlBattle, token)
     jsonDatBattle = jsonDatBattle[0]
@@ -393,20 +390,9 @@ async def getPlayerDailies(targetId, discordName, roninKey, roninAddr, guildId=N
     jsonDatBalance = await makeJsonRequest(urlBalance, token)
     jsonDatBalance = jsonDatBalance[0]
 
-    urlName = "https://axieinfinity.com/graphql-server-v2/graphql?query={publicProfileWithRoninAddress(roninAddress:\"" + roninAddr.replace("ronin:", "0x") + "\"){name}}"
-    success = False
-    name = ""
-    attempt = 0
-    while not success and attempt <= 5:
-        jsonDatName = await makeJsonRequestName(urlName)
-        try:
-            name = jsonDatName['data']['publicProfileWithRoninAddress']['name']
-            success = True
-        except:
-            attempt += 1
-    if attempt == 5:
-        logger.error(f"Could not get marketplace profile for {roninAddr}. Is something wrong with the axie servers? Tried 5 times.")
-        return None
+    name = await getMarketplaceProfile(roninAddr)
+    if name is None:
+        name = "<unknown>"
     # print(urlName)
     # print(jsonDatName)
     # fail out if any data is missing
@@ -599,7 +585,7 @@ async def getRoninBattles(roninAddr):
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = gameAPI2 + "/logs/pvp/v2/" + roninAddr.replace("0x", "ronin:")
+    url = gameAPI2 + "/logs/v2/pvp/" + roninAddr
     jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI2 + "/mmr/v2/" + roninAddr
@@ -619,7 +605,6 @@ async def getRoninBattles(roninAddr):
 
         # Arena data, mmr/rank
         player = jsonDatRank['items'][0]
-        name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
 
@@ -828,7 +813,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         return battlesCache[roninAddr]["data"]
 
     # fetch data
-    url = "https://game-api.axie.technology/logs/pvp/" + roninAddr.replace("0x", "ronin:")
+    url = gameAPI2 + "/logs/v2/pvp/" + roninAddr
     jsonDat = await makeJsonRequestWeb(url)
 
     urlRank = gameAPI2 + "/mmr/v2/" + roninAddr
@@ -839,12 +824,15 @@ async def getScholarBattles(targetId, discordName, roninAddr):
     if jsonDat is None or jsonDatRank is None:
         return None
 
+    name = await getMarketplaceProfile(roninAddr)
+    if name is None:
+        name = "<unknown>"
+
     try:
         battles = jsonDat['battles']
 
         # Arena data, mmr/rank
         player = jsonDatRank['items'][0]
-        name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
 
