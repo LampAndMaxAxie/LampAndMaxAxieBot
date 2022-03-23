@@ -604,6 +604,7 @@ async def getRoninBattles(roninAddr):
 
     urlRank = gameAPI2 + "/mmr/v2/" + roninAddr
     jsonDatRank = await makeJsonRequest(urlRank, "none")
+    jsonDatRank = jsonDatRank[0]
 
     name = await getMarketplaceProfile(roninAddr)
     if name is None:
@@ -617,10 +618,7 @@ async def getRoninBattles(roninAddr):
         battles = jsonDat['battles']
 
         # Arena data, mmr/rank
-        if len(jsonDatRank['items']) > 1:
-            player = jsonDatRank['items'][1]
-        else:
-            player = jsonDatRank['items'][0]
+        player = jsonDatRank['items'][0]
         name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
@@ -835,6 +833,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
 
     urlRank = gameAPI2 + "/mmr/v2/" + roninAddr
     jsonDatRank = await makeJsonRequest(urlRank, "none")
+    jsonDatRank = jsonDatRank[0]
 
     # fail out if any data is missing
     if jsonDat is None or jsonDatRank is None:
@@ -844,10 +843,7 @@ async def getScholarBattles(targetId, discordName, roninAddr):
         battles = jsonDat['battles']
 
         # Arena data, mmr/rank
-        if len(jsonDatRank['items']) > 1:
-            player = jsonDatRank['items'][1]
-        else:
-            player = jsonDatRank['items'][0]
+        player = jsonDatRank['items'][0]
         name = player["name"]
         mmr = int(player["elo"])
         rank = int(player["rank"])
