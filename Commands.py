@@ -665,7 +665,7 @@ async def updateScholarAddress(message, args, isManager, discordId, isSlash=Fals
         return
 
     marketName = await UtilBot.getMarketplaceProfile(payoutAddr)
-    if (Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower())) and (len(args) < 3 or not isManager or args[3] != "Force"):
+    if (Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower())) and (len(args) < 4 or not isManager or args[3] != "Force"):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
