@@ -187,9 +187,11 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
     for a in addresses:
         al.append(Web3.toChecksumAddress(a))
     a = await DB.getProperty("a")
-    if a["rows"] and d["rows"]["realVal"]    >= 0:
+    if a["rows"] and d["rows"]["realVal"] >= 0:
         al.append(Web3.toChecksumAddress(a["rows"]["textVal"]))
         nl.append(num - s)
+    else:
+        nl[-1] += (num - s)
     if a != da:
         g = 491391
     else:

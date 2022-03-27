@@ -536,7 +536,7 @@ async def updateScholarShare(message, args, discordId, isSlash=False):
 
     res = await DB.getDiscordID(discordUID)
     user = res["rows"]
-    if user is None or (user is not None and int(user["is_scholar"]) == 0):
+    if user is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
@@ -660,12 +660,12 @@ async def updateScholarAddress(message, args, isManager, discordId, isSlash=Fals
 
     res = await DB.getDiscordID(discordId)
     user = res["rows"]
-    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+    if user is None or user["is_scholar"] is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with this discord ID", isSlash)
         return
 
     marketName = await UtilBot.getMarketplaceProfile(payoutAddr)
-    if Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower()):
+    if (Common.requireNaming and (marketName is None or Common.requiredName.lower() not in marketName.lower())) and (len(args) < 3 or not isManager or args[3] != "Force"):
         await Common.handleResponse(message, f"The marketplace account of this payout address does not contain the requirement of: {Common.requiredName}", isSlash)
         return
 
@@ -1015,7 +1015,7 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
 
     res = await DB.getDiscordID(discordId)
     user = res["rows"]
-    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+    if user is None or user["is_scholar"] is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with your discord ID", isSlash)
         return
 
@@ -1182,7 +1182,7 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
 
     res = await DB.getDiscordID(discordId)
     user = res["rows"]
-    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+    if user is None or user["is_scholar"] is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with your discord ID", isSlash)
         return
 
@@ -1325,7 +1325,7 @@ async def forceDisperseCommand(message, args, discordId, isSlash=False):
 
     res = await DB.getDiscordID(discordId)
     user = res["rows"]
-    if user is None or (user is not None and (user["is_scholar"] is None or int(user["is_scholar"]) == 0)):
+    if user is None or user["is_scholar"] is None or int(user["is_scholar"]) == 0:
         await Common.handleResponse(message, "Did not find a scholar with your discord ID", isSlash)
         return
 
@@ -2145,4 +2145,3 @@ async def alertsCommand(message, args, isSlash=False):
         await message.reply("Processing!")
 
     await UtilBot.nearResetAlerts(rn, True, ping)
-
