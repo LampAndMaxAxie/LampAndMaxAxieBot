@@ -1,3 +1,4 @@
+import traceback
 import asyncio
 import json
 from loguru import logger
@@ -58,24 +59,32 @@ async def checkTx(txHash):
 async def sendTx(signed_txn, timeout=0.01):
     tx = signed_txn.hash
     try:
-        w3.eth.send_raw_transaction(signed_txn.rawTransaction)
-    except ValueError as e:
-        logger.warning(e)
-    tries = 0
-    success = False
-    while tries < 15:
         try:
-            receipt = w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
-            if receipt["status"] == 1:
-                success = True
-            break
-        except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
-            await asyncio.sleep(10 - timeout)
-            tries += 1
-            # logger.info("Not found yet, waiting...")
-    if success:
-        if await checkTx(tx):
-            # logger.info(f"Found tx hash on chain: {tx}")
-            return True
-    # logger.warning(f"Failed to find tx on chain: {tx}")
-    return False
+            w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        except ValueError as e:
+            logger.warning(e)
+        tries = 0
+        success = False
+        while tries < 15:
+            try:
+                receipt = w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
+                if receipt["status"] == 1:
+                    success = True
+                break
+            except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
+                await asyncio.sleep(10 - timeout)
+                tries += 1
+                # logger.info("Not found yet, waiting...")
+        if success:
+            if await checkTx(tx):
+                # logger.info(f"Found tx hash on chain: {tx}")
+                return True
+        # logger.warning(f"Failed to find tx on chain: {tx}")
+        return False
+    except Exception as e:
+        logger.error(signed_txn)
+        logger.error(e)
+        logger.error(tx)
+        logger.error(traceback.format_exc())
+
+

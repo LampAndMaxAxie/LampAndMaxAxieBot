@@ -270,6 +270,9 @@ async def slpClaiming(key, address, addresses, percents, devPercent=0.01):
 
     except Exception as e:
         logger.error(e)
+        logger.error("address: " + address)
+        logger.error("addresses: " + json.dumps(addresses))
+        logger.error("percents: " + json.dumps(percents))
         logger.error(traceback.format_exc())
         logger.error("Could not claim SLP")
         return None
