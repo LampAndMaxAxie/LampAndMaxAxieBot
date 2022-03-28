@@ -82,9 +82,9 @@ async def sendTx(signed_txn, timeout=0.01):
         # logger.warning(f"Failed to find tx on chain: {tx}")
         return False
     except Exception as e:
-        logger.error(signed_txn)
         logger.error(e)
-        logger.error(tx)
+        logger.error(Web3.toHex(tx))
+        logger.error(signed_txn)
         logger.error(traceback.format_exc())
 
 
