@@ -140,6 +140,9 @@ async def disperseSLP(key, address, addresses, amounts, g=491331, attempt=0):
         logger.error("Failed to disperse slp from " + address + " retried " + str(attempt) + " times.")
         return None
     else:
+        logger.warning(success)
+        logger.warning(signed_txn)
+        logger.warning(disperseTx)
         logger.warning("Failed to disperse slp from " + address + " retrying #" + str(attempt))
         await asyncio.sleep(3)
         return await disperseSLP(key, address, addresses, amounts, g, attempt+1)

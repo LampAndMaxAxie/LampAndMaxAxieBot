@@ -49,7 +49,10 @@ async def checkTx(txHash):
     for a in range(3):
         try:
             w3.eth.get_transaction_receipt(txHash)
-        except:
+        except Exception as e:
+            logger.error(e)
+            logger.error(Web3.toHex(txHash))
+            logger.error(traceback.format_exc())
             return False
         # logger.info("waiting")
         await asyncio.sleep(3)
