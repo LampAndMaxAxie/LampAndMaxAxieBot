@@ -74,7 +74,7 @@ async def sendTx(signed_txn, timeout=0.01):
                 if receipt["status"] == 1:
                     success = True
                 break
-            except (exceptions.TransactionNotFound, exceptions.TimeExhausted):
+            except (exceptions.TransactionNotFound, exceptions.TimeExhausted, ValueError):
                 await asyncio.sleep(10 - timeout)
                 tries += 1
                 # logger.info("Not found yet, waiting...")
