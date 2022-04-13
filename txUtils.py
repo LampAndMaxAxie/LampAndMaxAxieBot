@@ -46,11 +46,11 @@ def disperse():
 
 
 async def checkTx(txHash, attempts=0):
-    for a in range(3):
+    for a in range(5):
         try:
             w3.eth.get_transaction_receipt(txHash)
         except ValueError:
-            if attempts >= 3:
+            if attempts >= 5:
                 return False
             return await checkTx(txHash, attempts+1)
         except Exception as e:
@@ -71,23 +71,15 @@ async def sendTx(signed_txn, timeout=0.01):
         except ValueError as e:
             logger.warning(e)
         tries = 0
-        success = False
         while tries < 15:
             try:
-                receipt = w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
-                if receipt["status"] == 1:
-                    success = True
+                w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
                 break
             except (exceptions.TransactionNotFound, exceptions.TimeExhausted, ValueError):
                 await asyncio.sleep(10 - timeout)
                 tries += 1
                 # logger.info("Not found yet, waiting...")
-        if success:
-            if await checkTx(tx):
-                # logger.info(f"Found tx hash on chain: {tx}")
-                return True
-        # logger.warning(f"Failed to find tx on chain: {tx}")
-        return False
+        return await checkTx(tx)
     except Exception as e:
         logger.error(e)
         logger.error(Web3.toHex(tx))

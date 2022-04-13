@@ -1088,8 +1088,12 @@ async def payoutCommand(message, args, isManager, discordId, isSlash=False):
 
     try:
         # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, d)
-        addresses = [payoutAddr, Common.ownerRonin]
-        percents = [share, (1 - (d + share))]
+        if share == 1:
+            addresses = [payoutAddr]
+            percents = [share]
+        else:
+            addresses = [payoutAddr, Common.ownerRonin]
+            percents = [share, (1 - (d + share))]
         claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, d)
     except Exception as e:
         logger.error(e)
@@ -1230,8 +1234,12 @@ async def forcePayoutCommand(message, args, discordId, isSlash=False):
 
     try:
         # devSlp, ownerSlp, scholarSlp = ClaimSLP.slpClaiming(key, address, payoutAddr, ownerRonin, share, d)
-        addresses = [payoutAddr, Common.ownerRonin]
-        percents = [share, (1 - (d + share))]
+        if share == 1:
+            addresses = [payoutAddr]
+            percents = [share]
+        else:
+            addresses = [payoutAddr, Common.ownerRonin]
+            percents = [share, (1 - (d + share))]
         claimRes = await ClaimSLP.slpClaiming(key, address, addresses, percents, d)
         # claimRes = await ClaimSLP.slpClaiming(key, address, payoutAddr, Common.ownerRonin, share, d)
     except Exception as e:
@@ -1372,8 +1380,12 @@ async def forceDisperseCommand(message, args, discordId, isSlash=False):
     processMsg = await confMsg.reply(content=f"Processing your payout <@{discordId}>... this may take up to a couple minutes. Please be patient.")
 
     try:
-        addresses = [payoutAddr, Common.ownerRonin]
-        percents = [share, (1 - (d + share))]
+        if share == 1:
+            addresses = [payoutAddr]
+            percents = [share]
+        else:
+            addresses = [payoutAddr, Common.ownerRonin]
+            percents = [share, (1 - (d + share))]
         claimRes = await ClaimSLP.sendSLP(key, address, addresses, percents, d)
     except Exception as e:
         logger.error(e)
