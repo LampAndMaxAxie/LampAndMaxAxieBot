@@ -80,16 +80,7 @@ async def getSLP(token, address, requestType, attempts=0):
             return await getSLP(token, address, requestType, attempts + 1)
 
 
-async def ClaimSLP(key, address, data, attempt=0):
-    try:
-        amount = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
-    except Exception as e:
-        logger.error(e)
-        return False
-    if amount != 0:
-        logger.warning(f"{address} has an existing SLP balance. Please resolve before claiming.")
-        return False
-
+async def ClaimSLP(key, address, data, nonce, attempt=0):
     signature = data['blockchain_related']['signature']['signature']
     amount = data['blockchain_related']['signature']['amount']
     timestamp = data['blockchain_related']['signature']['timestamp']
@@ -102,11 +93,33 @@ async def ClaimSLP(key, address, data, attempt=0):
         'chainId': 2020,
         'gas': 491336,
         'gasPrice': Web3.toWei(1, 'gwei'),
-        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'nonce': nonce
     })
     signed_txn = txUtils.w3.eth.account.sign_transaction(claim_txn, private_key=key)
-    success = await txUtils.sendTx(signed_txn)
     slpClaimed = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
+    if nonce != txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address)):
+        try:
+            num = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        except Exception as e:
+            logger.error(e)
+            return None
+        if not isinstance(num, int):
+            logger.error("amount is not an int")
+            return None
+        if num == 0:
+            logger.error(f"SLP was already claimed for {address} but axie lied to us.")
+            return slpClaimed
+        else:
+            return await ClaimSLP(key, address, data, nonce+1, attempt)
+    try:
+        amount = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+    except Exception as e:
+        logger.error(e)
+        return False
+    if amount != 0:
+        logger.warning(f"{address} has an existing SLP balance. Please resolve before claiming.")
+        return False
+    success = await txUtils.sendTx(signed_txn)
     if success:
         logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
         try:
@@ -120,7 +133,7 @@ async def ClaimSLP(key, address, data, attempt=0):
     else:
         logger.warning("Failed to claim scholar " + address + " retrying #" + str(attempt))
         await asyncio.sleep(5)
-        return await ClaimSLP(key, address, data, attempt + 1)
+        return await ClaimSLP(key, address, data, nonce, attempt + 1)
 
 
 async def disperseSLP(key, address, addresses, amounts, nonce, g=491331, attempt=0):
@@ -266,12 +279,14 @@ async def slpClaiming(key, address, addresses, percents, devPercent=0.01):
         if slp_data['last_claimed_item_at'] + 1209600 <= time.time():
             json_data = json.loads(await getSLP(accessToken, address, "POST"))
             logger.info(address + "\tclaim and update")
-            claimTx = await ClaimSLP(key, address, json_data)
+            nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+            claimTx = await ClaimSLP(key, address, json_data, nonce)
 
         # check if next claim isn't ready, but API indicates there is claimable SLP
         elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount'] and slp_data['blockchain_related']['signature']['amount'] != 0 and slp_data['blockchain_related']['checkpoint'] is not None:
             logger.info(address + "\tclaim, no update")
-            claimTx = await ClaimSLP(key, address, slp_data)
+            nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+            claimTx = await ClaimSLP(key, address, slp_data, nonce)
 
         # claim isn't ready and this is normal
         else:
