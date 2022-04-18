@@ -54,9 +54,9 @@ async def checkTx(txHash, attempts=0):
                 return False
             return await checkTx(txHash, attempts+1)
         except Exception as e:
-            logger.error(e)
-            logger.error(Web3.toHex(txHash))
-            logger.error(traceback.format_exc())
+            # logger.error(e)
+            # logger.error(Web3.toHex(txHash))
+            # logger.error(traceback.format_exc())
             return False
         # logger.info("waiting")
         await asyncio.sleep(3)
@@ -72,15 +72,23 @@ async def sendTx(signed_txn, timeout=0.01):
             logger.warning(e)
         tries = 0
         success = False
+        firstCheck = True
+        transaction = ""
         while tries < 15:
             try:
                 transaction = w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
                 success = transaction["status"] == 1
-                break
+                if firstCheck:
+                    firstCheck = False
+                    await asyncio.sleep(10 - timeout)
+                else:
+                    break
             except (exceptions.TransactionNotFound, exceptions.TimeExhausted, ValueError):
                 await asyncio.sleep(10 - timeout)
                 tries += 1
         if success:
+            logger.info("Claims Success")
+            logger.info(transaction)
             return await checkTx(tx)
         return False
     except Exception as e:

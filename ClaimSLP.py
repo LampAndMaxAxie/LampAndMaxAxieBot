@@ -106,7 +106,7 @@ async def ClaimSLP(key, address, data, nonce, attempt=0):
         if not isinstance(num, int):
             logger.error("amount is not an int")
             return None
-        if num == 0:
+        if num != 0:
             logger.error(f"SLP was already claimed for {address} but axie lied to us.")
             return slpClaimed
         else:
