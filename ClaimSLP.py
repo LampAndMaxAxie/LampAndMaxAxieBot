@@ -22,7 +22,7 @@ sa = '0xa8754b9fa15fc18bb59458815510e40a12cd2014'
 # approve the solidity max int for the https://scatter.roninchain.com/ contract.
 # This is the same number that sky mavis uses.
 # Using the max int saves gas and means you will only ever have to do it once.
-async def approve(key, address, attempts=0):
+async def approve(key, address, nonce, attempts=0):
     send_txn = slpContract.functions.approve(
         Web3.toChecksumAddress(aa),
         APPROVAL_AMOUNT
@@ -30,10 +30,14 @@ async def approve(key, address, attempts=0):
         'chainId': 2020,
         'gas': 491330,
         'gasPrice': Web3.toWei(1, 'gwei'),
-        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'nonce': nonce
     })
     signed_txn = txUtils.w3.eth.account.sign_transaction(send_txn, private_key=key)
     sentTx = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
+    approved = slpContract.functions.allowance(Web3.toChecksumAddress(address), Web3.toChecksumAddress(aa)).call()
+    if approved >= 10000:
+        logger.info(address + " is already approved")
+        return sentTx
     success = await txUtils.sendTx(signed_txn)
     if success:
         logger.success("SLP was approved for " + address + " at tx " + sentTx)
@@ -44,7 +48,7 @@ async def approve(key, address, attempts=0):
     else:
         logger.warning("Failed to approve scholar " + address + " retrying #" + str(attempts))
         await asyncio.sleep(5)
-        return await approve(key, address, attempts + 1)
+        return await approve(key, address, nonce, attempts + 1)
 
 
 async def getSLP(token, address, requestType, attempts=0):
@@ -119,7 +123,7 @@ async def ClaimSLP(key, address, data, attempt=0):
         return await ClaimSLP(key, address, data, attempt + 1)
 
 
-async def disperseSLP(key, address, addresses, amounts, g=491331, attempt=0):
+async def disperseSLP(key, address, addresses, amounts, nonce, g=491331, attempt=0):
     send_txn = disperseContract.functions.disperseToken(
         Web3.toChecksumAddress(sa),
         addresses,
@@ -128,11 +132,25 @@ async def disperseSLP(key, address, addresses, amounts, g=491331, attempt=0):
         'chainId': 2020,
         'gas': g,
         'gasPrice': Web3.toWei(1, 'gwei'),
-        'nonce': txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        'nonce': nonce
     })
     signed_txn = txUtils.w3.eth.account.sign_transaction(send_txn, private_key=key)
-    success = await txUtils.sendTx(signed_txn)
     disperseTx = Web3.toHex(Web3.keccak(signed_txn.rawTransaction))
+    if nonce != txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address)):
+        try:
+            num = slpContract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        except Exception as e:
+            logger.error(e)
+            return None
+        if not isinstance(num, int):
+            logger.error("amount is not an int")
+            return None
+        if num == 0:
+            logger.error(f"SLP was already sent for {address} but axie lied to us.")
+            return disperseTx
+        else:
+            return await disperseSLP(key, address, addresses, amounts, nonce+1, g, attempt)
+    success = await txUtils.sendTx(signed_txn)
     if success:
         logger.success("SLP dispersed from " + address + " at tx " + disperseTx)
         return disperseTx
@@ -145,7 +163,7 @@ async def disperseSLP(key, address, addresses, amounts, g=491331, attempt=0):
         logger.warning(disperseTx)
         logger.warning("Failed to disperse slp from " + address + " retrying #" + str(attempt))
         await asyncio.sleep(3)
-        return await disperseSLP(key, address, addresses, amounts, g, attempt+1)
+        return await disperseSLP(key, address, addresses, amounts, nonce, g, attempt+1)
 
 
 async def sendSLP(key, address, addresses, ps, p=0.01):
@@ -171,7 +189,8 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
     approved = slpContract.functions.allowance(Web3.toChecksumAddress(address), Web3.toChecksumAddress(aa)).call()
     if approved == 0:
         logger.info("approving " + address + " to use scatter contract")
-        await approve(key, address)
+        nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+        await approve(key, address, nonce)
     else:
         logger.info(address + " is already approved")
 
@@ -199,7 +218,8 @@ async def sendSLP(key, address, addresses, ps, p=0.01):
         g = 491391
     else:
         g = None
-    tx = await disperseSLP(key, address, al, nl, g)
+    nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
+    tx = await disperseSLP(key, address, al, nl, nonce, g)
     logger.success("Scholar " + address + " payout successful")
     return_array = {
         "totalAmount": num,

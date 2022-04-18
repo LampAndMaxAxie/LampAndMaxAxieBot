@@ -71,19 +71,20 @@ async def sendTx(signed_txn, timeout=0.01):
         except ValueError as e:
             logger.warning(e)
         tries = 0
+        success = False
         while tries < 15:
             try:
-                w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
+                transaction = w3.eth.wait_for_transaction_receipt(tx, timeout, 0.005)
+                success = transaction["status"] == 1
                 break
             except (exceptions.TransactionNotFound, exceptions.TimeExhausted, ValueError):
                 await asyncio.sleep(10 - timeout)
                 tries += 1
-                # logger.info("Not found yet, waiting...")
-        return await checkTx(tx)
+        if success:
+            return await checkTx(tx)
+        return False
     except Exception as e:
         logger.error(e)
         logger.error(Web3.toHex(tx))
         logger.error(signed_txn)
         logger.error(traceback.format_exc())
-
-
