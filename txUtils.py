@@ -49,7 +49,7 @@ async def checkTx(txHash, attempts=0):
     for a in range(5):
         try:
             w3.eth.get_transaction_receipt(txHash)
-        except ValueError:
+        except (exceptions.TransactionNotFound, exceptions.TimeExhausted, ValueError):
             if attempts >= 5:
                 return False
             return await checkTx(txHash, attempts+1)
