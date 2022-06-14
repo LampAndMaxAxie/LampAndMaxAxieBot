@@ -53,9 +53,9 @@ async def approve(key, address, nonce, attempts=0):
 
 async def getSLP(token, address, requestType, attempts=0):
     if requestType == "POST":
-        url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1/claim"
+        url = "https://game-api-pre.skymavis.com/v1/players/me/items/1/claim"
     else:
-        url = "https://game-api.skymavis.com/game-api/clients/" + address + "/items/1"
+        url = "https://game-api-pre.skymavis.com/v1/players/" + address + "/items/1"
     headers = {
         'Authorization': 'Bearer ' + token,
         'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)',
@@ -63,7 +63,7 @@ async def getSLP(token, address, requestType, attempts=0):
     response = requests.request(requestType, url, headers=headers)
     try:
         slp = json.loads(response.text)
-        if "success" in slp and slp['success']:
+        if "clientID" in slp and slp['clientID'] == address:
             return response.text
         else:
             raise Exception("success = false")
@@ -73,6 +73,7 @@ async def getSLP(token, address, requestType, attempts=0):
             logger.error(e)
             logger.error(response)
             logger.error(response.text)
+            logger.error(url)
             logger.error("Was not able to get the slp of " + address + ". Tried 3 times. Request type " + requestType)
             return None
         else:
@@ -81,9 +82,9 @@ async def getSLP(token, address, requestType, attempts=0):
 
 
 async def ClaimSLP(key, address, data, nonce, attempt=0):
-    signature = data['blockchain_related']['signature']['signature']
-    amount = data['blockchain_related']['signature']['amount']
-    timestamp = data['blockchain_related']['signature']['timestamp']
+    signature = data['blockchainRelated']['signature']['signature']
+    amount = data['blockchainRelated']['signature']['amount']
+    timestamp = data['blockchainRelated']['signature']['timestamp']
     claim_txn = slpContract.functions.checkpoint(
         Web3.toChecksumAddress(address),
         amount,
@@ -123,7 +124,7 @@ async def ClaimSLP(key, address, data, nonce, attempt=0):
     if success:
         logger.success("SLP was claimed for " + address + " at tx " + slpClaimed)
         try:
-            await DB.addClaimLog(address, data["last_claimed_item_at"], data["claimable_total"])
+            await DB.addClaimLog(address, data["lastClaimedItemAt"], data["claimableTotal"])
         except:
             pass
         return slpClaimed
@@ -269,21 +270,21 @@ async def slpClaiming(key, address, addresses, percents, devPercent=0.01):
         slp_data = json.loads(await getSLP(accessToken, address, "GET"))
 
         # if there is a recent claim, add it to the DB
-        if slp_data['last_claimed_item_at'] + 1209600 > time.time():
+        if slp_data['lastClaimedItemAt'] + 1209600 > time.time():
             try:
-                await DB.addClaimLog(address, int(slp_data['last_claimed_item_at']), 0)
+                await DB.addClaimLog(address, int(slp_data['lastClaimedItemAt']), 0)
             except:
                 pass
 
         # check if claim is ready
-        if slp_data['last_claimed_item_at'] + 1209600 <= time.time():
+        if slp_data['lastClaimedItemAt'] + 1209600 <= time.time():
             json_data = json.loads(await getSLP(accessToken, address, "POST"))
             logger.info(address + "\tclaim and update")
             nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
             claimTx = await ClaimSLP(key, address, json_data, nonce)
 
         # check if next claim isn't ready, but API indicates there is claimable SLP
-        elif slp_data['blockchain_related']['checkpoint'] != slp_data['blockchain_related']['signature']['amount'] and slp_data['blockchain_related']['signature']['amount'] != 0 and slp_data['blockchain_related']['checkpoint'] is not None:
+        elif slp_data['blockchainRelated']['checkpoint'] != slp_data['blockchainRelated']['signature']['amount'] and slp_data['blockchainRelated']['signature']['amount'] != 0 and slp_data['blockchainRelated']['checkpoint'] is not None:
             logger.info(address + "\tclaim, no update")
             nonce = txUtils.w3.eth.get_transaction_count(Web3.toChecksumAddress(address))
             claimTx = await ClaimSLP(key, address, slp_data, nonce)
@@ -291,10 +292,10 @@ async def slpClaiming(key, address, addresses, percents, devPercent=0.01):
         # claim isn't ready and this is normal
         else:
             claimTx = None
-            if slp_data['last_claimed_item_at'] + 1209600 > time.time():
-                logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['last_claimed_item_at'] + 1209600) - time.time()) + " more seconds")
-                return slp_data['last_claimed_item_at'] + 1209600  # integer indicates "not ready to claim"
-            elif slp_data['blockchain_related']['balance'] == 0 and slp_data['claimable_total'] == 0:
+            if slp_data['lastClaimedItemAt'] + 1209600 > time.time():
+                logger.info(address + " cannot be claimed yet. Please wait " + str((slp_data['lastClaimedItemAt'] + 1209600) - time.time()) + " more seconds")
+                return slp_data['lastClaimedItemAt'] + 1209600  # integer indicates "not ready to claim"
+            elif slp_data['blockchainRelated']['balance'] == 0 and slp_data['claimableTotal'] == 0:
                 logger.warning("No SLP Balance")
                 return None  # none indicates "error"
 

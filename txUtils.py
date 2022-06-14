@@ -88,7 +88,7 @@ async def sendTx(signed_txn, timeout=0.01):
                 tries += 1
         if success:
             logger.info("Claims Success")
-            logger.info(transaction)
+            logger.info(Web3.toHex(tx))
             return await checkTx(tx)
         return False
     except Exception as e:

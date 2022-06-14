@@ -51,7 +51,7 @@ teamCache = {}
 slpEmojiID = {}
 
 graphQL = "https://graphql-gateway.axieinfinity.com/graphql"
-gameAPI = "https://game-api.skymavis.com/game-api"
+gameAPI = "https://game-api-pre.skymavis.com"
 gameAPI2 = "https://game-api.axie.technology"
 
 
@@ -251,7 +251,7 @@ async def makeJsonRequest(url, token, attempt=0):
             "GET",
             url,
             headers={
-                "Host": "game-api.skymavis.com",
+                "Host": "game-api-pre.skymavis.com",
                 "User-Agent": "UnityPlayer/2019.4.28f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)",
                 "Accept": "*/*",
                 "Accept-Encoding": "identity",
@@ -261,27 +261,11 @@ async def makeJsonRequest(url, token, attempt=0):
 
         jsonDat = json.loads(response.data.decode('utf8'))  # .decode('utf8')
         succ = False
-        if 'success' in jsonDat:
-            succ = jsonDat['success']
-        elif 'story_id' in jsonDat:
+        if '_items' in jsonDat:
             succ = True
-        else:
-            try:
-                if 'success' in jsonDat[0]:
-                    succ = jsonDat[0]['success']
-            except:
-                pass
 
-        # print(url)
-        # print(jsonDat)
         if not succ:
-            if 'details' in jsonDat and len(jsonDat['details']) > 0:
-                if 'code' in jsonDat:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['code']}, attempt {attempt}")
-                else:
-                    logger.error(f"API call failed in makeJsonRequest for: {url}, {jsonDat['details'][0]}, attempt {attempt}")
-            else:
-                logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
+            logger.error(f"API call failed in makeJsonRequest for: {url}, attempt {attempt}")
 
             if attempt < 3:
                 return await makeJsonRequest(url, token, attempt + 1)
@@ -1220,7 +1204,8 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
     if token is None:
         return None
 
-    url = gameAPI + "/clients/" + roninAddr + "/teams?offset=0&limit=20"
+    # https://game-api-origin.skymavis.com/v2/users/me/teams?limit=100&offset=0
+    url = gameAPI + "/v1/players/me/teams?limit=100&offset=0"
     jsonDat = await makeJsonRequest(url, token)
 
     if jsonDat is None:
@@ -1231,16 +1216,16 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
     try:
         if teamIndex <= 0:
             ind = 0
-        elif teamIndex >= len(jsonDat['items']):
-            ind = len(jsonDat['items']) - 1
+        elif teamIndex >= len(jsonDat['_items']):
+            ind = len(jsonDat['_items']) - 1
         else:
             ind = teamIndex
-        jsonDat = jsonDat['items'][ind]
+        jsonDat = jsonDat['_items'][ind]
 
         teamName = jsonDat["name"]
-        axie1 = jsonDat["members"][0]
-        axie2 = jsonDat["members"][1]
-        axie3 = jsonDat["members"][2]
+        axie1 = jsonDat["fighters"][0]
+        axie2 = jsonDat["fighters"][1]
+        axie3 = jsonDat["fighters"][2]
         axieIds = [axie1["fighter_id"], axie2["fighter_id"], axie3["fighter_id"]]
         axieLevels = [axie1["level"], axie2["level"], axie3["level"]]
 
@@ -1251,20 +1236,17 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
             urlParts = f"https://api.axie.technology/getgenes/{axId}/all"
             res = await makeJsonRequestWeb(urlParts)
 
-            axieParts[axId] = {"stats": res["stats"], "class": res["class"], "parts": res["parts"], "name": res["name"],
-                               "level": axieLevels[k]}
+            axieParts[axId] = {"stats": res["stats"], "class": res["class"], "parts": res["parts"], "name": res["name"], "level": axieLevels[k]}
             k += 1
 
         avgLevel = round(float(axieLevels[0] + axieLevels[1] + axieLevels[2]) / 3.0, 1)
 
-        embed = discord.Embed(title="Scholar Axies", description="Axies for scholar " + discordName,
-                              timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
+        embed = discord.Embed(title="Scholar Axies", description="Axies for scholar " + discordName, timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
         embed.add_field(name="Scholar Name", value=f"{discordName}")
         embed.add_field(name="Team Name", value=f"{teamName}")
         embed.add_field(name="Avg Axie Level", value=f"{avgLevel}")
 
-        mobileEmbed = discord.Embed(title="Scholar Axies", description="Axies for scholar " + discordName,
-                                    timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
+        mobileEmbed = discord.Embed(title="Scholar Axies", description="Axies for scholar " + discordName, timestamp=datetime.datetime.utcnow(), color=discord.Color.blue())
         mobileEmbed.add_field(name="Scholar Name", value=f"{discordName}")
         mobileEmbed.add_field(name="Team Name", value=f"{teamName}")
         mobileEmbed.add_field(name="Avg Axie Level", value=f"{avgLevel}")
@@ -1275,11 +1257,9 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         # build the message component for each axie
         for i in axieIds:
             stats = axieParts[i]["stats"]
-            axieStats = "%d HP / %d Morale / %d Speed / %d Skill\n" % (
-                stats["hp"], stats["morale"], stats["speed"], stats["skill"])
+            axieStats = "%d HP / %d Morale / %d Speed / %d Skill\n" % (stats["hp"], stats["morale"], stats["speed"], stats["skill"])
 
-            axieTitle = axieParts[i]["class"].capitalize() + " Axie " + str(j) + ": " + axieParts[i][
-                "name"] + ", Level " + str(axieParts[i]["level"])
+            axieTitle = axieParts[i]["class"].capitalize() + " Axie " + str(j) + ": " + axieParts[i]["name"] + ", Level " + str(axieParts[i]["level"])
             embed.add_field(name=f"{axieTitle}", value=f"{axieStats}")
             mobileEmbed.add_field(name=f"{axieTitle}", value=f"{axieStats}")
 
@@ -1289,8 +1269,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
                     ability = part["abilities"][0]
 
                     piece = "%s, %s (%s)\n" % (part["class"], part["name"], ability["name"])
-                    piece += "`%d atk` / `%d def` / `%d energy`: %s\n" % (
-                        ability["attack"], ability["defense"], ability["energy"], ability["description"])
+                    piece += "`%d atk` / `%d def` / `%d energy`: %s\n" % (ability["attack"], ability["defense"], ability["energy"], ability["description"])
                     pType = part["type"]
                     axie[pType] = piece
 
@@ -1345,7 +1324,7 @@ async def getPlayerAxies(discordId, discordName, roninKey, roninAddr, teamIndex=
         return teamCache[discordId]
     except Exception as e:
         logger.error("Failed in getPlayerAxies")
-        # traceback.print_exc()
+        logger.error(traceback.format_exc())
         logger.error(e)
         await sendErrorToManagers(e, discordId)
 
@@ -1419,3 +1398,6 @@ async def nearResetAlerts(rn, forceAlert=False, alertPing=True):
         logger.error("Failed to process near reset alerts")
         logger.error(e)
         logger.error(traceback.format_exc())
+
+
+# async def fetchAllSLP():
