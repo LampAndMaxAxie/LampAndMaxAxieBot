@@ -1,7 +1,7 @@
 aiosqlite==0.17.0
 discord.py==1.7.3
 dislash.py==1.4.9
-eth_account==0.5.6
+eth_account==0.7.0
 loguru==0.5.3
 numpy==1.21
 pandas==1.1.5
